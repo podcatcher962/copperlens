@@ -36,7 +36,7 @@ from ctypes import wintypes
 from pathlib import Path
 
 APP_TITLE = "PCB 看板 CopperLens"
-VERSION = "1.11"
+VERSION = "1.12"
 
 _APPDIR = "CopperLens"
 _LOG = Path(tempfile.gettempdir()) / _APPDIR / "last-run.log"
@@ -136,36 +136,129 @@ OFN_FILEMUSTEXIST = 0x00001000
 OFN_EXPLORER = 0x00080000
 
 
+_HWND_CACHE = [None]
+
+
 def _viewer_hwnd():
     """找到我们自己那个显示窗口（Edge/Chrome 的 --app 窗口），当文件对话框的父窗口。
 
-    没有父窗口时，对话框是"无主窗口"，从后台线程弹出来很容易被浏览器窗口压住，
-    看着就像"点了没反应"。挂上父窗口，它一定浮在我们的窗口上面，也顺手变成模态。
-    """
-    try:
-        found = []
-        proc = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+    ⚠ 这里以前只看标题，认到过一次**错的句柄**，后果很吓人：
+    父窗口不对时，通用对话框会退而把"当前前台窗口"当主体并把它
+    EnableWindow(False)，关掉对话框时又还给那个错句柄 —— 用户看到的就是
+    "窗口还在、页面也在动，但点 X 没反应、整窗变灰"。
 
-        def cb(h, _):
+    所以现在三重要求：可见 + 类名是浏览器窗口 + 标题带我们的标记，
+    多个候选取**面积最大**的那个（真正的主窗口一定比残留小窗大），并缓存结果。
+    """
+    h = _HWND_CACHE[0]
+    try:
+        if h and _user32.IsWindow(h) and _user32.IsWindowVisible(h):
+            return h
+    except Exception:
+        pass
+    try:
+        best = [None, 0]
+        proc = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+        rect = wintypes.RECT
+
+        def cb(hwnd, _):
             try:
-                if not _user32.IsWindowVisible(h):
+                if not _user32.IsWindowVisible(hwnd):
                     return True
-                n = _user32.GetWindowTextLengthW(h)
-                if n <= 0:
+                cls = ctypes.create_unicode_buffer(64)
+                _user32.GetClassNameW(hwnd, cls, 64)
+                if cls.value not in ("Chrome_WidgetWin_1", "MozillaWindowClass"):
                     return True
-                b = ctypes.create_unicode_buffer(n + 1)
-                _user32.GetWindowTextW(h, b, n + 1)
+                ln = _user32.GetWindowTextLengthW(hwnd)
+                if ln <= 0:
+                    return True
+                b = ctypes.create_unicode_buffer(ln + 1)
+                _user32.GetWindowTextW(hwnd, b, ln + 1)
                 t = b.value
-                if "CopperLens" in t or "PCB 看板" in t:
-                    found.append(h)
+                if "CopperLens" not in t and "PCB 看板" not in t:
+                    return True
+                r = rect()
+                if not _user32.GetWindowRect(hwnd, ctypes.byref(r)):
+                    return True
+                area = max(0, r.right - r.left) * max(0, r.bottom - r.top)
+                if area > best[1]:
+                    best[0], best[1] = hwnd, area
             except Exception:
                 pass
             return True
 
         _user32.EnumWindows(proc(cb), 0)
-        return found[0] if found else None
+        _HWND_CACHE[0] = best[0]
+        return best[0]
     except Exception:
         return None
+
+
+def _dialog_open():
+    """当前是不是有通用文件对话框开着（类名 #32770）。解禁线程靠它避让。"""
+    hit = [False]
+    try:
+        proc = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+
+        def cb(hwnd, _):
+            try:
+                if not _user32.IsWindowVisible(hwnd):
+                    return True
+                cls = ctypes.create_unicode_buffer(64)
+                _user32.GetClassNameW(hwnd, cls, 64)
+                if cls.value == "#32770":
+                    hit[0] = True
+                    return False
+            except Exception:
+                pass
+            return True
+
+        _user32.EnumWindows(proc(cb), 0)
+    except Exception:
+        pass
+    return hit[0]
+
+
+def _reassert_enabled(h, tries=4):
+    """把窗口重新启用，并分几次"补刀"。
+
+    对话框的收尾不是同步的：我们这边 EnableWindow(True) 之后，系统还可能再
+    关一次（实测就是这样），窗口于是停在禁用状态 —— 点 X 完全没反应。
+    所以隔 0.3 秒再补几次，用户感觉不到窗口"灰一下"。
+    """
+    def run():
+        for _ in range(tries):
+            try:
+                _user32.EnableWindow(h, True)
+            except Exception:
+                pass
+            time.sleep(0.3)
+
+    try:
+        threading.Thread(target=run, daemon=True).start()
+    except Exception:
+        pass
+
+
+def _unstick_guard():
+    """保命线程：窗口被留在"禁用"状态时自动解禁。
+
+    现象（真实发生过）：文件对话框关掉后，程序窗口还在、页面还在跑，但点 X、
+    点任何按钮都没反应 —— 因为窗口还是 WS_DISABLED。这里每秒看一眼，
+    只要"没有对话框开着 + 窗口却是禁用的"，就把它重新启用。
+    """
+    while True:
+        time.sleep(1.2)
+        try:
+            h = _viewer_hwnd()
+            if not h:
+                continue
+            if not _user32.IsWindowEnabled(h) and not _dialog_open():
+                _user32.EnableWindow(h, True)
+                _HWND_CACHE[0] = None          # 顺手让下次重新找一遍
+                log("窗口卡在禁用状态（对话框没还回来），已自动解禁 hwnd=%r" % h)
+        except Exception:
+            pass
 
 
 def _raise_window(h):
@@ -255,7 +348,14 @@ def ask_file():
              "All files (*.*)\0*.*\0\0")
     ofn = OPENFILENAMEW()
     ofn.lStructSize = ctypes.sizeof(OPENFILENAMEW)
-    ofn.hwndOwner = _viewer_hwnd()
+    owner = _viewer_hwnd()
+    if owner:
+        # 万一上一轮把窗口留在禁用状态，先解开再弹，否则对话框也会跟着"被禁用"
+        try:
+            _user32.EnableWindow(owner, True)
+        except Exception:
+            pass
+    ofn.hwndOwner = owner
     ofn.lpstrFilter = filt
     ofn.nFilterIndex = 1
     ofn.lpstrFile = ctypes.cast(buf, wintypes.LPWSTR)
@@ -268,7 +368,14 @@ def ask_file():
     # 后台线程弹的对话框默认可能落在别的窗口后面；派个哨兵把它抓到最前面
     threading.Thread(target=_pop_dialog_forward, args=(title,),
                      daemon=True).start()
-    if not _comdlg32.GetOpenFileNameW(ctypes.byref(ofn)):
+    try:
+        ok = bool(_comdlg32.GetOpenFileNameW(ctypes.byref(ofn)))
+    finally:
+        # 不管用户是选了文件还是按了取消，父窗口都必须还回"可用"状态。
+        # 踩过的坑：对话框关掉后窗口还是灰的，点 X 完全没反应。
+        if owner:
+            _reassert_enabled(owner)
+    if not ok:
         return None
     path = buf.value
     return path or None
@@ -786,6 +893,7 @@ def _make_handler(token, home_html):
 
 def run_home():
     """双击启动：海报 → 首页 → 自己点"打开文件"。"""
+    threading.Thread(target=_unstick_guard, daemon=True).start()
     token = secrets.token_hex(16)
     _home_html[0] = build_home_html(token)
     try:
