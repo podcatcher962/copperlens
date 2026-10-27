@@ -1,7 +1,10 @@
 # PCB 看板 / CopperLens v1.13
 
+**中文** ｜ [English](#english) ｜ [版本履历 Changelog](CHANGELOG.md)
+
 维修查线路用的 **只读** 看板工具。点一下走线或焊盘 → 整条网络亮黄，状态栏直接写出
 `U100-4 / C102-1` 这样的具体脚位。不装任何 EDA 软件，不联网。
+
 单个 exe，**支持 x86 与 64 位 Windows**，Windows 7 / 8 / 10 / 11 双击即用，不用另装东西。
 
 ## 直接用
@@ -13,35 +16,48 @@
 
 ![查线](预览_查线.png)
 
-> 名字刻意不含任何厂商 / 软件名。格式名（`PCB 4.0 Binary File`）只在"能读什么"里出现，
-> 属描述性使用；详见文末《发布与合规》。
+> 格式名（`PCB 4.0 Binary File`）只出现在"能读什么"里，用来描述兼容性，不作商标使用；
+> 详见文末《发布与合规》。
 
-```
-PCB看板.exe              单文件程序（x86 32 位）
-index.html           查线内核（单文件网页，中英双语，exe 里内嵌一份）
-src/copperlens.py         exe 主程序（对话框文案随系统语言中/英）
-src/mdbtools/            mdb-export.exe + DLL（读 .ddb 用，全是 32 位）
-src/导出DDB.py           独立导出脚本（备用）
-_build32.py              打包脚本（用 C:\Python312-32 打包，保证 x86）
-demo_converter.pcb       本地测试板（**不随包分发、不入仓库**；CERN-OHL v1.2，来源见《第三方组件与许可.txt》）
-示例_PC-Henshin库.ddb    本地测试库（**不随包分发、不入仓库**；7 块板，CERN-OHL v1.2）
-使用说明.txt             随包说明
-第三方组件与许可.txt      第三方组件、示例文件授权、GPL 源码书面要约
-COPYING-GPL-2.0.txt      mdbtools 工具的 GPL 全文
-COPYING-LGPL-2.1.txt     libmdb / libiconv 的 LGPL 全文
-LICENSE-CERN-OHL-1.2.txt 预览截图所涉开源硬件的 CERN-OHL v1.2 全文
-预览_*.png              界面预览（量距 / 清单定位 / 多板页签 / 清单 / 标记 / 多页签 / 海报 / 首页 / 查线 / 英文 / 免责）
-```
+## 能读什么
+
+| 文件 | 说明 |
+|---|---|
+| `.pcb`（`PCB 4.0 Binary`） | 单块板，1998–2000 年前后那一代设计文件 |
+| `.ddb`（设计库） | 一次抽出库里所有板子，**每块板各占一个页签**，能并排对照 |
+
+明确**不做**：原理图（`.sch`）、`PCB 3.0`（更早的 16 位版本，部分兼容、未逐一验证）。
+宁可明确报错，也不给一张假图 —— 照假图查线是要出事的。
 
 ## 用法
 
 双击 exe → 先过一段**海报**（几秒，点一下可跳过）→ 进**首页**；
-首页点"**打开文件**"选 `.ddb` 或 `.pcb`（两种文件同一个对话框），
+首页点「打开文件」选 `.ddb` 或 `.pcb`（两种文件同一个对话框），
 也可以把文件拖到 exe 图标上，或拖进窗口。**手上没文件也能打开程序看界面**。
-点一下走线或焊盘 → 与之电气相连的整条铜亮黄，状态栏写出具体脚位。
-**按 H（或顶栏"覆铜"按钮）→ 一键收起所有铺铜，细走线立刻看清。**
 
-## v1.13 改了什么
+点一下走线或焊盘 → 与之电气相连的整条铜亮黄，状态栏写出具体脚位。
+**按 <kbd>H</kbd>（或顶栏「覆铜」按钮）→ 一键收起所有铺铜，细走线立刻看清。**
+
+### 快捷键
+
+| 键 | 作用 |
+|---|---|
+| <kbd>F</kbd> | 适合窗口（整板入画） |
+| <kbd>H</kbd> | 覆铜显示 / 隐藏 |
+| <kbd>K</kbd> | 两点通不通 |
+| <kbd>D</kbd> | 量距 |
+| <kbd>Ctrl</kbd>+<kbd>F</kbd> | 找元件 / 找网络 |
+| <kbd>Esc</kbd> | 清高亮（量距过程中先退量距） |
+| 方向键 | 平移（按住 <kbd>Shift</kbd> 走得更快） |
+| <kbd>+</kbd> <kbd>-</kbd> | 缩放 |
+| <kbd>0</kbd> | 回到板子中心 |
+| 中键 | 关掉当前页签 |
+
+鼠标：滚轮**以指针位置为锚点**缩放；**按住左键拖到画布边缘，画面自己往那个方向走**
+（越靠边越快，松手就停）；放大后**左上角缩略图**里的黄框是当前视野，点一下跳过去；
+板上**右键写一句话**就是一条标记，按板子存档。
+
+## v1.13 重点
 
 **点清单不再"怼脸"、同一个设计库里的多块板能并排开着，另外补了量距、板子尺寸、缩略导航和最近打开。**
 
@@ -51,486 +67,110 @@ LICENSE-CERN-OHL-1.2.txt 预览截图所涉开源硬件的 CERN-OHL v1.2 全文
 |---|---|
 | 清单里点一颗 0402，画面直接怼到只剩两颗焊盘，得先滚轮缩小才认得出它在板子哪儿 | 元件占屏约三分之一，**周围留出位置感**；放大后左上角还有**整板缩略图**，黄框标出当前视野，点一下跳过去 |
 | 想挪视角只能按方向键；拖到窗口边缘就拖不动了 | **拖到画布边缘，画面自己往那个方向走**（Protel 的手感），越靠边越快，松手就停 |
-| 左下/右下那些方位按钮被右侧清单抽屉盖住，找不到 | 方向盘搬到**左下角**，抽屉在右边，两个永远不抢位置 |
-| 想知道两点差多少毫米，只能靠数格子和比例尺 | **量距**（`D`）：点两个点，黄虚线连着，读数同时给 `mm` 和 `mil`，落点自动吸到焊盘圆心 |
+| 方位按钮被右侧清单抽屉盖住，找不到 | 方向盘搬到**左下角**，抽屉在右边，两个永远不抢位置 |
+| 想知道两点差多少毫米，只能靠数格子和比例尺 | **量距**（<kbd>D</kbd>）：点两个点，黄虚线连着，读数同时给 `mm` 和 `mil`，落点自动吸到焊盘圆心 |
 | 文件里明明有板子尺寸、最细线宽、最小孔径，界面一个都没显示 | 左栏「**板子**」：外形 mm、面积、铜层、元件/焊盘/过孔/网络数、最细线、最小孔；点元件多给一行**外形尺寸 + 脚数**，点网络给**布线总长 + 孔数** |
 | 同一个 `.ddb` 换一块板，上一块就被冲掉了 | 下拉框选板 = **新开一个页签**，上一块原样留着，可以左右对照；已开过的那块再选是切过去，不重复解析 |
-| 每次都要翻文件夹找上次那个 `.ddb` | 首页列出「**最近打开**」（只记路径，不上传），点一下直接开 |
-| 窗口关了，exe 偶尔还在后台赖着 | 关窗时页面主动打招呼（`pagehide` → beacon），exe 立刻退；按 F5 刷新不会被误判成关闭 |
+| 每次都要翻文件夹找上次那个 `.ddb` | 首页列出「**最近打开**」（只记本机路径，不上传），点一下直接开 |
+| 窗口关了，exe 偶尔还在后台赖着 | 关窗时页面主动打招呼（`pagehide` → beacon），exe 立刻退；按 <kbd>F5</kbd> 刷新不会被误判成关闭 |
 
 ![清单定位](预览_清单定位.png)
-
-三个实现上的取舍：
-
-- **定位留白不是拍脑袋的比例**：`focusBox` 以前是"让目标矩形铺满窗口"（留边 110px），
-  所以一颗 0402 能放到 360%。现在按比例留白（目标占屏 ~1/3），并且加了一条硬上限
-  —— 屏幕高度至少装下 360 mil（约 9 mm），不然小料照样被放到看不见周围。
-- **边缘平移用 `setTimeout` 自循环，不用 `requestAnimationFrame`**：窗口被别的窗口挡住、
-  或页面在后台时 Chromium 会把 rAF 挂起，指针贴在边上画面一动不动（这是实测踩到的坑）。
-  `setTimeout` 在可见窗口里同样是每帧一次，而且一次重绘没画完不会堆出第二个循环。
-- **缩略图是离屏画的**：载入时画一次（只画走线和焊盘，跳过几千条覆铜填充线），
-  之后每帧只是 `drawImage` + 一个黄框，不拖慢主画布；整板都看得见时自动收起。
-
 ![多板页签](预览_多板页签.png)
-
-`tabLabel()` 也跟着改了：同一个 `.ddb` 里的每块板，文件名完全一样，页签上再写文件名等于没写，
-所以多板时页签直接写**板名**（板名里本来就带 `.PCB` 名字和日期）。
-
 ![首页：最近打开](预览_首页.png)
 
-## v1.12 改了什么
+几个实现上的取舍（细节见 [CHANGELOG](CHANGELOG.md)）：
 
-**右侧"清单"抽屉 + 板上标记，还把"窗口关不掉"这个坑填了。**
+- **定位留白不是拍脑袋的比例**：按比例留白（目标占屏 ~1/3），并加了一条硬上限
+  —— 屏幕短边至少装下 360 mil（约 9 mm），不然小料照样被放到看不见周围。
+- **边缘平移用 `setTimeout` 自循环，不用 `requestAnimationFrame`**：窗口被别的窗口挡住、
+  或页面在后台时，浏览器会把 rAF 挂起，指针贴在边上画面一动不动。
+- **缩略图是离屏画的**：载入时画一次（只画走线和焊盘，跳过几千条覆铜填充线），
+  之后每帧只是 `drawImage` + 一个黄框；整板都看得见时自动收起。
 
-![清单：网络](预览_清单_网络.png)
+## 其它常用功能
 
-| 之前 | 现在 |
+| 功能 | 说明 |
 |---|---|
-| 找一个元件只能靠顶栏搜索框输位号 | 右边一栏列出**全部位号 + 型号**，按位号排；点一下跳过去并点亮它的每只脚 |
-| 想知道某个网络连了哪些脚，只能点亮后看状态栏那几个（最多 5 个 + "+7"） | **网络表**列出全部网络与脚数；点亮后**脚位表**一条条列全，点哪条跳哪条 |
-| 清单要手工抄到维修单 | **复制清单**一键进剪贴板；**导出 CSV** 进 Excel |
-| 维修结论只能记在纸上 | 板上**右键写一句**"这里烧过"，插一面旗子，按板子存档 |
-| 坐标只有 mil | 状态栏同时给 **mil 与 mm** |
-| 一次只能拖一个文件 | 一次拖几个，各开一个页签 |
+| **查线** | 点走线/焊盘 → 整条网络亮黄，状态栏写脚位。点接地只亮焊盘与过孔，不把整板刷成一片黄 |
+| **通不通**（<kbd>K</kbd>） | 点两点给结论：按网表 → 同片覆铜 → 实际铜皮连通，三层判据，老文件也能判 |
+| **清单抽屉** | 右侧列出全部位号 + 型号、全部网络与脚数；点哪条跳哪条；一键复制清单 / 导出 CSV |
+| **板上标记** | 右键写一句话（"这里烧过"），插旗存档，换板不串 |
+| **图层** | 单击切换、双击只看这层；四个按钮：全选 / 全不选 / 顶底铜 / 反选 |
+| **存图** | 当前画面（含位号、型号、高亮）一键存 PNG，文件名带板名和时间 |
+| **多页签** | 一个文件一个页签，切回来缩放/平移/图层/高亮全部还原 |
+| **中英双语** | 右上角 <kbd>🌐</kbd> 切换，按钮上写的是"对方"的语言 |
 
-思路是照着同类开源板图工具（OpenBoardView 的元件表 / 网络表 / 板上注释）来的 ——
-这几件事在维修台上天天用，与"点一下亮一条线"是互补的：**先靠清单找到位置，
-再靠高亮看清连接**。
+更多界面：`预览_全板标注.png`、`预览_清单_网络.png`、`预览_清单_脚位.png`、
+`预览_标记.png`、`预览_多页签.png`、`预览_海报.png`、`预览_英文界面.png`、`预览_免责声明.png`。
 
-几个实现上的取舍：
+## 隐私与安全
 
-- 清单全部从已经解析好的 `B` 里现算（`B.compInfo` / `B.byNet`），不重新扫一遍文件，
-  上千个位号的板子打开也是瞬时的；列表最多渲染 600~800 行，剩下的用筛选框收窄。
-- 点"元件"自动跳到"脚位"页 —— 维修时下一句要问的往往就是"这颗料 8 只脚分别接什么"。
-- 标记存在 `localStorage`，键是`文件名 + 板名`，**换一块板不会串**，也不上传任何地方。
-- 旗子文字在缩放到 32% 以上才画，整板视图下不至于糊成一片。
+- **只读**：只读文件，**绝不修改、覆盖、删除**你的原始文件。
+- **不联网**：显示内核跑在本机回环（`127.0.0.1` 随机端口 + 一次性令牌），
+  **不监听网卡、不上外网、不写注册表**。在线版也是纯前端，文件不出浏览器。
+- **不留痕**：只有两处写盘 —— 临时目录（读 `.ddb` 时的中转文件，退出即清）和
+  首页「最近打开」的一份本地清单（只存路径、板名、时间，纯本地）。
+- **无第三方库**：绘图与解析全部自己实现，没有运行时依赖注入。
 
-![板上标记](预览_标记.png)
+## 兼容性
 
-**顺带修掉的三个真问题：**
-
-1. **窗口点 X 没反应、整窗变灰**（兰兰遇到的）—— 根因是取文件对话框的**父窗口时认错了句柄**：
-   标题里带 "CopperLens" 就认，可能认到别的窗口甚至已销毁的句柄。父窗口不对时，
-   通用对话框会把"当前前台窗口"当主体并 `EnableWindow(False)`，关掉对话框时又还给那个错句柄，
-   窗口就永远停在禁用状态。现在按**类名 + 标题 + 面积最大**挑窗口，对话框关掉后
-   分几次把父窗口"补回可用"，另有一条保命线程：只要没有对话框开着而窗口是禁用的，1 秒内自动解禁。
-2. **"回到中心"其实一直是"适合窗口"** —— 读的是 `B.bb`，而解析结果里只有 `B.bounds`。
-3. **脚位页在整条网络视图下每行都重复同一个网络名** —— 改成只在看元件时逐脚标网络。
-
-![清单：脚位](预览_清单_脚位.png)
-
-## v1.11 改了什么
-
-**多文档页签：一个文件一个标签，能来回切，也能分别关。**
-
-![多文档页签](预览_多页签.png)
-
-| 之前 | 现在 |
+| 项 | 值 |
 |---|---|
-| 打开第二个文件，前一块直接被冲掉 | 每个文件占一个页签，之前的原样留着 |
-| 想看两块板只能开两个程序（还各自弹一个框） | 同一窗口里点页签来回切 |
-| 切回来要重新缩放、重新点开图层、重新找那条线 | **缩放/平移、图层开关、点亮的网络全都还原** — 切回来还是你走之前那个画面 |
-| 关一个只能关整个窗口 | 页签右侧 `×` 或鼠标中键单独关；关完最后一个回首页 |
-
-实现上没引入新东西：`activate()` 切走时把 `view / show / hi / LIT / 状态栏` 快照进
-那个页签（`snapshotDoc()`），切回来 `restoreUi()` 套回去；解析结果 `B` 也挂在页签上，
-所以切回已打开的板是**瞬时**的，不重新解析。（`.ddb` 里的多块板在这个版本是"同一个页签内换板"，
-v1.13 起改成每块板各占一个页签。）
-
-## v1.10 改了什么
-
-**双击不再弹文件框，改成海报 + 首页。**
-
-![海报](预览_海报.png)
-![首页](预览_首页.png)
-
-| 之前 | 现在 |
-|---|---|
-| 双击 exe 立刻弹系统文件对话框 | 双击 → 海报（3.6 秒，可点击跳过）→ 首页 |
-| 没有现成文件就什么都看不到，选"取消"程序直接退出 | 没文件照样进首页：能看功能说明、使用说明、免责声明、关于 |
-| 界面上没有一处介绍软件是干什么的 | 海报上四句话讲清：查线路 / 通不通 / 找元件 / 只看铜 |
-
-**怎么做到的（没有引入 WebView 之类的新依赖）：**
-
-- exe 起一个**只绑 `127.0.0.1`、随机端口、一次性令牌**的本地服务，把内嵌的
-  `index.html` 供给 Edge/Chrome 的 `--app=` 独立窗口 —— 前提仍然只有系统自带的浏览器。
-- 页面要读 `.ddb` 时，通过 `POST /api/open`（调系统的 `GetOpenFileNameW`）和
-  `POST /api/upload`（拖进来的文件落临时目录）把字节交给 Python 侧，
-  mdbtools 解完再回推给页面。**全程回环，不监听网卡、不上外网、不写注册表。**
-- 生命周期靠页面心跳（5 秒一次）；页面关掉 120 秒没心跳，exe 自己退出。
-- 兜底：万一端口被安全软件挡住，自动回退到老做法"直接弹文件对话框"，
-  保证任何机器上都还能打开文件。
-
-**平台表述改准了**：以前"适用 Win10 32 位"容易让人以为 64 位跑不了。
-现在统一写**「支持 x86 与 64 位系统」**——同一个 exe，32 位和 64 位 Windows 都能双击运行。
-
-## v1.9 改了什么
-
-**四个新功能，全部自研、零第三方库，不涉及任何专利算法。**
-
-**1. 两点通不通（Continuity）。** 维修最常问的一句话就是"这两点通不通"。
-点顶栏「通不通」（或按 <kbd>K</kbd>），在板上点两个位置，画面上方直接给结论：
-
-```
-● 通    U100-4 ↔ C102-2 · 网络 GND · 按网表判定
-✕ 不通  U100-4 ↔ R12-1  · 网络不同（GND / VCC）
-```
-
-判定顺序刻意分三层，因为老文件情况不一样：
-
-| 优先 | 依据 | 什么时候用得上 |
-|---|---|---|
-| ① | 文件自带的网表 | 绝大多数板，最准 |
-| ② | 落在同一片覆铜上 | 接地/电源平面，铺铜里没有网号 |
-| ③ | 实际铜皮连通（`traceCu`） | **网络号为 0 的老板子**——线挨线、过孔跨层都算通 |
-
-第 ③ 层是这次的关键：之前那块板解析出来「网络 0」，按网络高亮等于没反应；
-现在没有网表也能判通断。通了点亮整条线，不通只点亮这两个点，断在哪一眼看见。
-
-**2. 找元件 / 找网络。** 顶栏右侧搜索框（<kbd>Ctrl</kbd>+<kbd>F</kbd>）：
-输 `U100` 定位到元件并点亮它全部焊盘；输 `AMS1117` 按型号找；输 `GND` 找网络并
-整条点亮、缩放到它的范围。对着图纸找位置，比在板上一个个数快得多。
-
-**3. 图层一键全选 / 全不选 / 顶底铜 / 反选。** 放在图层标题下面四个按钮。
-「顶底铜」是**幂等**的：不管之前是全选还是全不选，点一下都得到同一个干净画面 ——
-铜层只留顶层和底层，丝印和过孔留着（全关掉连位号都看不见，那是维修最需要的）。
-
-**4. 存图。** 当前画面（含位号、型号、高亮）一键存 PNG，文件名带板名和时间，
-直接贴维修单或发工作群。分辨率跟屏幕走，放大后存就是那块局部的高清图。
-
-**合规边界**（这次特意划清）：以上都是通用查看器交互——层显示、网络高亮、搜索定位、
-两点连通、导出图片，全部按本项目的二进制格式知识自己实现，**没有引入任何第三方库，
-没有使用任何专利算法**。明确不做：自动布线、DRC、网表生成/逆向、仿真——这些既超出
-"只看不改"的定位，也容易踩别人的专利。
-
-## v1.8 改了什么
-
-**1. 英文名 BoardLens → CopperLens。** 原因是查了一下同名情况：`boardlens.ai` 是一家做
-董事会治理 AI 的公司（不同行业，商标上难构成混淆，但网上搜这名字全是它）；本想换
-`BoardScope`，结果 `boardscope.ca` **就是做 PCB 维修诊断的**（同行业、还在卖 $59/年），
-更不能碰。`CopperLens` 检索无同名软件，`copper` 直指 PCB 铜箔，`lens` 是看。
-中文名仍是「PCB 看板」，不变。
-
-连带改的：`index.html`、`src/copperlens.py`、临时目录 `%TEMP%\CopperLens`、
-`localStorage["copperlens.lang"]`、窗口标题、关于页。**exe 文件名仍叫 `PCB看板.exe`**（对应中文名）。
-
-**2. 补齐第三方授权 —— 这是一处此前判断有误的地方。**
-
-原先文档写"发行包里只放了自己做的 `示例板.pcb`"，**这是错的**。实际核查
-（`demo_converter.pcb` 的字节能在 `示例_PC-Henshin库.ddb` 里逐字找到）证明：它就是从那块
-CERN-OHL 的 DDB 里抽出来的。于是补齐：
-
-| 补什么 | 为什么 |
-|---|---|
-| `第三方组件与许可.txt` 重写 | 把 mdbtools 的 GPL/LGPL **分开写清**（utils 是 GPL-2.0-or-later，libmdb 是 LGPL），并补 GPL-2.0 §3(b) 要求的**三年书面源码要约** |
-| `COPYING-LGPL-2.1.txt` | `libmdb-3.dll`、`libiconv-2.dll` 走 LGPL，之前只有 GPL 文本不够 |
-| `LICENSE-CERN-OHL-1.2.txt` | 预览截图里展示的是这块开源硬件的设计，随附许可 + 署名即站得住 |
-| 署名 | `Copyright © René Richard, 2017`，出处为 GitHub 上 db-electronics 的 PC-Henshin 开源硬件项目 |
-
-**示例板文件不上传、不分发。** 决定：`示例板.pcb` **不进发行包、不进仓库、不进 Release**。
-理由是多一事不如少一事 —— 只要这个文件不出现在任何分发渠道里，就不存在任何再分发义务。
-预览截图仍然用这块板（CERN-OHL 允许展示，且已随附许可与署名），但**将来对外演示换成自己画的板**。
-发行包里的 `LICENSE-CERN-OHL-1.2.txt` 保留，专为截图里的设计内容兜底。
-
-**3. exe 洁净度复核。** 对 `PCB看板.exe` 全文检索：`shenq` / `C:\Users` / `E:\workbuddy` /
-`Desktop` / `BoardLens` —— **各 0 次**。
-
-## v1.6 加了什么
-
-### 1. 标题栏：软件名 + 作者 + 三个下拉菜单
-
-```
-PCB 看板 CopperLens   © 永远的兰兰    使用说明  免责声明  关于        [文件名]  [🌐 EN]
-```
-
-- **使用说明**：打开文件 / 查线 / 看图 / 标注 / 快捷键，五节
-- **免责声明**：无担保、只读不改文件、显示仅供参考（不得作生产依据）、维修风险自负、
-  与任何厂商无隶属关系、开源组件许可证 —— 六节
-- **关于**：定位、能力、版本、署名
-
-### 2. 双语，按钮上写的是"对方"的语言
-
-右上角 `🌐 EN` / `🌐 中文` —— **中文界面显示 EN，英文界面显示 中文**。
-不写"语言"两个字，英文用户也一眼知道点哪个。
-
-- 界面文字全部收进一张 `L={zh:{...},en:{...}}` 表，代码里不再写死中文
-- 切语言同时改：菜单、按钮、图层名、状态栏标签、位号/焊盘提示词、三个弹窗正文、
-  顶栏文件名摘要、**浏览器窗口标题**
-- 选择存在 localStorage，下次打开还是上次那个语言
-- 第一次打开没有记录时，跟系统语言走（非中文系统默认英文）
-- exe 的原生对话框（打开文件框、错误弹窗）也按系统语言中/英
-
-### 3. 方向按钮（方向盘）
-
-画布右下角 `▲ ◀ ◎ ▶ ▼`：
-
-| 按键 | 作用 |
-|---|---|
-| ▲▼◀▶ | 平移一屏的约 1/10（90 px） |
-| ◎ | 回到板子中心（缩放不变） |
-| 键盘方向键 | 同上；按住 Shift 走 320 px，跨板快 |
-| `+` `-` | 以视口中心缩放 |
-| `0` | 回到中心 |
-
-滚轮缩放仍然是**以鼠标指着的位置为锚点**（专业绘图软件都是这个手感）；
-键盘没有鼠标位置，所以 `+/-` 锚在视口中心 —— 这样按起来不会"越缩放越跑偏"。
-
-### 4. 顺带修的
-
-- 状态栏几个 chip 紧贴在一起读成一串（`A10C100-1`），加了 5 px 缝
-- 图层名后面重复一遍标准名（`顶层 Top · TopLayer`），别名与标准名相同时不再重复
-- `T()` 只支持两个入参，导致顶栏摘要出现 "undefined 个对象"
-
-## v1.5 修了什么
-
-### 1. 位号 / 焊盘号 / 型号全都没有 ← 核心
-
-PCB 上除了几根线什么都没有，查线只能看到"这条线连到几个地方"，
-不知道连的是哪颗元件 —— 对维修等于没用。
-
-根因是 **Texts 段根本没读对**：字符串偏移写成了 `+35`（实际 `+40`），
-所以丝印上的字全是乱码；更要命的是没读记录末尾的两个标志位 ——
-
-| 偏移 | 含义 |
-|---|---|
-| +300 | =1 表示这条文本是元件的 **型号 / 值**（AMS1117-3.3） |
-| +301 | =1 表示这条文本是元件的 **位号**（U100） |
-| +13 | 两条都带元件号，据此把字符串认到具体元件 |
-
-该格式把位号和型号**当作两条独立的文本图元**放在丝印层上，靠这两个标志位区分。
-读对了以后，示例板 18 颗元件全部拿到了位号和型号：
-
-```
-Logo1(DBLOGO)  CON106(DNP_HDR1X4)  U101(EPM3032ATC44-10N)  U100(AMS1117-3.3)
-C107(10uF/10V)  C106(10uF/10V)  C105(0.1uF/50V)  R100(...)
-```
-
-现在显示：
-- **位号**：黄框标签，用丝印上原本的摆放位置，压在覆铜上也读得清（默认开）
-- **焊盘号**：焊盘上的 1/2/3…/34/35…（默认开）
-- **型号/值**：位号下一行小字（侧栏开关，默认关）
-- **元件占位框**：该元件所有焊盘的外包矩形，淡蓝虚线（放大到 0.45 倍以上才画）
-
-标注全部按屏幕像素写字 + 矩形碰撞检测，位置重叠的自动不画。这带来一个副作用
-但是好的：缩小时只剩位号，放大后焊盘号才一个个冒出来，永远不会糊成一团。
-
-### 2. 查线结果写出"从哪只脚到哪只脚"
-
-状态栏现在长这样：
-
-```
-GND    U100-4 / C102-1 / C103-1 / C104-1 / C105-1 +7    按网络号 · 66 处
-```
-
-点中的那只脚**永远排最前面**（`litFeet` 里把它 unshift 到队首），
-后面按位号字母序排，超过 5 个折叠成 `+N`。
-
-### 3. 鼠标悬停浮出脚位
-
-光标停在焊盘上不动，旁边浮出 `U100-3`。只看焊盘（`B.pads`，几十到几百个），
-不碰几千条走线，所以不会拖慢鼠标；焊盘超过 4000 个时自动关掉。
-
-### 4. 缩放改成以鼠标为锚点
-
-原来的锚点算法本身是对的，但监听挂在 canvas 上、灵敏度 0.0016。现在：
-
-- 监听挪到整个绘图区（`stage`），侧栏边缘滚轮也管用；
-- 灵敏度提到 0.0022；
-- 兼容 `deltaMode=1/2`（部分鼠标驱动按"行"给 deltaY，会被当成极小值，滚了没反应）。
-
-数学不变：`ox' = sx - (sx-ox)*k`，保证鼠标指着的那一点不动。
-
-### 5. 顶栏改名
-
-"打开 PCB" → "**打开 DDB·PCB**"。`.ddb` 一直在文件对话框的第一个筛选里，
-但旧按钮名让人以为只能开 `.pcb`。
-
-## v1.4 修了什么
-
-### 1. 点接地整块板刷成一片黄
-
-上一版解决"只亮一条线"时走过了头：把覆铜的几千条填充线全塞进高亮集合，
-再加上覆铜面 0.20 的黄色实心填充，点一下接地 = **整板一个颜色**，
-走线、焊盘、丝印全被盖掉，反而比原来更没法看。
-
-现在的分层策略：
-
-| 对象 | 点接地时的表现 |
-|---|---|
-| 覆铜面 | 只描一圈亮黄轮廓，内部**不填充** |
-| 覆铜的填充线 | 保持原色、压到 0.45（不参与高亮） |
-| 接在铜上的焊盘 / 过孔 | **亮黄**（这才是要看的：这个地挂了哪些脚） |
-| 独立走线（<60 条） | 亮黄 |
-
-状态栏改成报 `整片覆铜（接地平面）· 接地焊盘 20 颗 · 过孔 49 个`，
-不再报"共 7332 处"——那个数字对维修没有任何意义。
-
-### 2. 点一根线会顺着铜皮爬到地平面上去
-
-旧 `pickAt` 里根本没有"按网络号高亮"这一步，全靠物理连通追踪。
-一条 net=19 的信号线只要碰到 GND 覆铜，追踪就会把 **122 条 GND 铜线、
-32 个焊盘、56 个过孔**全亮出来 —— 用户看到的就是"点哪儿都全板发亮"。
-
-现在：
-1. 有网络号 → **按网络号高亮**（文件自带的语义，最准），不走物理追踪；
-2. 走线超过 60 条的网络（地/电源）→ 自动降级，只亮元件脚；
-3. 没有网号 → 才用物理连通，结果同样超过 60 条铜线就降级。
-
-实测示例板：
-
-| 点的对象 | 结果 |
-|---|---|
-| 覆铜面 | `cu-pour` 70 处（20 焊盘 + 49 过孔 + 轮廓） |
-| 信号线 net=19 | `net` 31 处（22 走线 + 8 焊盘 + 1 过孔）✔ 完整一条 |
-| GND 走线 | `big-net` 69 处（只留 20 焊盘 + 49 过孔） |
-| 信号焊盘 | `net` 12 处 |
-
-### 3. 新增"覆铜"开关（快捷键 H）
-
-接地平面铺满整板是常态，看细走线时它永远是障碍。一键隐藏所有
-`polygon` 面 + 覆铜填充线 + 矩形铜填充，整板走线立刻一目了然，再按一次恢复。
-
-### 4. `isPourPart()`：别拿 `o.poly>=0` 当判据
-
-只有 `track / arc / fill` 三种记录带 polygon 编号（+11）；**焊盘、过孔没有这个字段**，
-`o.poly` 是 `undefined`，而 `undefined >= 0` 恒为 `false`。用 `o.poly>=0` 过滤
-会把所有焊盘/过孔漏掉——点接地时状态栏显示"接地焊盘 0 颗"。
-（这是本轮踩到的最隐蔽的一个坑。）
-
-另外 `fill`（矩形铜填充）一律算铺铜：老设计的接地平面经常就是一片片 fill 拼的，
-它们要是参与高亮，点一下接地又是整板发黄。
-
-## v1.3 修了什么
-
-### 1. 底层大面积接地"只亮一点一条线"
-
-接线板的地平面在文件里**不是一块面，而是几千条紧挨着的填充线**（`Tracks` 段里
-`poly >= 0` 的那些）。示例生产板实测：
-
-| 类别 | 条数 |
-|---|---|
-| 走线总数 | 7465 |
-| 属于覆铜的填充线 | **6750**（poly 0 = 3927、poly 2 = 3092、poly 1 = 100） |
-| 真正独立的信号走线 | 715（其中铜层 573） |
-
-旧逻辑在 `pickAt` 里写死了"点亮数量 > 900 就只保留当前这一条"，本意是防刷屏，
-结果**每一块接地平面都必然超过 900**，于是点上去永远只亮一条线。
-
-现在：
-- 按 `poly` 编号把整块覆铜的填充线归组（`B.byPoly`），点中任一条 → 整组一起亮；
-- 解析 `Polygons` 段拿到覆铜的真实边界（记录是**变长**的：45 字节定长头 +
-  `(N+1)×33` 字节顶点，段头里的 `element size` 只写 45，不能按 esz 步进），
-  在画布上铺一层很淡的底色 + 轮廓，一眼能分出"这一整片是一块铜"；
-- 收缩阈值从 900 提到 20000（真的整层铜才会触发）。
-
-### 2. "查线没连到两端" ← 多半点到了丝印
-
-`Tracks` 段里不只有铜走线，还混着**丝印线**（layer 33/34）、禁布线（56）。
-丝印常压在覆铜和走线上，而它不导电，追连通永远只有它自己 1 处 ——
-看起来就像"这条线断了"。
-
-现在：
-- 命中测试给非铜层加偏置，**铜层优先选中**（丝印压在走线上时选中的是走线）；
-- 确实只点到丝印时，状态栏直接写明"丝印/机械层，不导电"，不再让人误判。
-
-顺带复核了连通算法本身：示例板 **573 条铜层独立走线里没有一条是孤立的**，
-全都能追到 2~50+ 处（或整片覆铜）。所以断线不是算法漏判。
-
-## v1.2 修了什么
-
-### 1. 焊盘尺寸/位置"挤在一起"（用户实测反馈）
-
-该格式的焊盘记录里存的是**焊盘自身坐标系**下的 `(XSIZE, YSIZE)`，真正的摆放角度在
-记录 +79 处的 float6 旋转角里。**90°/270° 时必须把 X/Y 互换**。
-
-旧版忽略了旋转角，于是 50 mil 间距、59×31 mil 的长条焊盘被横着摆，
-相邻两只重叠 9 mil → 看上去"粘成一条"，而且连通性判断也把它们当成短接。
-
-在示例板上量化：
-
-| 判据 | 1536 对邻近焊盘里判为"相连" |
-|---|---|
-| 旧：半径取 `max(xs,ys)/2`、不看旋转 | **188 对** |
-| 新：旋转后的真实矩形求交 | **0 对** |
-
-现在焊盘按 `rot` 摆正渲染（圆形焊盘用 `ctx.ellipse` 带旋转角），
-几何判断也用摆正后的凸多边形。
-
-### 2. 连通性只在铜层之间算
-
-旧版把多层焊盘(74)/过孔当成"贯穿所有层"，于是会顺着**丝印线(33/34)、禁布线(56)** 连出去 ——
-丝印线常常正好压着焊盘过，一动就把整颗芯片的脚连成一片。
-现在：铜层 = 1~32（信号）+ 39~54（内电层），其余层永不参与电气连通。
-
-### 3. 圆弧按"圆环"算，不是"圆盘"
-
-旧版判断圆弧接触时用的是"到圆心的距离 ≤ 半径"，等于把圆弧当成实心圆盘，
-大半径圆弧会把整个片区的焊盘全部吞进去。现在圆弧先离散成折线段，只认弧线本身。
-
-### 4. 补上 Fills（矩形铜填充）
-
-老设计的电源走线常用填充块顶替粗线，以前完全没画，现在解析并绘制，
-也参与连通判断。
-
-### 5. 层号全表纠正
-
-按该格式的真实层号：`32=BottomLayer`、`33=TopOverlay`、`39~54=InternalPlane`、
-`56=KeepOut`、`74=MultiLayer`。旧表把 17 当成 TopOverlay 是错的（那是 v3 的编号）。
-顶层画红、底层画蓝，顶层半透明以便看穿到反面。
-
-### 6. exe 双击打不开（已定位并修复）
-
-旧版所有对话框用 tkinter。这台机器的 **32 位 Python 没有装 Tcl/Tk**，
-PyInstaller 又静态分析不到（tkinter 是函数内延迟 import），于是打出来的 exe 里
-根本没有 `_tkinter`/tcl 运行库 —— 双击后进程起来了，一弹"选择文件"就静默死掉，
-日志里只剩一行"启动"。
-
-现在 **彻底不用 tkinter**，改用 Win32 API：
-`comdlg32!GetOpenFileNameW` 选文件、`user32!MessageBoxW` 报错。
-只依赖系统 DLL，永远不会缺运行库。
-
-### 7. 一个库多块板 → 界面里直接切
-
-旧版用一个 tkinter 列表框让用户选板。现在把库里所有 PCB 一次塞进同一个页面，
-标题栏下方出现下拉框：`★最新 TG16Converter.PCB（Main Board） 2017-10-19`、
-`…Rev d`、`…Rev c`、`…Rev b`、`Carrier Board`… 按修改时间从新到旧，
-回收站里的整棵子树排除。一块板都不用手动挑第二个对话框。
-
-### 8. 其它
-
-- `#zoom=x,y,倍数` / `#pick=x,y,倍数` 地址栏参数：定位到坐标 / 定位并点亮该处铜皮。
-- 状态栏显示焊盘编号（如"焊盘 19"），配合"焊盘编号"按钮对照芯片引脚。
-- 一片铜碰到多个网络时不乱连，会标红提示"碰到 N 个网络"。
-- （v1.2 的"整片覆铜 >900 处只标当前条"已在 v1.3 撤销，那是个 bug。）
-
-## 32 位兼容性核查
-
-| 项 | 结果 |
-|---|---|
-| exe PE 头 Machine | `0x014c` = i386（32 位） |
-| exe Subsystem | `2` = Windows GUI（无控制台） |
-| 打包用解释器 | Python 3.12.10 MSC v.1943 **32 bit** |
-| mdb-export.exe / 4 个 DLL | 全部 `0x014c` 32 位 |
-| 运行库依赖 | 仅系统 DLL（comdlg32/user32/kernel32 + UCRT），无 tcl/tk、无 WebView2 |
+| 目标系统 | Windows 7 / 8 / 8.1 / 10 / 11，**x86 与 64 位都可** |
+| exe PE 头 | `0x014c` = i386（32 位） |
+| exe Subsystem | `2` = Windows GUI（无控制台窗口） |
+| 运行库依赖 | 仅系统 DLL（comdlg32 / user32 / kernel32 + UCRT），无 tcl/tk、无 WebView2 |
+| 浏览器要求 | 系统自带的 Edge / Chrome 任一（用于 `--app=` 独立窗口） |
 
 ## 已知限制
 
-- **原理图（.sch）不做**：这类设计库里原理图是 OLE 复合文档且引用元件库，复杂度远高于 PCB。
-- **DDB 直接读 PCB 不做**：Jet 数据库的大字段跨 2KB 页存，页头会插进记录流，
-  段一大就整段错位。宁可明确报错，也不给一张假图 —— 照假图查线是要出事的。
-- 只支持 `PCB 4.0 Binary`（1998–2000 年前后那一代设计文件）。更早的 16 位版本用的
-  `PCB 3.0` 有部分兼容，未逐一验证。
+- **原理图（`.sch`）不做**：设计库里原理图是 OLE 复合文档且引用元件库，复杂度远高于 PCB。
+- **DDB 内部结构直接读不做**：Jet 数据库的大字段跨 2KB 页存，页头会插进记录流，
+  段一大就整段错位。宁可明确报错，也不给假图。
+- 只支持 `PCB 4.0 Binary`；`PCB 3.0`（16 位版）部分兼容，未逐一验证。
+- 无代码签名，SmartScreen 可能提示"未知发布者"。
 
 ## 重新打包
 
-```
-C:\Python312-32\python.exe _build32.py
+```bash
+py -3.12-32 -m pip install --target _py32 pyinstaller
+py -3.12-32 _build32.py
 ```
 
-必须用 32 位解释器，否则打出来是 64 位、公司那台 win10 跑不了。
-PyInstaller 装在 `E:\workbuddy\2026-10-26-18-39-43\_py32`（`pip install --target`）。
+**必须用 32 位解释器**，否则打出来是 64 位，32 位 Windows 上跑不起来。
+`_build32.py` 会自动在环境变量 `PYI_TARGET` 或脚本旁的 `_py32/` 里找 PyInstaller。
+可选参数：`_build32.py <输出目录>`（exe 正在运行时没法覆盖它，先出到旁边再换）。
 
----
+## 仓库里有什么
+
+```
+PCB看板.exe              单文件程序（x86 32 位，走 Release 分发，不进源码树）
+index.html               查线内核（单文件网页，中英双语，exe 里内嵌一份）
+src/copperlens.py          exe 主程序（对话框文案随系统语言中/英）
+src/mdbtools/              mdb-export.exe + DLL（读 .ddb 用，全是 32 位）
+src/导出DDB.py             独立导出脚本（备用）
+_build32.py               打包脚本（须用 32 位 Python，保证 x86）
+使用说明.txt               随包说明
+第三方组件与许可.txt        第三方组件、示例文件授权、GPL 源码书面要约
+COPYING-GPL-2.0.txt        mdbtools 工具的 GPL 全文
+COPYING-LGPL-2.1.txt       libmdb / libiconv 的 LGPL 全文
+LICENSE-CERN-OHL-1.2.txt   预览截图所涉开源硬件的 CERN-OHL v1.2 全文
+CHANGELOG.md              逐版改动记录
+预览_*.png                 界面预览
+```
+
+`.pcb` / `.ddb` 设计文件与 `build/`、`_py32/`、`*.exe` 都不进源码树。
+
+## 第三方组件与许可
+
+| 组件 | 许可 | 用途 |
+|---|---|---|
+| mdbtools（`mdb-export.exe`） | GPL-2.0-or-later | 读 `.ddb`（设计库） |
+| libmdb / libiconv（DLL） | LGPL-2.1 | 同上，动态链接 |
+| 预览截图所涉开源硬件设计 | CERN-OHL v1.2 | 截图里展示的板子（© René Richard, 2017） |
+
+调用方式是**进程外调用 exe**，不与本程序链接成单一作品，因此不传染 GPL。
+GPL-2.0 §3(b) 的三年书面源码要约写在 `第三方组件与许可.txt` 第 1 节。
 
 ## 发布与合规
 
@@ -538,19 +178,19 @@ PyInstaller 装在 `E:\workbuddy\2026-10-26-18-39-43\_py32`（`pip install --tar
 
 | # | 事项 | 现状 | 说明 |
 |---|---|---|---|
-| 1 | 产品名里不含任何厂商 / 软件名 | ✅ 已做 | 叫 `PCB 看板 / CopperLens`。窗口标题、图标名、exe 名、文件夹名都不带厂商名 |
+| 1 | 产品名里不含任何厂商 / 软件名 | ✅ 已做 | 叫 `PCB 看板 / CopperLens`。窗口标题、图标名、exe 名、文件夹名都不带 |
 | 2 | 厂商名只出现在"能读什么"的描述里 | ✅ 已做 | 只留格式自身魔数 `PCB 4.0 Binary File` 和扩展名 `.pcb / .ddb` —— 这是**描述性使用**（说明兼容性所必需），不是当商标用 |
 | 3 | 不出现厂商图标 / 字体 / 界面素材 | ✅ 已做 | 全自绘，零外部资源 |
 | 4 | 免责声明里写明"无隶属关系、商标归各自所有者" | ✅ 已做 | 免责声明第 5 节 + 关于 |
-| 5 | mdbtools（GPL-2.0-or-later + LGPL）随附许可证 + 源码书面要约 | ✅ 已做 | 发行包内 `第三方组件与许可.txt` + `COPYING-GPL-2.0.txt` + `COPYING-LGPL-2.1.txt`。调用方式是**进程外调用 exe**，不与本程序链接成单一作品，因此不传染 GPL。GPL-2.0 §3(b) 的三年 written offer 已写进 `第三方组件与许可.txt` 第 1 节 |
-| 6 | 代码里不留任何第三方项目名 / 厂商名 | ✅ 已做 | 原来注释里写着字段偏移参考了某公开逆向项目 —— 已全部删除，改为「由本人对样本文件做二进制差分实测得出」（这本来也是实际做法） |
-| 7 | **PCB 设计文件一个都不分发** | ✅ 已做（原判断有误，已纠正） | `示例板.pcb` 不是自制，是从 db-electronics 的 PC-Henshin 开源硬件项目的 `TG16Converter.ddb` 抽出来的（© René Richard 2017, CERN-OHL v1.2）。**决定：这个文件不进发行包、不进仓库、不进 Release** —— 不发出就不产生任何再分发义务。预览截图仍是这块板，已随附 `LICENSE-CERN-OHL-1.2.txt` + 署名，并在 `第三方组件与许可.txt` 第 2 节写明。**对外演示将来换自画板** |
+| 5 | mdbtools（GPL-2.0-or-later + LGPL）随附许可证 + 源码书面要约 | ✅ 已做 | 发行包内 `第三方组件与许可.txt` + `COPYING-GPL-2.0.txt` + `COPYING-LGPL-2.1.txt`。GPL-2.0 §3(b) 的三年 written offer 已写进 `第三方组件与许可.txt` 第 1 节 |
+| 6 | 代码里不留任何第三方项目名 / 厂商名 | ✅ 已做 | 注释里原有的外部参考已删除，改为「由本人对样本文件做二进制差分实测得出」（这本来也是实际做法） |
+| 7 | **PCB 设计文件一个都不分发** | ✅ 已做 | 预览截图用的那块板来自开源硬件项目（© René Richard 2017, CERN-OHL v1.2）。**这个文件不进发行包、不进仓库、不进 Release** —— 不发出就不产生再分发义务。截图已随附 `LICENSE-CERN-OHL-1.2.txt` + 署名，并在 `第三方组件与许可.txt` 第 2 节写明。对外演示将换自画板 |
 | 8 | 不要把公司真实板子 / 客户资料放进仓库 | ⚠️ 自己把关 | 生产板的 PCB 文件属公司资产，示例请用开源板或纯自制 |
 | 9 | 免责声明写清"仅供参考、不得作生产依据、维修自负" | ✅ 已做 | 免责声明第 1/3/4 节，中英各一份 |
-| 10 | 签名 / 证书 | — | 无代码签名，SmartScreen 可能提示"未知发布者"；产线内部分发属正常，对外分发可忽略或自行签 |
-| 11 | 名字是否与在用品牌冲突 | ⚠️ 待定 | `CopperLens` 与 copperlens.ai（董事会治理 AI，非 PCB 行业）同名。**品类不同、商标上难构成混淆**，但搜索会被它占满。要清爽就换名 |
-| 12 | exe 里是否夹带本机路径 / 用户名 | ✅ 已验证 | 对 `PCB看板.exe` 全文检索 `shenq` / `C:\Users` / `E:\workbuddy` / `Desktop`：**各 0 次** |
-| 13 | 仓库里不要提交的东西 | ⚠️ 上传时注意 | `示例_PC-Henshin库.ddb`（6.7 MB，CERN-OHL）、`build/`、`_t/`、`_py32/`、`*.exe` 走 Release 而非源码树 |
+| 10 | 签名 / 证书 | — | 无代码签名，SmartScreen 可能提示"未知发布者"；内部分发属正常，对外分发可忽略或自行签 |
+| 11 | 名字是否与在用品牌冲突 | ⚠️ 待定 | `CopperLens` 与一个同名海外 AI 服务重名（非 PCB 行业）。**品类不同、商标上难构成混淆**，但搜索会被对方占满。要清爽就换名 |
+| 12 | exe / 源码里是否夹带本机路径 / 用户名 | ✅ 已验证 | 对 `PCB看板.exe` 全文检索**本机用户名、用户主目录路径、工作目录路径、桌面路径、旧产品名**：**各 0 次**。仓库文档同样不含任何本机盘符与目录 |
+| 13 | 仓库里不要提交的东西 | ⚠️ 上传时注意 | 设计库 `.ddb`、`build/`、`_t/`、`_py32/`、`_archive/`、`*.exe` 走 Release 而非源码树 |
 
 ### 一句话总结风险
 
@@ -565,6 +205,223 @@ PyInstaller 装在 `E:\workbuddy\2026-10-26-18-39-43\_py32`（`pip install --tar
 属于事实上的行业惯例，不是在蹭品牌。而且本程序**只读**、不碰加密、不绕过任何授权机制，
 属互操作性目的，这是各国判例里明确受保护的用途。
 
+## 许可与署名
+
+本程序自身的源码作者保留权利（仓库未附本项目级的开源许可）；随附的第三方组件
+仍是各自的许可证 —— mdbtools 的 GPL-2.0-or-later / LGPL-2.1、截图所涉开源硬件的
+CERN-OHL v1.2，全文见仓库根目录。第三方组件的完整清单与授权说明见 `第三方组件与许可.txt`。
+
+**保持只读、不联网、不改原始文件**是这个项目的底线，不接受会破坏这条底线的改动。
+
+© 永远的兰兰 Lanlan Eternal
+
 ---
 
-© 永远的兰兰
+# English
+
+**English** ｜ [中文](#pcb-看板--copperlens-v113) ｜ [Changelog](CHANGELOG.md)
+
+A **read-only** PCB viewer for repair work. Click a trace or a pad and the whole net lights
+up in yellow, with the actual pin names right there in the status bar — `U100-4 / C102-1`,
+not just "some copper". No EDA suite required. No network access.
+
+One portable exe, **runs on both x86 and 64-bit Windows** — Windows 7 / 8 / 10 / 11,
+double-click and go.
+
+## Quick start
+
+| | Where | Good for |
+|---|---|---|
+| **Web version** (try this first) | <https://podcatcher962.github.io/copperlens/> | Open in a browser, drop a `.pcb` in. **The file is read locally, never uploaded.** Cannot read design databases (`.ddb`) |
+| **Desktop exe** | Download from [Releases](../../releases), ~9 MB | **x86 and 64-bit**, Windows 7–11, no install. **Reads `.ddb` design databases** (all boards inside, automatically) |
+
+![Tracing a net](预览_查线.png)
+
+> The format signature (`PCB 4.0 Binary File`) appears only in "What it reads", as a
+> compatibility statement — not as a trademark. See *Compliance* below.
+
+## What it reads
+
+| File | Notes |
+|---|---|
+| `.pcb` (`PCB 4.0 Binary`) | A single board; the 1998–2000 era of design files |
+| `.ddb` (design database) | Every board inside is extracted; **each board gets its own tab** so you can compare them side by side |
+
+Explicitly **not supported**: schematics (`.sch`), and `PCB 3.0` (the earlier 16-bit
+format) is only partially compatible and not verified case by case. A clear error beats a
+wrong picture — tracing a fault off a wrong rendering is how people scrap boards.
+
+## Usage
+
+Double-click the exe → a short **poster** (a few seconds, click to skip) → **home**.
+Click **Open file** and pick a `.ddb` or `.pcb` (one dialog for both), or drag a file onto
+the exe icon or into the window. **You can open the program with no file at all** and just
+look around.
+
+Click a trace or pad → the whole electrically connected net lights up yellow and the status
+bar names the pins. **Press <kbd>H</kbd> (or the "Pour" button) to hide every copper pour** —
+the fastest way to see fine traces.
+
+### Shortcuts
+
+| Key | Action |
+|---|---|
+| <kbd>F</kbd> | Fit board to window |
+| <kbd>H</kbd> | Copper pour on / off |
+| <kbd>K</kbd> | Continuity between two points |
+| <kbd>D</kbd> | Measure distance |
+| <kbd>Ctrl</kbd>+<kbd>F</kbd> | Find part / net |
+| <kbd>Esc</kbd> | Clear highlight (exits measuring first) |
+| Arrows | Pan (<kbd>Shift</kbd> for a longer step) |
+| <kbd>+</kbd> <kbd>-</kbd> | Zoom |
+| <kbd>0</kbd> | Back to board centre |
+| Middle click | Close current tab |
+
+Mouse: the wheel zooms **anchored at the pointer**; **drag to the edge of the canvas and the
+view keeps moving that way** (faster the closer you get, stops when you let go); once zoomed
+in, the **mini-map in the top-left** shows your viewport as a yellow box — click to jump;
+**right-click on the board writes a note**, saved per board.
+
+## What's new in v1.13
+
+**Clicking a part in the list no longer slams the camera into it; several boards from one
+database can stay open side by side; plus measuring, board facts, a mini-map and recent files.**
+
+![Measuring](预览_量距.png)
+
+| Before | Now |
+|---|---|
+| Clicking an 0402 in the list zoomed until only two pads were visible — you had to wheel out to work out where on the board you were | A part takes about a third of the screen, **with context around it**; the **mini-map** in the top-left frames your viewport, click to jump |
+| To pan you had to press the arrow buttons; dragging to the window edge did nothing | **Drag to the canvas edge and the view keeps going** (the Protel feel), faster near the edge, stops on release |
+| The pan buttons were buried under the right-hand list drawer | The pan pad moved to the **bottom-left**; the drawer is on the right, so they never fight for space |
+| Distance between two points meant counting grid squares | **Measure** (<kbd>D</kbd>): two clicks, a dashed yellow line, readout in **mm and mil**, snapping to pad centres |
+| The file knew the board size, thinnest trace and smallest hole — the UI showed none of it | **Board** block in the left panel: outline in mm, area, copper layers, parts / pads / vias / nets, thinnest trace, smallest hole. Selecting a part adds **body size + pin count**; selecting a net adds **total routed length + via count** |
+| Switching boards inside one `.ddb` threw the previous one away | Picking a board from the dropdown **opens a new tab**; the previous one stays. Re-picking an open board just switches to it, no re-parse |
+| Hunting through folders for last time's `.ddb` | **Recent files** on the home screen (local paths only, never uploaded) |
+| The exe sometimes lingered after the window closed | The page says goodbye on `pagehide` (beacon) and the exe exits right away. <kbd>F5</kbd> is not mistaken for a close |
+
+![Locating a part](预览_清单定位.png)
+![Multiple board tabs](预览_多板页签.png)
+![Home with recent files](预览_首页.png)
+
+Design decisions worth knowing (details in the [CHANGELOG](CHANGELOG.md)):
+
+- **Zoom headroom is not a guessed ratio**: the target gets about a third of the screen,
+  and there is a hard cap — the short side of the viewport must hold at least 360 mil
+  (~9 mm), otherwise small parts still get blown up past all context.
+- **Edge panning uses a `setTimeout` loop, not `requestAnimationFrame`**: when the window is
+  covered or the page is in the background, the browser suspends rAF and the view freezes
+  with the pointer parked at the edge.
+- **The mini-map is drawn off-screen once** (traces and pads only, skipping thousands of pour
+  fill segments), then it is just a `drawImage` plus a yellow box per frame. It hides itself
+  when the whole board is visible.
+
+## Other everyday features
+
+| Feature | Notes |
+|---|---|
+| **Net tracing** | Click a trace or pad → the whole net lights up, pins named in the status bar. Clicking ground lights pads and vias only, not the entire board |
+| **Continuity** (<kbd>K</kbd>) | Two clicks → verdict, judged in three tiers: netlist → same pour → actual copper connectivity, so older files without net numbers still work |
+| **List drawer** | All designators + values, all nets with pin counts; click any row to jump there; copy the list or export CSV |
+| **Board notes** | Right-click, type a sentence ("this one burnt"), a flag is stored per board |
+| **Layers** | Click to toggle, double-click to show only that layer; All / None / Top+Bot / Invert |
+| **Save PNG** | The current view (designators, values, highlight included) as a PNG named after the board and time |
+| **Tabs** | One tab per file; zoom, pan, layers and highlight are all restored when you come back |
+| **Bilingual UI** | Toggle with <kbd>🌐</kbd>; the button always shows the *other* language |
+
+## Privacy and security
+
+- **Read-only**: files are only read. Your originals are **never modified, overwritten or
+  deleted**.
+- **No networking**: the renderer runs on a loopback-only local server (`127.0.0.1`, random
+  port, one-time token). **Nothing listens on a network interface, nothing goes to the
+  internet, nothing is written to the registry.** The web version is pure client-side — your
+  file never leaves the browser.
+- **Nothing left behind**: only two things touch the disk — a temp file used while parsing a
+  `.ddb` (cleared on exit) and a local recent-files list (path, board name, time only).
+- **No third-party runtime libraries**: parsing and drawing are implemented from scratch.
+
+## Compatibility
+
+| Item | Value |
+|---|---|
+| Target | Windows 7 / 8 / 8.1 / 10 / 11, **x86 and 64-bit** |
+| exe PE machine | `0x014c` = i386 (32-bit) |
+| exe subsystem | `2` = Windows GUI (no console window) |
+| Runtime deps | System DLLs only (comdlg32 / user32 / kernel32 + UCRT); no tcl/tk, no WebView2 |
+| Browser | Either bundled Edge or Chrome (used for the `--app=` window) |
+
+## Known limitations
+
+- **No schematics (`.sch`)**: inside a design database they are OLE compound documents that
+  reference component libraries — far more complex than the PCB side.
+- **No direct parsing of the database internals**: large fields span 2 KB pages and page
+  headers get interleaved into the record stream, so big segments come out shifted. An
+  explicit error is preferable to a plausible-looking wrong picture.
+- `PCB 4.0 Binary` only; `PCB 3.0` (16-bit) is partially compatible, not verified.
+- Not code-signed, so SmartScreen may warn about an unknown publisher.
+
+## Building from source
+
+```bash
+py -3.12-32 -m pip install --target _py32 pyinstaller
+py -3.12-32 _build32.py
+```
+
+**A 32-bit interpreter is required**, otherwise you get a 64-bit binary that will not start
+on 32-bit Windows. `_build32.py` looks for PyInstaller in `PYI_TARGET` or a sibling
+`_py32/` directory. Optional argument: `_build32.py <output-dir>` (needed when the current
+exe is running and cannot be overwritten).
+
+## Third-party components
+
+| Component | Licence | Purpose |
+|---|---|---|
+| mdbtools (`mdb-export.exe`) | GPL-2.0-or-later | Reading `.ddb` databases |
+| libmdb / libiconv (DLLs) | LGPL-2.1 | Same, dynamically linked |
+| Open-hardware design shown in screenshots | CERN-OHL v1.2 | The board in the screenshots (© René Richard, 2017) |
+
+mdbtools is invoked **out of process**, not linked into a single work, so the GPL does not
+propagate. The GPL-2.0 §3(b) three-year written offer is in section 1 of
+`第三方组件与许可.txt` (Chinese).
+
+## Compliance
+
+Checked before any distribution (colleague, chat group, intranet share, GitHub):
+
+| # | Item | Status | Note |
+|---|---|---|---|
+| 1 | Product name contains no vendor / software name | ✅ | It is `PCB 看板 / CopperLens`. Window title, icon name, exe name, folder name — all clean |
+| 2 | Vendor names appear only in "what it reads" | ✅ | Only the format's own magic string `PCB 4.0 Binary File` and the extensions `.pcb / .ddb` — **descriptive use**, needed to state compatibility, not trademark use |
+| 3 | No vendor icons / fonts / UI assets | ✅ | Everything hand-drawn, zero external assets |
+| 4 | Disclaimer states non-affiliation and trademark ownership | ✅ | Disclaimer section 5 + About |
+| 5 | mdbtools (GPL-2.0-or-later + LGPL) ships with licences and a written offer | ✅ | `第三方组件与许可.txt` + `COPYING-GPL-2.0.txt` + `COPYING-LGPL-2.1.txt`; GPL-2.0 §3(b) offer in section 1 |
+| 6 | No third-party project names left in the code | ✅ | Original external references removed; the offsets were derived by binary diffing sample files, which is what was actually done |
+| 7 | **No PCB design files are distributed at all** | ✅ | The board in the previews comes from an open-hardware project (© René Richard 2017, CERN-OHL v1.2). **That file is not in the release package, the repo or any release asset** — not shipping it creates no redistribution obligation. Previews ship with `LICENSE-CERN-OHL-1.2.txt` and attribution, noted in section 2 of `第三方组件与许可.txt` |
+| 8 | No real company boards or customer data in the repo | ⚠️ | Production PCB files belong to the employer; use open-hardware or self-made sample boards |
+| 9 | Disclaimer: reference only, not for production, repair at your own risk | ✅ | Disclaimer sections 1 / 3 / 4, in both languages |
+| 10 | Signing / certificate | — | Unsigned; SmartScreen may warn. Normal for internal use |
+| 11 | Name collision with an existing brand | ⚠️ | `CopperLens` collides with an unrelated overseas AI service (not PCB). Different category, unlikely to confuse; search results will favour them. Rename if that matters |
+| 12 | Machine paths / user names in the exe or source | ✅ | Full-text search of `PCB看板.exe` for the local user name, home directory, working directory, desktop path and the old product name: **0 hits each**. Repo docs contain no drive letters or local directories either |
+| 13 | What must not be committed | ⚠️ | Design databases, `build/`, `_t/`, `_py32/`, `_archive/`, `*.exe` — binaries go to Releases, not the source tree |
+
+**Bottom line: safe to publish, very low risk.** Three rules: don't take someone else's name
+as your own; mention names only to say "this file format can be opened", with trademark
+ownership and non-affiliation stated; and ship licences, attribution and source routes with
+any third-party component you distribute — or simply don't ship the file.
+
+Format interoperability is common practice across many tools, and this program is
+**read-only**: it does not touch encryption or circumvent any protection mechanism.
+
+## Licence and credits
+
+The program's own source is published here with all rights reserved by the author; this
+repository carries no project-level open-source licence. Bundled third-party components keep
+their own licences — mdbtools under GPL-2.0-or-later / LGPL-2.1, and the open-hardware design
+shown in the screenshots under CERN-OHL v1.2. Full texts are in the repository root; the
+complete component list and attribution are in `第三方组件与许可.txt` (Chinese).
+
+**Read-only, offline, never touching your originals** is the non-negotiable baseline of this
+project.
+
+© 永远的兰兰 Lanlan Eternal
