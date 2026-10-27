@@ -36,7 +36,7 @@ from ctypes import wintypes
 from pathlib import Path
 
 APP_TITLE = "PCB 看板 CopperLens"
-VERSION = "1.12"
+VERSION = "1.13"
 
 _APPDIR = "CopperLens"
 _LOG = Path(tempfile.gettempdir()) / _APPDIR / "last-run.log"
@@ -139,6 +139,32 @@ OFN_EXPLORER = 0x00080000
 _HWND_CACHE = [None]
 
 
+_HK_PROC = ctypes.windll.kernel32
+
+
+def _proc_name(pid):
+    """进程 exe 名（小写）。用来把"我们开的 --app 窗口"和用户自己的浏览器标签分开。"""
+    try:
+        h = _HK_PROC.OpenProcess(0x1000, False, int(pid))   # QUERY_LIMITED_INFORMATION
+        if not h:
+            return ""
+        try:
+            buf = ctypes.create_unicode_buffer(1024)
+            n = wintypes.DWORD(1024)
+            if not _HK_PROC.QueryFullProcessImageNameW(h, 0, buf, ctypes.byref(n)):
+                return ""
+            return buf.value.rsplit("\\", 1)[-1].lower()
+        finally:
+            _HK_PROC.CloseHandle(h)
+    except Exception:
+        return ""
+
+
+# 只认这些进程的窗口：--app 窗口的类名和普通标签页一样，只能靠"进程 + 标题"分开。
+_VIEWER_PROCS = ("msedge.exe", "chrome.exe", "chromium.exe",
+                 "brave.exe", "opera.exe", "vivaldi.exe", "thorium.exe")
+
+
 def _viewer_hwnd():
     """找到我们自己那个显示窗口（Edge/Chrome 的 --app 窗口），当文件对话框的父窗口。
 
@@ -147,8 +173,12 @@ def _viewer_hwnd():
     EnableWindow(False)，关掉对话框时又还给那个错句柄 —— 用户看到的就是
     "窗口还在、页面也在动，但点 X 没反应、整窗变灰"。
 
-    所以现在三重要求：可见 + 类名是浏览器窗口 + 标题带我们的标记，
-    多个候选取**面积最大**的那个（真正的主窗口一定比残留小窗大），并缓存结果。
+    ⚠ 后来还发现：用户在**夸克/普通浏览器**里打开在线版（标题同样带
+    "PCB 看板 CopperLens"）时，这函数会把那个标签页当成自己的窗口，
+    于是给别人家的窗口发 EnableWindow / SetForegroundWindow。
+    所以现在四重要求：可见 + 类名是浏览器窗口 + 进程是我们认的浏览器 +
+    标题里**没有 " - "**（浏览器标签页会追加 " - Microsoft Edge" / " - 夸克"，
+    而 --app 窗口的标题是干净的），多个候选取面积最大的，并缓存结果。
     """
     h = _HWND_CACHE[0]
     try:
@@ -176,6 +206,12 @@ def _viewer_hwnd():
                 _user32.GetWindowTextW(hwnd, b, ln + 1)
                 t = b.value
                 if "CopperLens" not in t and "PCB 看板" not in t:
+                    return True
+                if " - " in t:          # 浏览器标签页：标题后面挂着浏览器名
+                    return True
+                pid = wintypes.DWORD()
+                _user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+                if _proc_name(pid.value) not in _VIEWER_PROCS:
                     return True
                 r = rect()
                 if not _user32.GetWindowRect(hwnd, ctypes.byref(r)):
@@ -752,6 +788,9 @@ def extract_pcbs(ddb):
 
 _home_html = [b""]
 _last_ping = [0.0]
+# 页面临走前打的招呼（时间戳）。窗口关掉时浏览器会发一次 pagehide，
+# 收到就退出；但要留 2.5 秒宽限，免得"刷新一下"也被当成关闭。
+_bye = [0.0]
 
 
 def build_home_html(token):
@@ -807,6 +846,79 @@ def _payload_for_bytes(name, data):
             pass
 
 
+# ------------------------------------------------------ 最近打开（本机记录）
+# 存在 %LOCALAPPDATA%\CopperLens\recent.json，只记路径 / 文件名 / 板名 / 时间。
+# 不记文件内容，不联网，删掉这个 json 就等于清空列表。
+def _recent_path():
+    base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
+    return Path(base) / _APPDIR / "recent.json"
+
+
+def _load_recent():
+    try:
+        data = json.loads(_recent_path().read_text(encoding="utf-8"))
+        items = data.get("items") if isinstance(data, dict) else data
+        return [x for x in (items or []) if isinstance(x, dict) and x.get("path")]
+    except Exception:
+        return []
+
+
+def _save_recent(items):
+    try:
+        p = _recent_path()
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps({"items": items[:12]}, ensure_ascii=False),
+                     encoding="utf-8")
+    except Exception as e:
+        log("最近打开的记录写不进去：%r" % e)
+
+
+def _remember(path, res):
+    """打开成功后记一笔。同一个文件再打开就挪到最前面，不会重复。"""
+    try:
+        path = str(Path(path).resolve())
+        items = [x for x in _load_recent()
+                 if os.path.normcase(str(x.get("path", ""))) != os.path.normcase(path)]
+        items.insert(0, {
+            "path": path,
+            "name": Path(path).name,
+            "boards": [b.get("n") for b in (res.get("boards") or [])][:12],
+            "ts": time.time(),
+        })
+        _save_recent(items)
+    except Exception as e:
+        log("最近打开记录失败：%r" % e)
+
+
+def _recent_when(ts):
+    """时间只给数字，不写"昨天"——界面有中英两种语言，数字两边都读得懂。"""
+    try:
+        if not ts:
+            return ""
+        t = time.localtime(ts)
+        now = time.localtime()
+        if (t.tm_year, t.tm_yday) == (now.tm_year, now.tm_yday):
+            return time.strftime("%H:%M", t)
+        if t.tm_year == now.tm_year:
+            return time.strftime("%m-%d", t)
+        return time.strftime("%Y-%m-%d", t)
+    except Exception:
+        return ""
+
+
+def _recent_listing():
+    out = []
+    for it in _load_recent():
+        p = str(it.get("path") or "")
+        out.append({
+            "name": it.get("name") or Path(p).name,
+            "boards": it.get("boards") or [],
+            "when": _recent_when(it.get("ts")),
+            "gone": not Path(p).exists(),
+        })
+    return {"items": out}
+
+
 class _HomeServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
     daemon_threads = True
     allow_reuse_address = True
@@ -856,6 +968,12 @@ def _make_handler(token, home_html):
             if u.path == "/api/ping":
                 _last_ping[0] = time.time()
                 return self._json({"ok": True})
+            if u.path == "/api/recent":
+                return self._json(_recent_listing())
+            if u.path == "/api/bye":
+                # sendBeacon 有时走 GET，两个方法都认
+                _bye[0] = time.time()
+                return self._json({"ok": True})
             self._json({"error": "not found"}, 404)
 
         def do_POST(self):
@@ -864,6 +982,9 @@ def _make_handler(token, home_html):
                 return
             n = int(self.headers.get("Content-Length") or 0)
             body = self.rfile.read(n) if n > 0 else b""
+            if u.path == "/api/bye":
+                _bye[0] = time.time()
+                return self._json({"ok": True})
             if u.path == "/api/open":
                 log("弹出文件对话框（父窗口=%r）" % _viewer_hwnd())
                 path = ask_file()
@@ -871,7 +992,10 @@ def _make_handler(token, home_html):
                 if not path:
                     return self._json({"cancel": True})
                 try:
-                    return self._json(_payload_for_path(Path(path)))
+                    res = _payload_for_path(Path(path))
+                    if res.get("boards"):
+                        _remember(path, res)
+                    return self._json(res)
                 except Exception as e:
                     log("打开失败：%r" % e)
                     return self._json({"error": str(e)})
@@ -885,6 +1009,29 @@ def _make_handler(token, home_html):
                     return self._json(_payload_for_bytes(name, body))
                 except Exception as e:
                     log("拖入文件解析失败：%r" % e)
+                    return self._json({"error": str(e)})
+            if u.path == "/api/recent":
+                # 只认记录里已有的路径，前端传不了任意路径过来
+                q = urllib.parse.parse_qs(u.query)
+                try:
+                    i = int((q.get("i") or ["-1"])[0])
+                except ValueError:
+                    i = -1
+                items = _load_recent()
+                if not (0 <= i < len(items)):
+                    return self._json({"error": L("没有这条最近打开的记录。",
+                                                  "No such recent entry.")})
+                p = Path(items[i].get("path") or "")
+                if not p.exists():
+                    return self._json({"error": L("文件已经不在原处了：\n",
+                                                  "The file is gone:\n") + str(p)})
+                try:
+                    res = _payload_for_path(p)
+                    if res.get("boards"):
+                        _remember(str(p), res)
+                    return self._json(res)
+                except Exception as e:
+                    log("从最近打开里打开失败：%r" % e)
                     return self._json({"error": str(e)})
             self._json({"error": "not found"}, 404)
 
@@ -915,23 +1062,31 @@ def run_home():
         return False
 
     # 窗口关掉就退出，别在后台留进程。
-    # 浏览器进程还在 → 盯进程；边已经被别的窗口占用（进程立刻返回 0）→ 盯页面心跳。
+    # 三条判据，按可靠性排：
+    #   ① 页面自己说"我走了"（pagehide → /api/bye）：最准，留 2.5 秒宽限，
+    #      这样用户按 F5 刷新时（会先 pagehide 再重新 ping）不会被误杀；
+    #   ② 页面心跳静默 120 秒：兜底（页面被强杀、浏览器崩了）；
+    #   ③ 浏览器进程退出且从没收到过心跳：浏览器复用了别的实例时用这条。
     start = time.time()
     while True:
-        time.sleep(1.0)
+        time.sleep(0.6)
+        now = time.time()
+        if _bye[0] and now - _bye[0] > 2.5 and now - _last_ping[0] > 2.0:
+            log("页面报告已关闭（bye），退出")
+            break
         if _last_ping[0]:
-            if time.time() - _last_ping[0] > 120:
+            if now - _last_ping[0] > 120:
                 log("页面已关闭（心跳静默），退出")
                 break
-        elif proc.poll() is not None and time.time() - start > 8:
+        elif proc.poll() is not None and now - start > 8:
             log("浏览器已退出，退出")
             break
-        elif time.time() - start > 300:
+        elif now - start > 300:
             # 5 分钟一次心跳都没收到，说明页面根本没连上（浏览器复用了别的实例、
             # 或者开着的是个错误页）。这种情况下别再后台挂着，直接退。
             log("页面从未连上（无心跳），退出")
             break
-        elif time.time() - start > 6 * 3600:
+        elif now - start > 6 * 3600:
             log("已运行 6 小时，退出")
             break
     try:
@@ -953,6 +1108,7 @@ def handle(path):
 
     if ext == ".pcb":
         html = build_view_html([(p.name, p.read_bytes())], p.name)
+        _remember(str(p), {"boards": [{"n": p.name}]})
         return open_viewer(html) is not None
 
     if ext == ".ddb":
@@ -964,6 +1120,7 @@ def handle(path):
             return False
         log("抽出 %d 块板：%r" % (len(boards), [b["label"] for b in boards]))
         html = build_view_html([(b["label"], b["bytes"]) for b in boards], p.name)
+        _remember(str(p), {"boards": [{"n": b["label"]} for b in boards]})
         return open_viewer(html) is not None
 
     msgbox(L("只认 .ddb 和 .pcb 两种文件。\n你选的是：",
