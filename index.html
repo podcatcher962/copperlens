@@ -26,7 +26,7 @@
   #app.empty footer{opacity:.45}
   /* 没板时只剩「打开文件」，其余按钮点了也没反应，先收起来 */
   #app.empty #fit,#app.empty #invert,#app.empty #des,#app.empty #labels,
-  #app.empty #pour,#app.empty #probe,#app.empty #shot,
+  #app.empty #pour,#app.empty #probe,#app.empty #shot,#app.empty #lists,
   #app.empty .findwrap,#app.empty .hrow .sep{display:none}
   /* ===== 多文档页签（一个文件一格，可单独关闭） ===== */
   .tabs{display:none;align-items:flex-end;gap:3px;margin:8px -12px -7px;
@@ -233,6 +233,60 @@
     white-space:nowrap;box-shadow:0 2px 10px rgba(0,0,0,.5)}
   .tip b{color:#8fd0ff;font-weight:600}
   .tip .v{color:#9aa5b5;margin-left:5px}
+  /* ===== 右侧清单抽屉：元件 / 网络 / 脚位 / 标记 =====
+     借用同类开源板图工具的做法（OpenBoardView 的元件表、网络表、板上注释）：
+     维修时两个最常问的问题是"这个位号在板上哪儿"和"这条线都连了谁"，
+     一张能点的清单比在密密麻麻的铜皮里瞎点快得多。 */
+  .drawer{position:absolute;top:0;right:0;bottom:0;width:282px;z-index:45;
+    display:flex;flex-direction:column;background:var(--panel);
+    border-left:1px solid var(--line);box-shadow:-16px 0 34px rgba(0,0,0,.38);
+    transform:translateX(103%);transition:transform .18s ease;will-change:transform}
+  .drawer.on{transform:none}
+  .drw-hd{display:flex;align-items:center;gap:6px;padding:8px 8px 7px 10px;
+    border-bottom:1px solid var(--line)}
+  .drw-tabs{display:flex;gap:2px;flex:1}
+  .drw-tabs button{background:transparent;border:none;color:var(--fg3);font:inherit;
+    font-size:12px;padding:4px 9px;border-radius:6px;cursor:pointer}
+  .drw-tabs button:hover{color:var(--fg)}
+  .drw-tabs button.on{background:var(--panel2);color:var(--accent)}
+  .drw-x{background:transparent;border:none;color:var(--fg3);font-size:17px;line-height:1;
+    cursor:pointer;padding:2px 4px}
+  .drw-x:hover{color:var(--fg)}
+  .drw-q{margin:8px 10px 4px;padding:6px 9px;background:var(--bg);
+    border:1px solid var(--line);border-radius:7px;color:var(--fg);
+    font:inherit;font-size:12px;outline:none}
+  .drw-q:focus{border-color:var(--accent2)}
+  .drw-lit{margin:0 12px 5px;font-size:12px;color:var(--accent);min-height:15px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .drw-list{flex:1;overflow:auto;padding:0 6px 8px}
+  .drw-list::-webkit-scrollbar{width:8px}
+  .drw-list::-webkit-scrollbar-thumb{background:#2c3140;border-radius:4px}
+  .drw-row{display:flex;align-items:baseline;gap:8px;padding:5px 7px;border-radius:6px;
+    cursor:pointer;font-size:12px;position:relative}
+  .drw-row:hover{background:var(--panel2)}
+  .drw-row.on{background:rgba(240,180,41,.14)}
+  .drw-row b{font-weight:600;color:var(--fg);white-space:nowrap;
+    font-family:ui-monospace,Consolas,"Courier New",monospace}
+  .drw-row i{margin-left:auto;font-style:normal;color:var(--fg3);font-size:11px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:152px}
+  .drw-row .drw-del{position:absolute;right:2px;top:2px;background:none;border:none;
+    color:var(--fg3);cursor:pointer;font-size:14px;line-height:1;padding:0 3px;display:none}
+  .drw-row.mk:hover .drw-del{display:block}
+  .drw-empty{padding:20px 10px;color:var(--fg3);font-size:12px;text-align:center;line-height:1.7}
+  .drw-note{padding:8px 8px 0;color:var(--fg3);font-size:11px;line-height:1.6}
+  .drw-ft{display:flex;gap:6px;padding:8px 10px;border-top:1px solid var(--line)}
+  .drw-ft .btn{flex:1;padding:6px 4px;font-size:12px}
+  /* 板上标注的小输入窗（右键点在板子上就出来） */
+  .mkpop{position:absolute;z-index:60;width:248px;background:var(--panel2);
+    border:1px solid var(--line);border-radius:9px;padding:9px;
+    box-shadow:0 12px 32px rgba(0,0,0,.5)}
+  .mkpop-t{font-size:12px;color:var(--fg2);margin-bottom:6px}
+  .mkpop input{width:100%;padding:6px 8px;background:var(--bg);
+    border:1px solid var(--line);border-radius:6px;color:var(--fg);
+    font:inherit;font-size:12px;outline:none}
+  .mkpop input:focus{border-color:var(--accent)}
+  .mkpop-b{display:flex;gap:6px;margin-top:7px}
+  .mkpop-b .btn{flex:1;padding:5px 4px;font-size:12px}
 </style>
 </head>
 <body>
@@ -270,7 +324,7 @@
     <div class="hrow">
       <button class="btn primary" id="open" data-i18n="btnOpen"
               data-i18n-title="btnOpenTip">打开文件</button>
-      <input type="file" id="file" accept=".pcb,.PCB,.ddb,.DDB">
+      <input type="file" id="file" accept=".pcb,.PCB,.ddb,.DDB" multiple>
       <select id="boards" style="display:none"></select>
       <div class="sep"></div>
       <button class="btn" id="fit" data-i18n="btnFit" data-i18n-title="btnFitTip">适合窗口</button>
@@ -281,6 +335,7 @@
       <div class="sep"></div>
       <button class="btn" id="probe" data-i18n="btnProbe" data-i18n-title="btnProbeTip">通不通</button>
       <button class="btn" id="shot" data-i18n="btnShot" data-i18n-title="btnShotTip">存图</button>
+      <button class="btn" id="lists" data-i18n="btnLists" data-i18n-title="btnListsTip">清单</button>
       <div class="spacer"></div>
       <div class="findwrap">
         <input id="find" type="search" autocomplete="off" spellcheck="false"
@@ -322,7 +377,26 @@
       <span></span>
       <button data-nav="down" data-i18n-title="navDown" title="下移">▼</button>
       <span></span>
-    </div>
+    </div>    <!-- 右侧清单抽屉：一个位号、一条网络，点一下就跳过去点亮 -->
+    <aside class="drawer" id="drawer">
+      <div class="drw-hd">
+        <div class="drw-tabs">
+          <button data-dt="parts" data-i18n="drwParts">元件</button>
+          <button data-dt="nets" data-i18n="drwNets">网络</button>
+          <button data-dt="pins" data-i18n="drwPins">脚位</button>
+          <button data-dt="marks" data-i18n="drwMarks">标记</button>
+        </div>
+        <button class="drw-x" id="drawerX" title="收起">×</button>
+      </div>
+      <input class="drw-q" id="drwQ" type="search" autocomplete="off" spellcheck="false"
+             data-i18n-ph="drwQPh" placeholder="筛选位号 / 型号 / 网络名">
+      <div class="drw-lit" id="drwTitle"></div>
+      <div class="drw-list" id="drwList"></div>
+      <div class="drw-ft">
+        <button class="btn" id="drwCopy" data-i18n="drwCopy">复制清单</button>
+        <button class="btn" id="drwCsv" data-i18n="drwCsv">导出 CSV</button>
+      </div>
+    </aside>
   </main>
 
   <footer>
@@ -386,6 +460,22 @@ zh:{
   author:"© 永远的兰兰",
   navCenter:"回到板子中心", navUp:"上移", navDown:"下移",
   navLeft:"左移", navRight:"右移",
+  btnLists:"清单", btnListsTip:"快捷键 C / N：按位号或网络名找，点一下直接跳过去",
+  drwParts:"元件", drwNets:"网络", drwPins:"脚位", drwMarks:"标记",
+  drwQPh:"筛选位号 / 型号 / 网络名",
+  drwCopy:"复制清单", drwCsv:"导出 CSV",
+  drwNoBoard:"还没打开板子。先点左上角「打开文件」。",
+  drwEmpty:"没有匹配项",
+  drwUnit:" 项", drwPinUnit:" 脚", drwPlaces:n=>"共 "+n+" 处",
+  drwOfPins:"的脚位",
+  drwViaNote:n=>"另有 "+n+" 个过孔也在这条线上（未逐个列出）。",
+  drwValCol:"型号", drwPadsCol:"脚数", drwPinCol:"脚位", drwNetCol:"网络",
+  drwCopied:"已复制，可以直接贴进维修单",
+  drwCopyFail:"复制失败，改用「导出 CSV」试试",
+  drwMkHint:"还没有标记。在板子上点右键就能写一条。",
+  csvDone:n=>"已导出："+n,
+  mkTitle:"在这块板上做个标记", mkPh:"例如：这里烧过 / 3.3V 正常",
+  mkSave:"保存", mkCancel:"取消", mkDel:"删除",
 
   /* 图层名 */
   layTop:"顶层 Top", layBottom:"底层 Bottom", layVia:"过孔 Via（贯穿）",
@@ -542,6 +632,22 @@ zh:{
        线挨着线、穿过过孔到另一层都算连通，所以网络号为 0 的板一样能用。
        通了点亮整条线，不通只点亮这两点，断在哪一眼就看出来。</p>
 
+    <h3>清单：按位号、按网络找</h3>
+    <p>点顶栏 <code>清单</code>（快捷键 <kbd>C</kbd> 元件、<kbd>N</kbd> 网络、<kbd>M</kbd> 标记），
+       右边会拉开一栏：</p>
+    <ul>
+      <li><b>元件</b>　板上所有位号 + 型号，按位号排。点一下 → 画面跳到那颗料，并点亮它的每一只脚。</li>
+      <li><b>网络</b>　所有网络名 + 各条脚数（如 <code>GND 86 脚</code>）。点一下 → 整条线亮起来并居中。</li>
+      <li><b>脚位</b>　当前点亮那条线（或那颗料）的完整脚位表：<code>U100-4　GND</code>。点某一行就跳到那只脚。</li>
+      <li>顶上筛选框可以只留想要的：输 <code>U1</code> 看全部 U1xx，输 <code>3V3</code> 看电源网络。</li>
+      <li><b>复制清单</b> 直接贴进维修单；<b>导出 CSV</b> 存成表格。</li>
+    </ul>
+
+    <h3>在板上做标记</h3>
+    <p>在板子上<b>点右键</b>，写一句话（"这里烧过""3.3V 正常"），那个位置就插一面小旗子，
+       缩放够大时字直接看得见。标记按<b>板子</b>存档，换一块板不会串；
+       在「标记」页签里可以逐条跳过去、改字或删掉。</p>
+
     <h3>找一个元件 / 一个网络</h3>
     <p>顶栏右边的搜索框（或 <kbd>Ctrl</kbd>+<kbd>F</kbd>）：输 <code>U100</code> 找位号、
        输 <code>AMS1117</code> 找型号、输 <code>GND</code> 找网络。选中即定位并点亮。</p>
@@ -615,9 +721,11 @@ zh:{
       <li><b>找元件 / 找网络</b>：输 U100、型号或网络名，跳过去并点亮</li>
       <li>图层一键全选 / 全不选 / 只看顶底铜；当前画面一键存 PNG</li>
       <li><b>同时打开多个文件</b>：一个文件一个页签，可以来回切、各自关掉</li>
+      <li><b>清单</b>：全部位号、全部网络列成表，点一下跳过去点亮；当前网络的脚位可复制、可导出 CSV</li>
+      <li><b>板上标记</b>：右键写一句"这里烧过"，按板子存档</li>
     </ul>
     <h3>版本</h3>
-    <p>v1.11　·　支持 x86 与 64 位系统　·　单文件便携版</p>
+    <p>v1.12　·　支持 x86 与 64 位系统　·　单文件便携版</p>
     <div class="sig">© 永远的兰兰　·　Lanlan Eternal</div>`
 },
 en:{
@@ -639,6 +747,22 @@ en:{
   author:"© Lanlan Eternal",
   navCenter:"Back to board centre", navUp:"Pan up", navDown:"Pan down",
   navLeft:"Pan left", navRight:"Pan right",
+  btnLists:"Lists", btnListsTip:"Shortcuts C / N: jump by designator or net name",
+  drwParts:"Parts", drwNets:"Nets", drwPins:"Pins", drwMarks:"Marks",
+  drwQPh:"Filter designator / value / net",
+  drwCopy:"Copy list", drwCsv:"Export CSV",
+  drwNoBoard:"No board loaded yet. Click Open File first.",
+  drwEmpty:"No match",
+  drwUnit:" items", drwPinUnit:" pins", drwPlaces:n=>n+" places",
+  drwOfPins:"pins",
+  drwViaNote:n=>n+" more vias are on this net (not listed).",
+  drwValCol:"Value", drwPadsCol:"Pads", drwPinCol:"Pin", drwNetCol:"Net",
+  drwCopied:"Copied — paste it into your repair note",
+  drwCopyFail:"Copy failed — try Export CSV",
+  drwMkHint:"No marks yet. Right-click on the board to add one.",
+  csvDone:n=>"Exported: "+n,
+  mkTitle:"Mark this spot", mkPh:"e.g. burnt here / 3.3V OK",
+  mkSave:"Save", mkCancel:"Cancel", mkDel:"Delete",
 
   layTop:"Top Layer", layBottom:"Bottom Layer", layVia:"Via (through-hole)",
   layTopSilk:"Top Overlay", layBotSilk:"Bottom Overlay",
@@ -801,6 +925,22 @@ en:{
        count, so boards with net number 0 still work. Connected lights the whole trace,
        not connected lights only the two spots: the break is right there.</p>
 
+    <h3>Lists: find by designator or net</h3>
+    <p>Click <code>Lists</code> in the toolbar (<kbd>C</kbd> parts, <kbd>N</kbd> nets, <kbd>M</kbd> marks)
+       and a panel slides in from the right:</p>
+    <ul>
+      <li><b>Parts</b> — every designator + value, sorted. Click one to jump to it and light all its pins.</li>
+      <li><b>Nets</b> — every net name with its pin count (<code>GND 86 pins</code>). Click one to light the whole net and centre it.</li>
+      <li><b>Pins</b> — the full pin list of whatever is lit (<code>U100-4　GND</code>). Click a row to jump to that pin.</li>
+      <li>The filter box narrows things down: <code>U1</code> for all U1xx, <code>3V3</code> for a rail.</li>
+      <li><b>Copy list</b> pastes into your repair note; <b>Export CSV</b> saves a spreadsheet.</li>
+    </ul>
+
+    <h3>Marking up the board</h3>
+    <p><b>Right-click</b> on the board and type a note ("burnt here", "3.3V OK"). A small flag is
+       pinned to that spot and the text shows once you zoom in. Marks are stored per board, so they
+       never leak into another one; manage them in the <b>Marks</b> tab.</p>
+
     <h3>Find a part or a net</h3>
     <p>Search box on the right of the toolbar (or <kbd>Ctrl</kbd>+<kbd>F</kbd>):
        type <code>U100</code> for a refdes, <code>AMS1117</code> for a value, <code>GND</code> for a net.
@@ -885,9 +1025,11 @@ en:{
       <li><b>Find</b> by refdes, value or net name — jumps there and lights it up</li>
       <li>One-click layer All / None / Top+Bot; save the current view as PNG</li>
       <li><b>Several files open at once</b>: one tab per file, switch or close them independently</li>
+      <li><b>Lists</b>: every designator and net in a clickable table; copy or export the pin list of the current net</li>
+      <li><b>Board marks</b>: right-click and type "burnt here" — stored per board</li>
     </ul>
     <h3>Version</h3>
-    <p>v1.11　·　supports x86 and 64-bit Windows　·　portable single file</p>
+    <p>v1.12　·　supports x86 and 64-bit Windows　·　portable single file</p>
     <div class="sig">© Lanlan Eternal　·　永远的兰兰</div>`
 }
 };
@@ -930,6 +1072,7 @@ function applyLang(){
   document.getElementById("bd-about").innerHTML = T("aboutHtml");
   applyTitle();
   if(B){ refreshFileLine(); buildLayers(); }
+  if(DRW) renderDrawer();
   if(DOCS.length) renderTabs();      /* 页签上的"×"提示与板数也跟着语言走 */
 }
 /* 顶栏那行"文件名 · N 个对象" + 状态栏统计。单独抽出来，切语言时要跟着变。 */
@@ -937,6 +1080,11 @@ let lastName = "", lastMs = 0;
 /* 多文档页签的状态。声明放这么早是因为 applyLang() 会用到它（那时后面的
    let 还在 TDZ 里，会直接抛错）。 */
 let DOCS = [], curDoc = -1, docSeq = 0;
+/* 板上标记："这里烧过"这类结论，按板子存 localStorage，换板不串 */
+let MARKLIST = [];
+/* 抽屉当前是哪一页（""＝收起来）。和 MARKLIST 一样必须早早声明：
+   applyLang() 在初始化时就会读它，那时脚本尾部的 let 还在 TDZ 里。 */
+let DRW = "";
 function refreshFileLine(){
   if(!B) return;
   const n=B.tracks.length+B.pads.length+B.vias.length+B.fills.length;
@@ -1976,6 +2124,7 @@ function draw(){
   drawTexts(order);
   drawLabels(order);
   drawScale(r);
+  drawMarks();          /* 自己打的标记画在最上层，别被覆铜盖住 */
 }
 
 function drawTexts(order){
@@ -2593,6 +2742,7 @@ function updateStatus(h){
     litFeetAll=arr.length;
     litFeet=arr.slice(0,5);
   }
+  if(DRW==="pins") renderDrawer();     /* 点了新东西，脚位页跟着刷新 */
   const sn=document.getElementById("stNet");
   if(!h){ sn.innerHTML=""; document.getElementById("stLayer").textContent="—";
     document.getElementById("stWidth").textContent="—"; return; }
@@ -2668,8 +2818,10 @@ window.addEventListener("mousemove",e=>{
   if(B){
     const wx=(e.clientX-r.left-view.ox)/view.s;
     const wy=-(e.clientY-r.top-view.oy)/view.s;
+    /* 维修台上量距离常常要"毫米"，这里两个单位一起给，省得自己换算 */
     document.getElementById("stCoord").textContent=
-      wx.toFixed(0)+", "+wy.toFixed(0);
+      wx.toFixed(0)+", "+wy.toFixed(0)+"  ·  "
+      +(wx*0.0254).toFixed(1)+", "+(wy*0.0254).toFixed(1);
     if(!mouseDown) hoverTip(wx,wy,e.clientX-r.left,e.clientY-r.top);
   }
   if(!mouseDown) return;
@@ -2706,8 +2858,10 @@ function panStep(e){
 }
 function centerView(){
   if(!B) return;
-  if(!B.bb){ fit(); return; }
-  const bb=B.bb;
+  /* 以前这里读的是 B.bb —— 解析结果里根本没有这个字段（只有 B.bounds），
+     于是"回到中心"永远退化成"适合窗口"。 */
+  const bb=B.bounds || B.bb;
+  if(!bb){ fit(); return; }
   view.ox=cv.clientWidth/2-(bb.x1+bb.x2)/2*view.s;
   view.oy=cv.clientHeight/2+(bb.y1+bb.y2)/2*view.s;
   draw();
@@ -3193,6 +3347,8 @@ function loadBuffer(buf,name){
     refreshFileLine();
     buildLayers();
     buildFind();
+    loadMarks();                       /* 每块板有自己的标记 */
+    if(DRW==="pins" || DRW==="marks") renderDrawer();
     requestAnimationFrame(()=>{
       fit();
       // 定位到指定坐标：#zoom=x,y,倍数（看细节时直接改地址栏就行）
@@ -3258,15 +3414,18 @@ function toast(msg){
    .ddb 在浏览器里解不了，先拦下来给一句人话，不要让它掉进 parseBoard 里报
    一句"可能不是 PCB 4.0 文件"——那样用户会以为文件坏了。 */
 function openLocalFile(f){
-  if(!f) return;
+  if(!f) return Promise.resolve(false);
   const nm=f.name||"board.pcb";
-  /* 桌面版例外：.ddb 交给 exe 那侧解（浏览器里没有 mdbtools） */
-  if(window.__DESKTOP__){ uploadToServer(f); return; }
-  if(/\.ddb$/i.test(nm)){ toast(T("ddbWeb")); return; }
-  const fr=new FileReader();
-  fr.onload=()=>{ openDoc([{n:nm, d:null, buf:fr.result}], nm); };
-  fr.onerror=()=>toast(nm+" — "+T("readFail"));
-  fr.readAsArrayBuffer(f);
+  /* 桌面版例外：.ddb 交给 exe 那侧解（浏览器里没有 mdbtools）。
+     返回 Promise，是为了"一次拖几个文件"时能一个接一个地开。 */
+  if(window.__DESKTOP__){ return uploadToServer(f); }
+  if(/\.ddb$/i.test(nm)){ toast(T("ddbWeb")); return Promise.resolve(false); }
+  return new Promise(done=>{
+    const fr=new FileReader();
+    fr.onload=()=>{ openDoc([{n:nm, d:null, buf:fr.result}], nm); done(true); };
+    fr.onerror=()=>{ toast(nm+" — "+T("readFail")); done(false); };
+    fr.readAsArrayBuffer(f);
+  });
 }
 /* ============================== 桌面版：首页与打开通道 ============================== */
 /* exe 双击进的是首页而不是文件对话框，页面这边要知道两件事：
@@ -3323,8 +3482,9 @@ document.getElementById("hint").addEventListener("click", e=>{
   if(e.target.closest("#hintOpen")) openAny();
 });
 document.getElementById("file").onchange=e=>{
-  openLocalFile(e.target.files[0]);
+  const fs=e.target.files;
   e.target.value="";          /* 清掉，否则同一个文件第二次选不触发 change */
+  openFiles(fs);
 };
 
 const hint=document.getElementById("hint");
@@ -3334,8 +3494,17 @@ const hint=document.getElementById("hint");
 ["dragleave","drop"].forEach(ev=>stage.addEventListener(ev,e=>{
   e.preventDefault(); hint.classList.remove("over");
 }));
+/* 一次拖进来好几个文件就依次各开一个页签（.ddb 那种一次出多块板的仍算一个页签）。
+   顺次等待，是为了让"新文档"的创建不打架 —— 同一个时刻只能有一份在解析。 */
+function openFiles(list){
+  const arr=[...list].filter(f=>/\.(pcb|ddb)$/i.test(f.name||""));
+  if(!arr.length){ toast(T("noPcb")); return Promise.resolve(); }
+  return arr.reduce(
+    (p,f)=>p.then(()=>openLocalFile(f)).then(()=>new Promise(r=>setTimeout(r,300))),
+    Promise.resolve());
+}
 stage.addEventListener("drop",e=>{
-  openLocalFile(e.dataTransfer.files[0]);
+  openFiles(e.dataTransfer.files);
 });
 
 document.getElementById("fit").onclick=fit;
@@ -3495,6 +3664,7 @@ function activate(i){
     const bd=BOARDS[curBoard]||BOARDS[0];
     lastName=(bd&&bd.n)||d.name;
     restoreUi();
+    loadMarks();
   }else{
     const bd=BOARDS[curBoard]||BOARDS[0];
     let buf=bd && bd.buf;
@@ -3619,6 +3789,417 @@ if(!B) document.getElementById("app").classList.add("empty");
   beat();
   setInterval(beat, 5000);
 })();
+
+/* ================== 右侧清单抽屉：元件 / 网络 / 脚位 / 标记 ==================
+   借鉴同类开源板图工具（OpenBoardView 的元件表、网络表、板上注释）的做法：
+   维修现场最常问的两个问题 —— "这个位号在板上哪个位置"、"这条线到底连了谁"，
+   用一张能点的清单回答，比在密密麻麻的铜皮里瞎点快得多。
+
+   四个页签：
+     元件 —— 全部位号+型号，点一下跳过去并点亮它的所有脚
+     网络 —— 全部网络名+脚数，点一下点亮整条线并居中
+     脚位 —— 当前点亮对象的脚位清单（点网络＝这个网的所有脚；点元件＝这颗料的所有脚）
+     标记 —— 自己右键打的标注，按板子存档，换一块板不会串
+*/
+const drwEl = document.getElementById("drawer");
+const drwBody = document.getElementById("drwList");
+const drwSearch = document.getElementById("drwQ");
+const drwCntEl = document.getElementById("drwCount");
+const drwTitleEl = document.getElementById("drwTitle");
+
+/* ---------- 取数：三个页签的原料都从已解析好的 B 里来，不重复算 ---------- */
+function drwComps(){
+  const out = [];
+  if(!B || !B.compInfo) return out;
+  B.compInfo.forEach((ci, id)=>{
+    if(!ci) return;
+    if(!ci.des && !ci.com) return;              // 位号型号都没有的元件列出来没意义
+    out.push({id:id, des:ci.des||"", com:ci.com||"", bb:ci.bb, x:ci.x, y:ci.y});
+  });
+  out.sort((a,b)=> (a.des||"\uffff").localeCompare(b.des||"\uffff","zh",{numeric:true}));
+  return out;
+}
+function drwNets(){
+  const out = [];
+  if(!B || !B.byNet) return out;
+  B.byNet.forEach((list, n)=>{
+    let pads = 0, tr = 0;
+    for(const q of list){ if(q.kind==="pad") pads++; else if(q.kind==="track") tr++; }
+    out.push({n:n, name:(B.nets[n-1]||("NET"+n)), pads:pads, tr:tr});
+  });
+  out.sort((a,b)=> a.name.localeCompare(b.name,"zh",{numeric:true}));
+  return out;
+}
+function drwPins(){
+  const out = [];
+  if(!B || !LIT) return out;
+  const seen = new Set();
+  let vias = 0;
+  for(const q of LIT){
+    if(q.kind === "via"){ vias++; continue; }
+    if(q.kind !== "pad") continue;
+    const key = (q.compDes||"?")+"\u0000"+(q.name||"");
+    if(seen.has(key)) continue;
+    seen.add(key);
+    out.push({
+      des: q.compDes||"",
+      pin: (q.name===undefined||q.name===null) ? "" : String(q.name),
+      net: (q.net>0) ? (B.nets[q.net-1]||("NET"+q.net)) : "",
+      x:q.x, y:q.y
+    });
+  }
+  out.sort((a,b)=> (a.des||"").localeCompare(b.des||"","zh",{numeric:true})
+                 || String(a.pin).localeCompare(String(b.pin),"zh",{numeric:true}));
+  out.vias = vias;                                // 挂个字段，渲染时单独提示
+  return out;
+}
+/* 脚位页顶栏那句"现在看的是哪条网络/哪颗料" */
+function drwLitName(){
+  if(!B) return "";
+  if(pickMode === "comp" && LIT && LIT.size){
+    const any = LIT.values().next().value;
+    return any && any.compDes ? any.compDes+" "+T("drwOfPins") : T("drwPins");
+  }
+  if(hi && String(hi).charAt(0) === "n"){
+    return netNameOf(hi) + (litFeetAll ? "　"+litFeetAll+T("drwPinUnit") : "");
+  }
+  if(LIT && LIT.size) return LIT.size+T("drwPlaces");
+  return "";
+}
+
+/* ---------- 渲染 ---------- */
+function renderDrawer(){
+  if(!DRW){ drwEl.classList.remove("on"); return; }
+  drwEl.classList.add("on");
+  const tabs = drwEl.querySelectorAll(".drw-tabs button");
+  for(let i=0;i<tabs.length;i++) tabs[i].classList.toggle("on", tabs[i].dataset.dt === DRW);
+
+  if(!B && DRW !== "marks"){
+    drwTitleEl.textContent = "";
+    if(drwCntEl) drwCntEl.textContent = "";
+    drwBody.innerHTML = '<div class="drw-empty">'+esc(T("drwNoBoard"))+'</div>';
+    return;
+  }
+
+  const q = (drwSearch.value||"").trim().toLowerCase();
+  const hit = s => !q || String(s||"").toLowerCase().indexOf(q) >= 0;
+  let html = "", cnt = 0;
+
+  if(DRW === "parts"){
+    const all = drwComps();
+    const rows = q ? all.filter(c=>hit(c.des)||hit(c.com)) : all;
+    cnt = rows.length;
+    html = rows.slice(0,600).map(c=>
+      '<div class="drw-row" data-k="c" data-id="'+c.id+'">'+
+        '<b>'+esc(c.des||"·")+'</b><i>'+esc(c.com||"")+'</i></div>').join("");
+  }else if(DRW === "nets"){
+    const all = drwNets();
+    const rows = q ? all.filter(n=>hit(n.name)) : all;
+    cnt = rows.length;
+    html = rows.slice(0,800).map(n=>
+      '<div class="drw-row" data-k="n" data-n="'+n.n+'">'+
+        '<b>'+esc(n.name)+'</b><i>'+n.pads+T("drwPinUnit")+'</i></div>').join("");
+  }else if(DRW === "pins"){
+    const rows = drwPins();
+    cnt = rows.length;
+    /* 看整条网络时，每一行都是同一个网络名，重复写着没信息量；
+       看一颗元件时才值得逐脚写出"这只脚接的是什么网"。 */
+    const showNet = (pickMode === "comp");
+    html = rows.slice(0,800).map(r=>
+      '<div class="drw-row" data-k="p" data-x="'+r.x+'" data-y="'+r.y+'">'+
+        '<b>'+esc((r.des? r.des+"-" : "")+(r.pin||""))+'</b>'+
+        '<i>'+esc(showNet ? (r.net||"") : "")+'</i></div>').join("");
+    if(rows.vias) html += '<div class="drw-note">'+esc(T("drwViaNote", rows.vias))+'</div>';
+  }else{
+    cnt = MARKLIST.length;
+    html = MARKLIST.map((m,i)=>
+      '<div class="drw-row mk" data-k="m" data-i="'+i+'">'+
+        '<b>'+esc(m.t||"…")+'</b><i>'+Math.round(m.x)+", "+Math.round(m.y)+'</i>'+
+        '<button class="drw-del" data-del="'+i+'" title="'+esc(T("mkDel"))+'">×</button></div>'
+      ).join("") || '<div class="drw-empty">'+esc(T("drwMkHint"))+'</div>';
+  }
+
+  drwTitleEl.textContent = (DRW === "pins") ? drwLitName() : "";
+  drwBody.innerHTML = (DRW !== "marks" && !html)
+    ? '<div class="drw-empty">'+esc(T("drwEmpty"))+'</div>'
+    : html;
+  if(drwCntEl) drwCntEl.textContent = cnt ? cnt+T("drwUnit") : "";
+}
+
+/* ---------- 打开 / 切换 ---------- */
+function drwOpen(tab){
+  tab = tab || "parts";
+  if(!B && tab !== "marks"){ toast(T("noBoard")); return; }
+  DRW = (DRW === tab) ? "" : tab;                 // 再点同一个按钮＝收起
+  const b = document.getElementById("lists");
+  if(b) b.classList.toggle("on", !!DRW);
+  drwSearch.value = "";
+  renderDrawer();
+}
+
+/* ---------- 点行：定位 + 点亮 ---------- */
+function drwGoPoint(x, y, zoomIn){
+  if(!B) return;
+  const W = cv.clientWidth||800, H = cv.clientHeight||600;
+  if(zoomIn && view.s < 4) view.s = 6;
+  view.ox = W/2 - x*view.s;
+  view.oy = H/2 + y*view.s;
+  zoomLabel(); draw();
+}
+
+drwBody.addEventListener("click", e=>{
+  const del = e.target.closest("[data-del]");
+  if(del){ delMark(+del.dataset.del); return; }
+  const row = e.target.closest(".drw-row");
+  if(!row || !B) return;
+  const k = row.dataset.k;
+  if(k === "c"){
+    const ci = B.compInfo.get(+row.dataset.id);
+    if(!ci) return;
+    focusBox(ci.bb || {x1:ci.x-50,y1:ci.y-50,x2:ci.x+50,y2:ci.y+50});
+    lightComp(ci);
+    DRW = "pins"; renderDrawer();                 // 点了元件，接着就想看它有几个脚、各是什么网
+  }else if(k === "n"){
+    if(lightNet(+row.dataset.n)) focusBox(bboxOfSet(LIT));
+    DRW = "pins"; renderDrawer();
+  }else if(k === "p"){
+    drwGoPoint(+row.dataset.x, +row.dataset.y, true);
+    const on = drwBody.querySelector(".drw-row.on");
+    if(on) on.classList.remove("on");
+    row.classList.add("on");
+  }else if(k === "m"){
+    const m = MARKLIST[+row.dataset.i];
+    if(m) drwGoPoint(m.x, m.y, true);
+  }
+});
+
+drwEl.addEventListener("click", e=>{
+  const b = e.target.closest("[data-dt]");
+  if(b){ DRW = b.dataset.dt; renderDrawer(); return; }
+  if(e.target.closest("#drawerX")) drwOpen(DRW);
+});
+drwSearch.addEventListener("input", ()=>{ if(DRW) renderDrawer(); });
+
+/* ---------- 复制 / 导出 ---------- */
+function drwText(){
+  const lines = [];
+  if(DRW === "parts"){
+    lines.push(T("drwParts")+"\t"+T("drwValCol"));
+    for(const c of drwComps()) lines.push((c.des||"")+"\t"+(c.com||""));
+  }else if(DRW === "nets"){
+    lines.push(T("drwNets")+"\t"+T("drwPadsCol"));
+    for(const n of drwNets()) lines.push(n.name+"\t"+n.pads);
+  }else if(DRW === "pins"){
+    const t = drwLitName();
+    if(t) lines.push("# "+t);
+    lines.push(T("drwPinCol")+"\t"+T("drwNetCol"));
+    for(const r of drwPins()) lines.push(((r.des? r.des+"-" : "")+(r.pin||""))+"\t"+(r.net||""));
+  }else{
+    for(const m of MARKLIST) lines.push((m.t||"")+"\t"+Math.round(m.x)+","+Math.round(m.y));
+  }
+  return lines.join("\r\n");
+}
+async function copyText(s){
+  try{
+    if(navigator.clipboard && window.isSecureContext){
+      await navigator.clipboard.writeText(s);
+      return true;
+    }
+  }catch(err){ /* 没权限就退到老办法 */ }
+  try{
+    const ta = document.createElement("textarea");
+    ta.value = s;
+    ta.style.position = "fixed"; ta.style.left = "-9999px"; ta.style.top = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    ta.remove();
+    return ok;
+  }catch(err){ return false; }
+}
+document.getElementById("drwCopy").onclick = async ()=>{
+  const s = drwText();
+  if(!s || s.indexOf("\n") < 0){ toast(T("drwEmpty")); return; }
+  toast(await copyText(s) ? T("drwCopied") : T("drwCopyFail"));
+};
+document.getElementById("drwCsv").onclick = ()=>{
+  if(!B && DRW !== "marks"){ toast(T("noBoard")); return; }
+  let head = [], rows = [];
+  if(DRW === "parts"){
+    head = ["Designator","Value / Part"];
+    for(const c of drwComps()) rows.push([c.des, c.com]);
+  }else if(DRW === "nets"){
+    head = ["Net","Pads"];
+    for(const n of drwNets()) rows.push([n.name, n.pads]);
+  }else if(DRW === "pins"){
+    head = ["Pin","Net"];
+    for(const r of drwPins()) rows.push([(r.des? r.des+"-" : "")+(r.pin||""), r.net]);
+  }else{
+    head = ["Note","X","Y"];
+    for(const m of MARKLIST) rows.push([m.t, Math.round(m.x), Math.round(m.y)]);
+  }
+  if(!rows.length){ toast(T("drwEmpty")); return; }
+  const q1 = v => '"'+String(v===undefined||v===null? "":v).replace(/"/g,'""')+'"';
+  const csv = "\ufeff" + [head].concat(rows).map(r=>r.map(q1).join(",")).join("\r\n");
+  const base = String(lastName||"board").replace(/[\\/:*?"<>|]/g,"_").replace(/\.(pcb|ddb)$/i,"");
+  const a = document.createElement("a");
+  a.download = base+"_"+DRW+".csv";
+  a.href = URL.createObjectURL(new Blob([csv], {type:"text/csv;charset=utf-8"}));
+  document.body.appendChild(a);
+  a.click();
+  const nm = a.download;
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
+  toast(T("csvDone", nm));
+};
+
+/* ============================== 板上标记（标注） ==============================
+   维修时"这里烧过""测过电压正常"这类结论，写在自己板子上最省事。
+   参照同类工具的做法：右键点板子加标注、随板子存档、换板不串。 */
+function mkKey(){
+  let bn = "";
+  const sel = document.getElementById("boards");
+  if(sel && sel.style.display !== "none" && sel.options[sel.selectedIndex])
+    bn = sel.options[sel.selectedIndex].text || "";
+  return "cl.marks|"+(lastName||"")+"|"+bn;
+}
+function loadMarks(){
+  try{
+    const raw = localStorage.getItem(mkKey());
+    MARKLIST = raw ? JSON.parse(raw) : [];
+  }catch(err){ MARKLIST = []; }
+  if(!Array.isArray(MARKLIST)) MARKLIST = [];
+  if(DRW === "marks") renderDrawer();
+}
+function saveMarks(){
+  try{ localStorage.setItem(mkKey(), JSON.stringify(MARKLIST)); }catch(err){}
+  if(DRW === "marks") renderDrawer();
+  draw();
+}
+function delMark(i){
+  if(!(i >= 0 && i < MARKLIST.length)) return;
+  MARKLIST.splice(i,1);
+  saveMarks();
+}
+function mkAt(sx, sy){
+  for(let i=0;i<MARKLIST.length;i++){
+    const p = w2s(MARKLIST[i].x, MARKLIST[i].y);
+    if(Math.abs(p[0]-sx) <= 11 && Math.abs(p[1]-sy) <= 14) return i;
+  }
+  return -1;
+}
+function mkClose(){
+  const d = document.getElementById("mkpop");
+  if(d) d.remove();
+}
+function mkPopup(px, py, world, idx){
+  mkClose();
+  const at = (idx === undefined || idx === null) ? null : MARKLIST[idx];
+  if(at){ const p = w2s(at.x, at.y); px = p[0]; py = p[1]; }
+  const d = document.createElement("div");
+  d.className = "mkpop";
+  d.id = "mkpop";
+  d.innerHTML =
+    '<div class="mkpop-t">'+esc(T("mkTitle"))+'</div>'+
+    '<input id="mkInput" maxlength="80" placeholder="'+esc(T("mkPh"))+'">'+
+    '<div class="mkpop-b">'+
+      '<button class="btn primary" id="mkOk">'+esc(T("mkSave"))+'</button>'+
+      (at ? '<button class="btn" id="mkDel2">'+esc(T("mkDel"))+'</button>' : '')+
+      '<button class="btn" id="mkNo">'+esc(T("mkCancel"))+'</button>'+
+    '</div>';
+  const W = cv.clientWidth||800, H = cv.clientHeight||600;
+  d.style.left = Math.max(8, Math.min(px, W-266))+"px";
+  d.style.top  = Math.max(8, Math.min(py, H-140))+"px";
+  stage.appendChild(d);
+
+  const inp = d.querySelector("#mkInput");
+  inp.value = at ? (at.t||"") : "";
+  inp.focus();
+  if(at) inp.select();
+
+  const commit = ()=>{
+    const v = inp.value.trim();
+    if(at){
+      if(!v){ delMark(idx); mkClose(); return; }
+      at.t = v; saveMarks();
+    }else if(v && world){
+      MARKLIST.push({x:world.x, y:world.y, t:v});
+      saveMarks();
+    }
+    mkClose();
+  };
+  d.querySelector("#mkOk").onclick = commit;
+  d.querySelector("#mkNo").onclick = mkClose;
+  if(at) d.querySelector("#mkDel2").onclick = ()=>{ delMark(idx); mkClose(); };
+  inp.addEventListener("keydown", e=>{
+    if(e.key === "Enter"){ commit(); e.preventDefault(); }
+    else if(e.key === "Escape"){ mkClose(); e.preventDefault(); }
+    e.stopPropagation();
+  });
+}
+
+cv.addEventListener("contextmenu", e=>{
+  e.preventDefault();
+  if(!B){ return; }
+  const r0 = cv.getBoundingClientRect();
+  const sx = e.clientX-r0.left, sy = e.clientY-r0.top;
+  const wx = (sx-view.ox)/view.s, wy = -(sy-view.oy)/view.s;
+  const i = mkAt(sx,sy);
+  mkPopup(sx, sy, {x:wx, y:wy}, i >= 0 ? i : undefined);
+});
+
+/* 画板上的旗子。放在 draw() 末尾调用（见下） */
+function drawMarks(){
+  if(typeof MARKLIST === "undefined" || !MARKLIST || !MARKLIST.length) return;
+  const W = cv.clientWidth||800, H = cv.clientHeight||600;
+  for(let i=0;i<MARKLIST.length;i++){
+    const m = MARKLIST[i];
+    const p = w2s(m.x, m.y);
+    if(p[0] < -60 || p[0] > W+60 || p[1] < -40 || p[1] > H+40) continue;
+    ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = "#f0b429";
+    ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(p[0], p[1]-13); ctx.stroke();
+    ctx.fillStyle = "#f0b429";
+    ctx.beginPath();
+    ctx.moveTo(p[0], p[1]-13);
+    ctx.lineTo(p[0]+11, p[1]-9.5);
+    ctx.lineTo(p[0], p[1]-6);
+    ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.arc(p[0], p[1], 2.6, 0, Math.PI*2); ctx.fill();
+    if(view.s > 0.32 && m.t){
+      ctx.font = "11px 'Microsoft YaHei',system-ui,sans-serif";
+      ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      const w = Math.min(210, ctx.measureText(m.t).width+10);
+      ctx.fillStyle = "rgba(18,20,24,.84)";
+      ctx.fillRect(p[0]+12, p[1]-22, w, 16);
+      ctx.fillStyle = "#ffe3a3";
+      ctx.fillText(m.t, p[0]+17, p[1]-13);
+    }
+    ctx.restore();
+  }
+}
+
+/* 按钮与快捷键 */
+function drwShow(tab){
+  DRW = tab;
+  const b = document.getElementById("lists");
+  if(b) b.classList.add("on");
+  renderDrawer();
+}
+document.getElementById("lists").onclick = ()=>drwOpen(DRW || "parts");
+window.addEventListener("keydown", e=>{
+  const tag = (e.target && e.target.tagName) || "";
+  if(tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
+  if(anyModalOpen()) return;
+  if(e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key;
+  if(k === "c" || k === "C"){ drwShow("parts"); return; }
+  if(k === "n" || k === "N"){ drwShow("nets");  return; }
+  if(k === "m" || k === "M"){ drwShow("marks"); return; }
+});
+
 </script>
 </body>
 </html>
