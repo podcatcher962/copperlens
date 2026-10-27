@@ -1,13 +1,22 @@
 # -*- coding: utf-8 -*-
-"""用 32 位 Python 打包成单文件 exe（x86；32 位系统直接跑，64 位系统向下兼容）。"""
+"""用 32 位 Python 打包成单文件 exe（x86；32 位系统直接跑，64 位系统向下兼容）。
+
+PyInstaller 装在哪里，按这个顺序找：
+  1. 环境变量 PYI_TARGET（推荐：pip install --target <那个目录> PyInstaller）
+  2. 本脚本旁边的 _py32/ 目录
+两步都没有就退回到「直接用当前解释器里已装的 PyInstaller」。
+"""
 import os
 import sys
 
-sys.path.insert(0, r"E:\workbuddy\2026-10-26-18-39-43\_py32")
+ROOT = os.path.dirname(os.path.abspath(__file__))
+for cand in (os.environ.get("PYI_TARGET"), os.path.join(ROOT, "_py32")):
+    if cand and os.path.isdir(cand):
+        sys.path.insert(0, cand)
+        break
 
 import PyInstaller.__main__  # noqa: E402
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(ROOT, "src", "copperlens.py")
 NAME = "PCB看板"
 # 可选：把产物放到别的目录。exe 正在运行时没法覆盖它，先出到旁边再换。
