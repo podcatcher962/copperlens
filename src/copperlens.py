@@ -12,7 +12,7 @@ PCB 看板 / CopperLens（桌面版 / 单 exe）
 显示用系统里的 Edge（Win10/11 自带；Win7/8 装了 Chrome 也行）。
 程序按 32 位打包，从 Win7 到 Win11、32 位和 64 位系统都能跑。
 
-⚠ 这里刻意不用 tkinter：32 位 Python 环境经常没装 Tcl/Tk，打进 exe 也缺
+⚠ 这里不用 tkinter：32 位 Python 环境经常没装 Tcl/Tk，打进 exe 也缺
    运行库，结果就是"双击没反应"。所有对话框改用 Win32 API（comdlg32/user32），
    只依赖系统 DLL。
 """
@@ -420,8 +420,10 @@ def ask_file():
 # ---------------------------------------------------------------- 显示内核
 def find_browsers():
     """找能当显示内核的浏览器（Chromium 内核，--app 打开像独立程序）。"""
-    pf = os.environ.get("ProgramFiles", r"C:\Program Files")
-    pf86 = os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)")
+    # 安装目录一律从环境变量取，源码里不写死任何盘符
+    sys_drive = os.environ.get("SystemDrive", "C:") + os.sep
+    pf = os.environ.get("ProgramFiles") or os.path.join(sys_drive, "Program Files")
+    pf86 = os.environ.get("ProgramFiles(x86)") or os.path.join(sys_drive, "Program Files (x86)")
     local = os.environ.get("LOCALAPPDATA", "")
     cands = [
         Path(pf86) / "Microsoft/Edge/Application/msedge.exe",
