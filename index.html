@@ -56,6 +56,7 @@
     cursor:pointer;line-height:1;padding:0 4px}
   .modal .hd button:hover{color:var(--fg)}
   .modal .bd{padding:16px 20px;overflow-y:auto;font-size:13px;line-height:1.75;color:var(--fg2)}
+  .modal .bd p.dim{color:var(--fg3, #8a8f98);font-size:12px}
   .modal .bd h3{color:var(--fg);font-size:13px;margin:14px 0 6px;font-weight:600}
   .modal .bd h3:first-child{margin-top:0}
   .modal .bd b{color:var(--fg);font-weight:500}
@@ -395,8 +396,9 @@ zh:{
     <h3>PCB 看板 / CopperLens</h3>
     <p>一个<b>只看不改</b>的线路板查线工具。为产线维修、售后排查这类
        "只想看看这块板子上的线通到哪儿"的场合而做。</p>
-    <p>免安装的单文件程序，不联网、不写注册表、不装任何运行库，
-       32 位 Windows 也能直接跑。</p>
+    <p>免安装的单文件程序，不联网、不写注册表、不装任何运行库。
+       从 Windows 7 到 Windows 11，32 位和 64 位系统都能直接跑。</p>
+    <p class="dim">已在 Windows 10（32 位）和 Windows 11（64 位）上实测通过。</p>
     <h3>能做什么</h3>
     <ul>
       <li>打开 .pcb 单板文件，或 .ddb 设计库（自动列出里面所有板）</li>
@@ -404,7 +406,7 @@ zh:{
       <li>显示元件位号、型号、焊盘编号；大面积铺铜可一键隐藏</li>
     </ul>
     <h3>版本</h3>
-    <p>v1.7　·　32 位 / x86　·　单文件便携版</p>
+    <p>v1.8　·　x86 程序，64 位系统同样可用　·　单文件便携版</p>
     <div class="sig">© 永远的兰兰　·　Lanlan Eternal</div>`
 },
 en:{
@@ -580,7 +582,8 @@ en:{
     <p>A <b>read-only</b> board viewer built for repair benches and after-sales
        troubleshooting — the "I just need to see where this trace goes" kind of work.</p>
     <p>Single portable executable. No install, no network access, no registry writes,
-       no runtime dependencies. Runs on 32-bit Windows.</p>
+       no runtime dependencies. Runs on Windows 7 through 11, both 32-bit and 64-bit.</p>
+    <p class="dim">Verified on Windows 10 (32-bit) and Windows 11 (64-bit).</p>
     <h3>What it does</h3>
     <ul>
       <li>Opens .pcb files, or .ddb design libraries (lists every board inside)</li>
@@ -588,7 +591,7 @@ en:{
       <li>Shows component designators, values and pad numbers; copper pours hide with one key</li>
     </ul>
     <h3>Version</h3>
-    <p>v1.7　·　32-bit / x86　·　portable single file</p>
+    <p>v1.8　·　x86 build, runs fine on 64-bit Windows　·　portable single file</p>
     <div class="sig">© Lanlan Eternal　·　永远的兰兰</div>`
 }
 };
@@ -714,30 +717,57 @@ function latin1(u8,o,n){
   return s;
 }
 
+/* 板子里存的文字（图层名、网络名、元件库/型号、板上的标注串）在
+   1998-2000 年前后那代设计文件里多是 GBK 单字节，直接按 latin1 转出来
+   就是 "µ¥Ãæ" 这种乱码。只有出现 0x80 以上的字节才去做识别，纯 ASCII
+   走原路，不给大板子添额外开销。 */
+let _TD_UTF8F=null, _TD_GBK=null;
+function decBytes(b){
+  const n=b.length;
+  let hi=false;
+  for(let i=0;i<n;i++) if(b[i]>127){ hi=true; break; }
+  if(!hi){
+    let s="";
+    for(let i=0;i<n;i++) s+=String.fromCharCode(b[i]);
+    return s;
+  }
+  const u8=(b instanceof Uint8Array)?b:Uint8Array.from(b);
+  try{
+    if(!_TD_UTF8F) _TD_UTF8F=new TextDecoder("utf-8",{fatal:true});
+    return _TD_UTF8F.decode(u8);            // 本身是 UTF-8 的库
+  }catch(_){}
+  try{
+    if(!_TD_GBK) _TD_GBK=new TextDecoder("gbk");
+    const t=_TD_GBK.decode(u8);
+    if(t.indexOf("\uFFFD")<0) return t;      // GBK 解得通，且没有坏字节
+  }catch(_){}
+  return latin1(u8,0,n);
+}
+function txt8(u8,o,n){ return decBytes(u8.subarray(o,Math.min(o+n,u8.length))); }
+
 /* string8：1 字节长度 + 内容。有的记录里是定长字段（首字节不是长度），
    这时退化成"读到 0 或不可打印字符为止"。 */
 function str8(u8,at,maxLen,allowHigh){
-  const out={s:"",};
   if(at<0||at>=u8.length) return "";
   const n=u8[at];
-  let s="";
+  const b=[];
   if(n>0 && n<=32){
     for(let i=0;i<n && at+1+i<u8.length;i++){
       const c=u8[at+1+i];
       if(c===0) break;
       if(!allowHigh && (c<32||c>126)) break;
-      s+=String.fromCharCode(c);
+      b.push(c);
     }
-    return s.replace(/"/g,"");
+    return decBytes(b).replace(/"/g,"");
   }
   const lim=maxLen||24;
   for(let i=0;i<lim && at+i<u8.length;i++){
     const c=u8[at+i];
     if(c===0) break;
     if(!allowHigh && (c<32||c>126)) break;
-    s+=String.fromCharCode(c);
+    b.push(c);
   }
-  return s.replace(/"/g,"");
+  return decBytes(b).replace(/"/g,"");
 }
 
 /* 该格式段名的全部候选。定位时不靠 nxt 链，而是按名字逐个扫，
@@ -914,7 +944,7 @@ function readBoardSection(b,r,off,num){
     if(off+4>r.len) break;
     const n=r.u16(off+2);
     if(!n || off+4+n>r.len) break;
-    const s=latin1(r.u8,off+4,n);
+    const s=txt8(r.u8,off+4,n);
     off += 4 + n;
     for(const f of s.split("|")){
       const p=f.indexOf("=");
@@ -945,7 +975,7 @@ function readNets(b,r,off,num){
     if(off+4>r.len) break;
     const n=r.u16(off+2);
     if(!n || off+4+n>r.len) break;
-    const s=latin1(r.u8,off+4,n);
+    const s=txt8(r.u8,off+4,n);
     off += 4 + n;
     let name="";
     for(const f of s.split("|")){
