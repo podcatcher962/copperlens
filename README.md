@@ -189,7 +189,7 @@ GPL-2.0 §3(b) 的三年书面源码要约写在 `第三方组件与许可.txt` 
 | 9 | 免责声明写清"仅供参考、不得作生产依据、维修自负" | ✅ 已做 | 免责声明第 1/3/4 节，中英各一份 |
 | 10 | 签名 / 证书 | — | 无代码签名，SmartScreen 可能提示"未知发布者"；内部分发属正常，对外分发可忽略或自行签 |
 | 11 | 名字是否与在用品牌冲突 | ⚠️ 待定 | `CopperLens` 与一个同名海外 AI 服务重名（非 PCB 行业）。**品类不同、商标上难构成混淆**，但搜索会被对方占满。要清爽就换名 |
-| 12 | exe / 源码里是否夹带本机路径 / 用户名 | ✅ 已验证 | 对 `PCB看板.exe` 全文检索**本机用户名、用户主目录路径、工作目录路径、桌面路径、旧产品名**：**各 0 次**。仓库文档同样不含任何本机盘符与目录 |
+| 12 | exe / 源码里是否夹带本机信息 | ✅ 已验证 | 对 `PCB看板.exe` 与全部源文件检索**本机用户名、计算机名、工作目录路径（含工具名）、旧产品名**：**各 0 次**。通用盘符与 `Desktop`、`Program Files` 这类公共目录不算本机信息，代码里仍会出现 |
 | 13 | 仓库里不要提交的东西 | ⚠️ 上传时注意 | 设计库 `.ddb`、`build/`、`_t/`、`_py32/`、`_archive/`、`*.exe` 走 Release 而非源码树 |
 
 ### 一句话总结风险
@@ -402,7 +402,7 @@ Checked before any distribution (colleague, chat group, intranet share, GitHub):
 | 9 | Disclaimer: reference only, not for production, repair at your own risk | ✅ | Disclaimer sections 1 / 3 / 4, in both languages |
 | 10 | Signing / certificate | — | Unsigned; SmartScreen may warn. Normal for internal use |
 | 11 | Name collision with an existing brand | ⚠️ | `CopperLens` collides with an unrelated overseas AI service (not PCB). Different category, unlikely to confuse; search results will favour them. Rename if that matters |
-| 12 | Machine paths / user names in the exe or source | ✅ | Full-text search of `PCB看板.exe` for the local user name, home directory, working directory, desktop path and the old product name: **0 hits each**. Repo docs contain no drive letters or local directories either |
+| 12 | Machine paths / user names in the exe or source | ✅ | `PCB看板.exe` and every source file searched for the local user name, computer name, working-directory path (the one containing the tool name) and the old product name: **0 hits each**. Generic drive letters and common folders such as `Desktop` or `Program Files` are not personal data and do appear in code |
 | 13 | What must not be committed | ⚠️ | Design databases, `build/`, `_t/`, `_py32/`, `_archive/`, `*.exe` — binaries go to Releases, not the source tree |
 
 **Bottom line: safe to publish, very low risk.** Three rules: don't take someone else's name
