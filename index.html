@@ -18,6 +18,31 @@
     -webkit-font-smoothing:antialiased;
   }
   #app{display:grid;grid-template-rows:auto 1fr auto;grid-template-columns:210px 1fr;height:100%}
+  /* 没载入板子时：左侧栏是空的、方向键也没用，收起来让首页占满 */
+  #app.empty{grid-template-columns:0 1fr}
+  /* 收窄到 0：必须保留 aside 在网格里占着第一列，否则 stage 会滑到 0 宽那一列上 */
+  #app.empty aside{overflow:hidden;border-right:none;padding:0}
+  #app.empty .navpad{display:none}
+  #app.empty footer{opacity:.45}
+  /* 没板时只剩「打开文件」，其余按钮点了也没反应，先收起来 */
+  #app.empty #fit,#app.empty #invert,#app.empty #des,#app.empty #labels,
+  #app.empty #pour,#app.empty #probe,#app.empty #shot,
+  #app.empty .findwrap,#app.empty .hrow .sep{display:none}
+  /* ===== 多文档页签（一个文件一格，可单独关闭） ===== */
+  .tabs{display:none;align-items:flex-end;gap:3px;margin:8px -12px -7px;
+    padding:0 8px;height:29px;overflow-x:auto;overflow-y:hidden}
+  .tabs.on{display:flex}
+  .tabs::-webkit-scrollbar{height:0}
+  .tab{display:flex;align-items:center;gap:6px;flex:0 0 auto;max-width:230px;height:24px;
+    padding:0 5px 0 10px;background:var(--panel2);border:1px solid var(--line);
+    border-bottom:none;border-radius:7px 7px 0 0;color:var(--fg2);font-size:12px;
+    cursor:default;user-select:none;white-space:nowrap}
+  .tab:hover{color:var(--fg)}
+  .tab.on{background:var(--bg);color:var(--fg);box-shadow:inset 0 2px 0 var(--accent)}
+  .tab .tn{overflow:hidden;text-overflow:ellipsis}
+  .tab .tx{flex:none;width:15px;height:15px;line-height:14px;text-align:center;
+    border-radius:4px;color:var(--fg3);font-size:13px}
+  .tab .tx:hover{background:#e2504f33;color:#e2504f}
   header{grid-column:1/3;display:flex;flex-direction:column;gap:6px;padding:6px 12px 7px;
     background:var(--panel);border-bottom:1px solid var(--line)}
   .hrow{display:flex;align-items:center;gap:8px;min-width:0}
@@ -140,6 +165,40 @@
   .hint{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
     justify-content:center;gap:14px;text-align:center;color:var(--fg2);pointer-events:none}
   .hint .big{font-size:17px;color:var(--fg)}
+  /* ===== 海报（只在桌面版启动时出现，几秒后自动进入） ===== */
+  .splash{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;
+    background:radial-gradient(1100px 640px at 50% 42%, #1e2531 0%, #0c0e11 72%);
+    opacity:0;transition:opacity .45s ease;cursor:pointer}
+  .splash.show{opacity:1}
+  .splash.out{opacity:0}
+  .splash .box{max-width:640px;padding:0 30px;text-align:center}
+  .splash .logo{font-size:35px;font-weight:600;letter-spacing:.5px;color:var(--fg)}
+  .splash .logo em{font-style:normal;color:var(--fg3);font-size:18px;margin-left:12px;
+    letter-spacing:0;font-weight:400}
+  .splash .sub{margin-top:14px;color:var(--fg2);font-size:15px;line-height:1.7}
+  .splash ul{margin:38px 0 0;padding:0;list-style:none;display:grid;gap:14px;text-align:left}
+  .splash li{display:flex;gap:12px;align-items:baseline;color:var(--fg2);font-size:14px;line-height:1.6}
+  .splash li b{color:var(--accent);font-weight:500;flex:none;width:104px}
+  .splash .foot{margin-top:44px;color:var(--fg3);font-size:12px}
+  .splash .bar{margin-top:28px;height:3px;background:#ffffff20;border-radius:3px;overflow:hidden}
+  .splash .bar i{display:block;height:100%;width:0;background:var(--accent)}
+  .splash.show .bar i{animation:spgrow 3.6s linear forwards}
+  @keyframes spgrow{to{width:100%}}
+
+  /* ===== 首页（没有载入板子时的欢迎页，桌面版从这里选文件） ===== */
+  .hint .home{max-width:660px}
+  .hint .home .logo{font-size:23px;color:var(--fg);font-weight:600;letter-spacing:.4px}
+  .hint .home .logo em{font-style:normal;color:var(--fg3);font-size:14px;margin-left:9px;
+    font-weight:400;letter-spacing:0}
+  .hint .home .sub{margin-top:12px;color:var(--fg2);font-size:13.5px}
+  .hint .home .hbtn{margin-top:26px;background:#2f4a6d;border:1px solid #3f6ea8;color:#cfe0f7;
+    font-family:inherit;font-size:15px;padding:10px 36px;border-radius:8px;cursor:pointer;
+    transition:.15s;pointer-events:auto}
+  .hint .home .hbtn:hover{background:#365579;border-color:#5b8ec9}
+  .hint .home .tip2{margin-top:15px;color:var(--fg3);font-size:12.5px;line-height:1.7}
+  .hint .home .feats{margin-top:24px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+  .hint .home .feats span{background:var(--panel2);border:1px solid var(--line);color:var(--fg2);
+    font-size:11.5px;padding:3px 10px;border-radius:20px}
   .hint .drop{border:2px dashed var(--line);border-radius:14px;padding:34px 56px;
     transition:.15s}
   .hint.over .drop{border-color:var(--accent);background:#f0b42910}
@@ -177,6 +236,21 @@
 </style>
 </head>
 <body>
+<!-- ============ 海报：桌面版启动时先出现，几秒后自动进入首页 ============ -->
+<div class="splash" id="splash">
+  <div class="box">
+    <div class="logo">PCB 看板 <em>CopperLens</em></div>
+    <div class="sub">点一下走线，就知道这根线通到哪儿、两头是哪颗元件的哪只脚</div>
+    <ul>
+      <li><b>查线路</b>点一条走线或焊盘，整条网络亮起来，状态栏写出 U100-4 这样的脚位</li>
+      <li><b>通不通</b>点两个位置，直接给出电气上通没通的结论</li>
+      <li><b>找元件</b>输位号或型号，跳过去并点亮它</li>
+      <li><b>只看铜</b>顶层底层一键切换，大面积覆铜一键收起</li>
+    </ul>
+    <div class="bar"><i></i></div>
+    <div class="foot">只读，不改你的文件　·　不联网　·　© 永远的兰兰　Lanlan Eternal</div>
+  </div>
+</div>
 <div id="app">
   <header>
     <div class="hrow">
@@ -214,6 +288,7 @@
         <div class="findlist" id="findList"></div>
       </div>
     </div>
+    <div class="tabs" id="tabs"></div>
   </header>
 
   <aside>
@@ -296,6 +371,8 @@ zh:{
   menuHelp:"使用说明", menuDisc:"免责声明", menuAbout:"关于",
   brandName:"PCB 看板", brandSub:"CopperLens",
   notLoaded:"未载入文件",
+  tabClose:"关闭这个文件", tabBoards:"板",
+  tabLimit:"同时最多开 12 个文件，先关掉几个吧。",
   btnOpen:"打开文件", btnOpenTip:"选一块板子：老式设计库或单板文件，同一个对话框",
   btnFit:"适合窗口", btnFitTip:"快捷键 F：缩放到能看到整块板",
   btnInvert:"反色",
@@ -358,6 +435,7 @@ zh:{
     " · "+n+" 个对象"+(polys?" · 覆铜 "+polys+" 块":""),
   segWarn:"部分段读取有异常：",
   openFail:"打不开这个文件：",
+  deskGone:"和后台断了（程序已经关掉）。请关掉这个窗口，重新双击 PCB看板.exe。",
   embedFail:"内嵌数据读取失败：",
   demoLine:(n,t,p,v)=>"亮起 "+n+" 个（走线 "+t+" · 焊盘 "+p+" · 过孔 "+v+"）　",
   idxSkip:n=>"索引跳过 "+n+" 个坐标异常图元",
@@ -379,6 +457,19 @@ zh:{
   badFile:"这个文件读不出来：",
   multiBoard:"这个文件里有多块板，按修改时间从新到旧排：",
   latest:"★最新",
+  hintHome:`<div class="home">
+      <div class="logo">PCB 看板 <em>CopperLens</em></div>
+      <div class="sub">点一下走线，就知道这根线通到哪儿、两头是哪颗元件的哪只脚</div>
+      <button class="hbtn" id="hintOpen">打开文件</button>
+      <div class="tip2">
+        也可以把 <b>.pcb</b> / <b>.ddb</b> 文件直接拖到这里<br>
+        只读，不会修改你的任何文件　·　不联网
+      </div>
+      <div class="feats">
+        <span>查线路</span><span>两点通不通</span><span>找位号 / 型号</span><span>顶底铜一键切</span>
+      </div>
+    </div>`,
+  reading:"读取中…",
   hintHtml:`<div class="drop">
       <div class="big">把 .pcb 文件拖到这里</div>
       <div style="margin-top:8px;color:var(--fg3)">
@@ -416,8 +507,18 @@ zh:{
   readFail:"读不了这个文件，请确认它没被别的程序占用。",
   helpHtml:`
     <h3>打开文件</h3>
-    <p>点左上角 <code>打开文件</code>，"设计库（.ddb）"和"单板文件（.pcb）"在同一个对话框里，
+    <p>双击程序图标，先看到一段<b>海报</b>（几秒后自动进首页），然后是<b>首页</b>——
+       没带文件也能先把程序打开看界面：<b>点「打开文件」挑文件</b>，
+       或者把 <code>.pcb</code> / <code>.ddb</code> 直接拖进窗口。</p>
+    <p>"设计库（.ddb）"和"单板文件（.pcb）"在同一个对话框里，
        直接挑就行。也可以把文件拖到窗口里。</p>
+
+    <h3>同时看几块板</h3>
+    <p>每打开一个文件就多一个<b>页签</b>：可以一边看这块板、一边翻另一块，像 Protel 那样
+       来回切，也能各自关掉（页签右边的 <b>×</b>，或者用鼠标中键点页签）。</p>
+    <p>切回来的时候，缩放位置、图层开关、点亮的网络都还在 —— 不用重新找。
+       关掉最后一个页签就回到首页。</p>
+    <p>一个 .ddb 里有多块板时，顶栏的下拉框是在<b>同一个页签内</b>换板，页签不动。</p>
     <p>一个 .ddb 里常常有好几块板。打开后顶部会出现下拉框，按修改时间从新到旧排，
        最新那块标★，选一个就切过去。</p>
 
@@ -503,8 +604,8 @@ zh:{
     <p>一个<b>只看不改</b>的线路板查线工具。为产线维修、售后排查这类
        "只想看看这块板子上的线通到哪儿"的场合而做。</p>
     <p>免安装的单文件程序，不联网、不写注册表、不装任何运行库。
-       从 Windows 7 到 Windows 11，32 位和 64 位系统都能直接跑。</p>
-    <p class="dim">已在 Windows 10（32 位）和 Windows 11（64 位）上实测通过。</p>
+       <b>支持 x86 与 64 位 Windows 系统</b>，从 Windows 7 到 Windows 11 双击即用。</p>
+    <p class="dim">已在 Windows 10 x86 与 Windows 11 64 位上实测通过。</p>
     <h3>能做什么</h3>
     <ul>
       <li>打开 .pcb 单板文件，或 .ddb 设计库（自动列出里面所有板）</li>
@@ -513,15 +614,18 @@ zh:{
       <li><b>两点通不通</b>：点两个位置，直接判定电气上通不通（没网表的老板子也行）</li>
       <li><b>找元件 / 找网络</b>：输 U100、型号或网络名，跳过去并点亮</li>
       <li>图层一键全选 / 全不选 / 只看顶底铜；当前画面一键存 PNG</li>
+      <li><b>同时打开多个文件</b>：一个文件一个页签，可以来回切、各自关掉</li>
     </ul>
     <h3>版本</h3>
-    <p>v1.9　·　x86 程序，64 位系统同样可用　·　单文件便携版</p>
+    <p>v1.11　·　支持 x86 与 64 位系统　·　单文件便携版</p>
     <div class="sig">© 永远的兰兰　·　Lanlan Eternal</div>`
 },
 en:{
   menuHelp:"Help", menuDisc:"Disclaimer", menuAbout:"About",
   brandName:"CopperLens", brandSub:"PCB Viewer",
   notLoaded:"No file loaded",
+  tabClose:"Close this file", tabBoards:" boards",
+  tabLimit:"12 files open is the limit — close one first.",
   btnOpen:"Open File", btnOpenTip:"Pick a board — design library or single board file, one dialog for both",
   btnFit:"Fit", btnFitTip:"Shortcut F — zoom to fit the whole board",
   btnInvert:"Invert",
@@ -582,6 +686,8 @@ en:{
     " · "+n+" objects"+(polys?" · "+polys+" pours":""),
   segWarn:"Some sections could not be read cleanly: ",
   openFail:"Cannot open this file: ",
+  deskGone:"Lost the back end — the program has closed. Close this window and start "+
+           "PCB看板.exe again.",
   embedFail:"Embedded data could not be read: ",
   demoLine:(n,t,p,v)=>"lit "+n+" items (tracks "+t+" · pads "+p+" · vias "+v+")　",
   idxSkip:n=>"index skipped "+n+" out-of-range items",
@@ -605,6 +711,19 @@ en:{
   badFile:"Cannot read this file: ",
   multiBoard:"Several boards in this file, newest first:",
   latest:"★latest",
+  hintHome:`<div class="home">
+      <div class="logo">PCB 看板 <em>CopperLens</em></div>
+      <div class="sub">Click a trace and see where it goes — and which pins it lands on.</div>
+      <button class="hbtn" id="hintOpen">Open File</button>
+      <div class="tip2">
+        You can also drop a <b>.pcb</b> / <b>.ddb</b> file right here<br>
+        Read-only, never modifies your files · no network access
+      </div>
+      <div class="feats">
+        <span>Trace a net</span><span>Continuity</span><span>Find part</span><span>Top+Bot</span>
+      </div>
+    </div>`,
+  reading:"Reading…",
   hintHtml:`<div class="drop">
       <div class="big">Drop a .pcb file here</div>
       <div style="margin-top:8px;color:var(--fg3)">
@@ -642,8 +761,20 @@ en:{
   readFail:"Cannot read this file — check that it is not locked by another program.",
   helpHtml:`
     <h3>Opening a file</h3>
-    <p>Click <code>Open File</code>. Design libraries (.ddb) and single boards (.pcb)
+    <p>Double-click the exe: a short <b>splash</b> appears for a few seconds, then the <b>home page</b>.
+       You can open the program without a board — click <b>Open File</b>, or drag a
+       <code>.pcb</code> / <code>.ddb</code> into the window.</p>
+    <p>Design libraries (.ddb) and single boards (.pcb)
        share one dialog — no second button needed. You can also drag a file into the window.</p>
+
+    <h3>Several boards at once</h3>
+    <p>Every file you open gets its own <b>tab</b> — keep one board open while you look at
+       another, switch back and forth like Protel, and close each one on its own
+       (the <b>×</b> on the tab, or middle-click the tab).</p>
+    <p>Switching back restores your zoom, layer toggles and the net you had lit up.
+       Close the last tab and you are back at the home screen.</p>
+    <p>When a .ddb holds several boards, the drop-down in the toolbar switches boards
+       <b>inside the same tab</b>.</p>
     <p>A .ddb usually holds several boards. A drop-down appears at the top, sorted newest first
        with the newest marked ★.</p>
 
@@ -741,8 +872,9 @@ en:{
     <p>A <b>read-only</b> board viewer built for repair benches and after-sales
        troubleshooting — the "I just need to see where this trace goes" kind of work.</p>
     <p>Single portable executable. No install, no network access, no registry writes,
-       no runtime dependencies. Runs on Windows 7 through 11, both 32-bit and 64-bit.</p>
-    <p class="dim">Verified on Windows 10 (32-bit) and Windows 11 (64-bit).</p>
+       no runtime dependencies. <b>Supports x86 and 64-bit Windows</b> — double-click and go,
+       from Windows 7 through 11.</p>
+    <p class="dim">Verified on Windows 10 x86 and Windows 11 64-bit.</p>
     <h3>What it does</h3>
     <ul>
       <li>Opens .pcb files, or .ddb design libraries (lists every board inside)</li>
@@ -752,9 +884,10 @@ en:{
           (works on old boards with no netlist)</li>
       <li><b>Find</b> by refdes, value or net name — jumps there and lights it up</li>
       <li>One-click layer All / None / Top+Bot; save the current view as PNG</li>
+      <li><b>Several files open at once</b>: one tab per file, switch or close them independently</li>
     </ul>
     <h3>Version</h3>
-    <p>v1.9　·　x86 build, runs fine on 64-bit Windows　·　portable single file</p>
+    <p>v1.11　·　supports x86 and 64-bit Windows　·　portable single file</p>
     <div class="sig">© Lanlan Eternal　·　永远的兰兰</div>`
 }
 };
@@ -774,7 +907,8 @@ function applyTitle(){
 /* 网页版判断：既没有内嵌的 __BOARDS__、也没有 __EMBED_DATA__，就是被当成普通网页打开。
    这种模式下没有本地 mdbtools，所以读不了设计库（.ddb），文案要区别对待。 */
 function isWebMode(){
-  return !(window.__BOARDS__ && window.__BOARDS__.length)
+  return !window.__DESKTOP__
+      && !(window.__BOARDS__ && window.__BOARDS__.length)
       && !(typeof window.__EMBED_DATA__ === "string" && window.__EMBED_DATA__);
 }
 function applyLang(){
@@ -789,15 +923,20 @@ function applyLang(){
     el.placeholder = T(el.dataset.i18nPh);
   });
   document.getElementById("langTxt").textContent = (lang==="zh" ? "EN" : "中文");
-  document.getElementById("hint").innerHTML = T(isWebMode() ? "hintWeb" : "hintHtml");
+  document.getElementById("hint").innerHTML =
+    T(window.__DESKTOP__ ? "hintHome" : (isWebMode() ? "hintWeb" : "hintHtml"));
   document.getElementById("bd-help").innerHTML = T("helpHtml");
   document.getElementById("bd-disc").innerHTML = T("discHtml");
   document.getElementById("bd-about").innerHTML = T("aboutHtml");
   applyTitle();
   if(B){ refreshFileLine(); buildLayers(); }
+  if(DOCS.length) renderTabs();      /* 页签上的"×"提示与板数也跟着语言走 */
 }
 /* 顶栏那行"文件名 · N 个对象" + 状态栏统计。单独抽出来，切语言时要跟着变。 */
 let lastName = "", lastMs = 0;
+/* 多文档页签的状态。声明放这么早是因为 applyLang() 会用到它（那时后面的
+   let 还在 TDZ 里，会直接抛错）。 */
+let DOCS = [], curDoc = -1, docSeq = 0;
 function refreshFileLine(){
   if(!B) return;
   const n=B.tracks.length+B.pads.length+B.vias.length+B.fills.length;
@@ -3050,6 +3189,7 @@ function loadBuffer(buf,name){
     if(fi) fi.value="";
     document.getElementById("findList").classList.remove("show");
     document.getElementById("hint").style.display="none";
+    document.getElementById("app").classList.remove("empty");
     refreshFileLine();
     buildLayers();
     buildFind();
@@ -3120,17 +3260,68 @@ function toast(msg){
 function openLocalFile(f){
   if(!f) return;
   const nm=f.name||"board.pcb";
+  /* 桌面版例外：.ddb 交给 exe 那侧解（浏览器里没有 mdbtools） */
+  if(window.__DESKTOP__){ uploadToServer(f); return; }
   if(/\.ddb$/i.test(nm)){ toast(T("ddbWeb")); return; }
   const fr=new FileReader();
-  fr.onload=()=>{
-    BOARDS=[{n:nm,d:null,buf:fr.result}];
-    syncBoardSelect();
-    loadBuffer(fr.result,nm);
-  };
+  fr.onload=()=>{ openDoc([{n:nm, d:null, buf:fr.result}], nm); };
   fr.onerror=()=>toast(nm+" — "+T("readFail"));
   fr.readAsArrayBuffer(f);
 }
-document.getElementById("open").onclick=()=>document.getElementById("file").click();
+/* ============================== 桌面版：首页与打开通道 ============================== */
+/* exe 双击进的是首页而不是文件对话框，页面这边要知道两件事：
+   ① 按钮点了该叫谁（本机小服务，还是浏览器自己的文件选择框）；
+   ② 拖进来的文件怎么交给 exe 解 —— .ddb 只有它有 mdbtools。 */
+function apiUrl(path, extra){
+  let u=path+"?t="+encodeURIComponent(window.__TOKEN__||"");
+  return extra ? u+"&"+extra : u;
+}
+function applyBoards(list, file){
+  if(!list || !list.length){ toast(T("errNoSec", /\.ddb$/i.test(file||""))); return; }
+  /* 不再冲掉当前这份 —— 每个文件开一个页签 */
+  openDoc(list.map(b=>({n:b.n, d:b.d, buf:null})), file||"");
+}
+function handleOpenResult(j){
+  if(!j) return;
+  if(j.cancel) return;
+  if(j.error){ toast(j.error); return; }
+  applyBoards(j.boards, j.file||"");
+}
+/* fetch 直接抛 TypeError（Failed to fetch）= 本机服务已经没了（exe 被关掉/崩了），
+   这不是文件的问题，别把英文原文丢给用户看。 */
+function isNetErr(e){
+  return !e || e.name==="TypeError" || /failed to fetch|network|load failed/i.test(e.message||"");
+}
+async function openViaServer(){
+  try{
+    const r=await fetch(apiUrl("/api/open"), {method:"POST"});
+    handleOpenResult(await r.json());
+  }catch(e){
+    toast(isNetErr(e) ? T("deskGone") : T("openFail")+(e && e.message || ""));
+  }
+}
+async function uploadToServer(f){
+  const nm=f.name||"board.pcb";
+  if(!/\.(pcb|ddb)$/i.test(nm)){ toast(T("noPcb")); return; }
+  toast(T("reading"));
+  try{
+    const buf=await f.arrayBuffer();
+    const r=await fetch(apiUrl("/api/upload", "name="+encodeURIComponent(nm)),
+                        {method:"POST", body:buf});
+    handleOpenResult(await r.json());
+  }catch(e){
+    toast(isNetErr(e) ? T("deskGone") : T("readFail"));
+  }
+}
+/* 一个入口：桌面版问 exe，网页版用浏览器自己的选择框 */
+function openAny(){
+  if(window.__DESKTOP__) openViaServer();
+  else document.getElementById("file").click();
+}
+document.getElementById("open").onclick=openAny;
+document.getElementById("hint").addEventListener("click", e=>{
+  if(e.target.closest("#hintOpen")) openAny();
+});
 document.getElementById("file").onchange=e=>{
   openLocalFile(e.target.files[0]);
   e.target.value="";          /* 清掉，否则同一个文件第二次选不触发 change */
@@ -3216,6 +3407,151 @@ document.getElementById("boards").onchange=function(){
   if(buf) loadBuffer(buf,bd.n);
 };
 
+/* ===================== 多文档：一个文件一个页签（可分别关闭） ===================== */
+/* 维修时经常要「一边看这块板，一边翻另一块」——以前打开新文件就把前一块冲掉了。
+   现在每个文件占一个页签：切走时把视图（缩放/平移）、图层开关、高亮、状态栏
+   一起存进这个页签，切回来还是走之前那个样子，不用重新找位置。
+   解析结果 B 也挂在页签上，所以切回来是瞬时的，不重新解析。 */
+function setOn(id,on){ const e=document.getElementById(id); if(e) e.classList.toggle("on",!!on); }
+
+function snapshotDoc(){
+  const d=DOCS[curDoc];
+  if(!d) return;
+  d.B=B; d.boards=BOARDS; d.cur=curBoard; d.ms=lastMs;
+  d.st={
+    view:{s:view.s, ox:view.ox, oy:view.oy},
+    show:Object.assign({},show), solo:solo,
+    invert:invert, showLabels:showLabels, dimOthers:dimOthers, trueWidth:trueWidth,
+    showDes:showDes, showVal:showVal, showPour:showPour,
+    hi:hi, LIT:LIT, litFeet:litFeet, litFeetAll:litFeetAll,
+    cuBig:cuBig, netTouch:netTouch, litPads:litPads, litVias:litVias,
+    stNet:document.getElementById("stNet").innerHTML
+  };
+}
+
+function tabLabel(d){
+  let s=d.name||"board";
+  if(d.boards && d.boards.length>1) s+=" · "+d.boards.length+T("tabBoards");
+  return s;
+}
+
+function renderTabs(){
+  const bar=document.getElementById("tabs");
+  if(!bar) return;
+  bar.innerHTML="";
+  bar.classList.toggle("on", DOCS.length>0);
+  DOCS.forEach((d,i)=>{
+    const el=document.createElement("div");
+    el.className="tab"+(i===curDoc?" on":"");
+    el.title=d.name;
+    const nm=document.createElement("span");
+    nm.className="tn";
+    nm.textContent=tabLabel(d);
+    const x=document.createElement("span");
+    x.className="tx";
+    x.textContent="×";
+    x.title=T("tabClose");
+    x.onclick=ev=>{ ev.stopPropagation(); closeDoc(i); };
+    el.append(nm,x);
+    el.onclick=()=>activate(i);
+    el.onmousedown=ev=>{ if(ev.button===1){ ev.preventDefault(); closeDoc(i); } };
+    bar.appendChild(el);
+  });
+}
+
+/* 把某个页签存下来的状态套回全局变量 */
+function restoreUi(){
+  const d=DOCS[curDoc], s=d.st||{};
+  view = s.view ? {s:s.view.s, ox:s.view.ox, oy:s.view.oy} : {s:1, ox:0, oy:0};
+  show = s.show ? Object.assign({},s.show) : {};
+  solo = s.solo||null; invert=!!s.invert;
+  showLabels=s.showLabels!==false; dimOthers=s.dimOthers!==false;
+  trueWidth=s.trueWidth!==false;
+  showDes=s.showDes!==false; showVal=s.showVal!==false; showPour=s.showPour!==false;
+  hi=s.hi||null; LIT=s.LIT||null;
+  litFeet=s.litFeet||[]; litFeetAll=s.litFeetAll||0;
+  cuBig=s.cuBig||0; netTouch=s.netTouch||0; litPads=s.litPads||0; litVias=s.litVias||0;
+  pickMode=""; probeOn=false; probeA=null;
+  setOn("probe",false); hideProbe();
+  setOn("invert",invert); setOn("des",showDes); setOn("labels",showLabels);
+  setOn("pour",showPour); setOn("optVal",showVal); setOn("optDim",dimOthers);
+  setOn("optPen",trueWidth);
+  document.getElementById("hint").style.display="none";
+  document.getElementById("app").classList.remove("empty");
+  buildLayers(); buildFind(); syncBoardSelect(); refreshFileLine();
+  document.getElementById("stNet").innerHTML=s.stNet||"";
+}
+
+function activate(i){
+  if(i<0 || i>=DOCS.length) return;
+  if(i===curDoc){ renderTabs(); return; }
+  snapshotDoc();                       // 先把当前这份存好，再换
+  const d=DOCS[i];
+  curDoc=i;
+  BOARDS=d.boards; curBoard=d.cur||0;
+  lastMs=d.ms||0;
+  if(d.B){                             // 开过的：直接套回来，不重新解析
+    B=d.B;
+    const bd=BOARDS[curBoard]||BOARDS[0];
+    lastName=(bd&&bd.n)||d.name;
+    restoreUi();
+  }else{
+    const bd=BOARDS[curBoard]||BOARDS[0];
+    let buf=bd && bd.buf;
+    if(!buf && bd && bd.d){ buf=b64ToBuf(bd.d); bd.d=null; bd.buf=buf; }
+    if(!buf){ toast(T("readFail")); return; }
+    syncBoardSelect();
+    loadBuffer(buf, bd.n||d.name);
+  }
+  renderTabs();
+  draw();
+}
+
+/* 打开一份新文档。items 形如 [{n:名字, d:base64 或 null, buf:ArrayBuffer 或 null}] */
+function openDoc(items, file){
+  if(!items || !items.length) return;
+  file=file||"";
+  const key=file+"|"+items.length+"|"+String((items[0].d||"").length);
+  const old=DOCS.findIndex(d=>d.key===key);
+  snapshotDoc();                       // 先把当前这份存好，再动全局
+  if(old>=0){                          // 同一个文件已经开着：切过去，不重复开
+    curDoc=-1;
+    activate(old);
+    return;
+  }
+  if(DOCS.length>=12){ toast(T("tabLimit")); return; }
+  DOCS.push({key:key, id:++docSeq, name:file||items[0].n||"board",
+             boards:items.map(b=>({n:b.n, d:b.d||null, buf:b.buf||null})),
+             cur:0, B:null, ms:0, st:null});
+  curDoc=-1;                           // 新页签：让 activate 走「第一次载入」
+  activate(DOCS.length-1);
+}
+
+function closeDoc(i){
+  if(i<0 || i>=DOCS.length) return;
+  const wasCur=(i===curDoc);
+  DOCS.splice(i,1);
+  if(!DOCS.length){ curDoc=-1; showHome(); renderTabs(); return; }
+  if(wasCur){ curDoc=-1; activate(Math.min(i, DOCS.length-1)); }
+  else{ if(i<curDoc) curDoc--; renderTabs(); }
+}
+
+/* 全部页签都关了：回到首页，等用户再点「打开文件」 */
+function showHome(){
+  B=null; hi=null; LIT=null; BOARDS=[]; curBoard=-1;
+  lastName=""; lastMs=0;
+  document.getElementById("hint").style.display="";
+  document.getElementById("app").classList.add("empty");
+  document.getElementById("fname").textContent=T("notLoaded");
+  document.getElementById("stNet").innerHTML="";
+  document.getElementById("stStats").textContent="—";
+  document.getElementById("stCoord").textContent="—";
+  document.getElementById("layers").innerHTML="";
+  document.getElementById("findList").classList.remove("show");
+  syncBoardSelect();
+  draw();
+}
+
 /* 数据来源，按优先级：
    ① 桌面版 exe 会把板子以 base64 内嵌在 __BOARDS__ / __EMBED_DATA__ 里 ——
       不走网络，不受 file:// 的跨域限制，双击就能看；
@@ -3224,22 +3560,15 @@ document.getElementById("boards").onchange=function(){
 (async()=>{
   try{
     if(window.__BOARDS__ && window.__BOARDS__.length){
-      BOARDS=window.__BOARDS__.map(x=>({n:x.n,d:x.d,buf:null}));
-      curBoard=0;
-      syncBoardSelect();
-      const buf=b64ToBuf(BOARDS[0].d);
-      const nm=BOARDS[0].n;
-      BOARDS[0].d=null; BOARDS[0].buf=buf;
-      loadBuffer(buf,nm);
+      openDoc(window.__BOARDS__.map(x=>({n:x.n, d:x.d, buf:null})),
+              window.__FILE__||"");
       return;
     }
     if(typeof window.__EMBED_DATA__==="string" && window.__EMBED_DATA__){
       const buf=b64ToBuf(window.__EMBED_DATA__);
       const nm=window.__EMBED_NAME__||"board";
       window.__EMBED_DATA__=null;
-      BOARDS=[{n:nm,d:null,buf:buf}];
-      syncBoardSelect();
-      loadBuffer(buf,nm);
+      openDoc([{n:nm, d:null, buf:buf}], window.__FILE__||nm);
       return;
     }
   }catch(e){ toast(T("embedFail")+e.message); }
@@ -3254,10 +3583,41 @@ document.getElementById("boards").onchange=function(){
       const r=await fetch(want,{cache:"no-store"});
       if(r.ok){
         const buf=await r.arrayBuffer();
-        if(buf.byteLength>0){ BOARDS=[{n:want,d:null,buf:buf}]; syncBoardSelect(); loadBuffer(buf,want); }
+        if(buf.byteLength>0){ openDoc([{n:want, d:null, buf:buf}], want); }
       }
     }catch(_){}
   }
+})();
+
+/* 还没有板子：收起左侧栏，首页占满整个窗口 */
+if(!B) document.getElementById("app").classList.add("empty");
+
+/* ============================== 海报 + 心跳（仅桌面版） ============================== */
+(function(){
+  if(!window.__DESKTOP__) return;
+  const sp=document.getElementById("splash");
+  if(sp){
+    sp.style.display="flex";
+    requestAnimationFrame(()=>sp.classList.add("show"));
+    let gone=false;
+    const bye=()=>{
+      if(gone) return;
+      gone=true;
+      sp.classList.add("out");
+      setTimeout(()=>{ sp.style.display="none"; }, 520);
+    };
+    setTimeout(bye, 3600);
+    sp.addEventListener("click", bye);
+  }
+  /* 心跳：Edge 窗口关掉后，exe 靠它知道该退出了，不在后台留进程。
+     反过来说，连着 3 次打不通就是这个页面已经没有后台了（exe 被关掉/崩了），
+     提前给一句人话，省得用户点了按钮看到一句英文 Failed to fetch。 */
+  let miss=0;
+  const beat=()=>{
+    fetch(apiUrl("/api/ping")).then(()=>{ miss=0; }).catch(()=>{ if(++miss===3) toast(T("deskGone")); });
+  };
+  beat();
+  setInterval(beat, 5000);
 })();
 </script>
 </body>
