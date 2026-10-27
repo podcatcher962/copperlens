@@ -81,9 +81,52 @@
   aside h3{font-size:11px;font-weight:500;color:var(--fg3);letter-spacing:1px;
     margin:14px 0 6px;text-transform:uppercase}
   aside h3:first-child{margin-top:0}
+  /* 图层快捷：全选 / 全不选 / 只看顶底铜 / 反选 */
+  .lybar{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:0 0 7px}
+  .lybar button{background:var(--panel2);border:1px solid var(--line);color:var(--fg2);
+    border-radius:5px;font-size:11.5px;font-family:inherit;padding:4px 2px;cursor:pointer;
+    transition:.12s;white-space:nowrap}
+  .lybar button:hover{background:#2c3140;color:var(--fg);border-color:#3d4353}
+  .lybar button:active{background:#39465a}
+  /* 顶栏搜索：位号 / 型号 / 网络名 */
+  .findwrap{position:relative;flex:none;width:196px}
+  .findwrap input{width:100%;box-sizing:border-box;background:var(--panel2);color:var(--fg);
+    border:1px solid var(--line);border-radius:6px;padding:5px 9px;font-size:12.5px;
+    font-family:inherit;outline:none}
+  .findwrap input:focus{border-color:var(--accent2)}
+  .findwrap input::placeholder{color:var(--fg3)}
+  .findwrap input::-webkit-search-cancel-button{filter:invert(.6)}
+  .findlist{position:absolute;right:0;top:calc(100% + 5px);width:290px;background:var(--panel);
+    border:1px solid var(--line);border-radius:8px;box-shadow:0 16px 40px #000c;
+    max-height:360px;overflow-y:auto;display:none;z-index:35}
+  .findlist.show{display:block}
+  .findlist .it{display:flex;align-items:baseline;gap:8px;padding:6px 11px;cursor:pointer;
+    font-size:12.5px}
+  .findlist .it:hover,.findlist .it.sel{background:var(--panel2)}
+  .findlist .it .k{color:var(--fg);font-weight:500;white-space:nowrap}
+  .findlist .it .s{color:var(--fg3);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;flex:1}
+  .findlist .it .tag{color:var(--fg3);font-size:10.5px;border:1px solid var(--line);
+    border-radius:4px;padding:0 4px;flex:none}
+  .findlist .grp{padding:6px 11px 2px;font-size:10.5px;color:var(--fg3);letter-spacing:.6px}
+  .findlist .empty{padding:10px 11px;color:var(--fg3);font-size:12px}
+  /* 「通不通」结论横幅 */
+  .probebar{position:absolute;left:50%;top:14px;transform:translateX(-50%);display:none;
+    align-items:center;gap:9px;padding:8px 13px;border-radius:9px;background:var(--panel);
+    border:1px solid var(--line);box-shadow:0 10px 30px #000b;font-size:12.5px;color:var(--fg);
+    z-index:12;max-width:calc(100% - 44px)}
+  .probebar.show{display:flex}
+  .probebar .rd{font-weight:600;white-space:nowrap}
+  .probebar .ok{color:var(--ok)}
+  .probebar .bad{color:var(--danger)}
+  .probebar .warn{color:var(--accent)}
+  .probebar .end{color:var(--fg2);max-width:260px;overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap}
+  .probebar .x{background:none;border:none;color:var(--fg3);cursor:pointer;font-size:16px;
+    line-height:1;padding:0 2px;font-family:inherit}
+  .probebar .x:hover{color:var(--fg)}
   .layer{display:flex;align-items:center;gap:7px;padding:5px 7px;border-radius:5px;
-    cursor:pointer;user-select:none;margin-bottom:1px}
-  .layer:hover{background:var(--panel2)}
+    cursor:pointer;user-select:none;margin-bottom:1px}  .layer:hover{background:var(--panel2)}
   .layer .sw{width:11px;height:11px;border-radius:2px;flex:none}
   .layer .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
   .layer .ct{color:var(--fg3);font-size:11px;font-variant-numeric:tabular-nums}
@@ -161,11 +204,26 @@
       <button class="btn on" id="des" data-i18n="btnDes" data-i18n-title="btnDesTip">位号</button>
       <button class="btn on" id="labels" data-i18n="btnLabels" data-i18n-title="btnLabelsTip">焊盘号</button>
       <button class="btn on" id="pour" data-i18n="btnPour" data-i18n-title="btnPourTip">覆铜</button>
+      <div class="sep"></div>
+      <button class="btn" id="probe" data-i18n="btnProbe" data-i18n-title="btnProbeTip">通不通</button>
+      <button class="btn" id="shot" data-i18n="btnShot" data-i18n-title="btnShotTip">存图</button>
+      <div class="spacer"></div>
+      <div class="findwrap">
+        <input id="find" type="search" autocomplete="off" spellcheck="false"
+               data-i18n-ph="findPh" placeholder="找位号 / 型号 / 网络">
+        <div class="findlist" id="findList"></div>
+      </div>
     </div>
   </header>
 
   <aside>
     <h3 data-i18n="asideLayers">图层</h3>
+    <div class="lybar" id="lybar">
+      <button data-ly="all"  data-i18n="lyAll"  data-i18n-title="lyAllTip">全选</button>
+      <button data-ly="none" data-i18n="lyNone" data-i18n-title="lyNoneTip">全不选</button>
+      <button data-ly="cu"   data-i18n="lyCu"   data-i18n-title="lyCuTip">顶底铜</button>
+      <button data-ly="inv"  data-i18n="lyInv"  data-i18n-title="lyInvTip">反选</button>
+    </div>
     <div id="layers"></div>
     <h3 data-i18n="asideView">视图</h3>
     <div class="layer" id="optDim"><span class="nm" data-i18n="optDim">高亮时其余变暗</span></div>
@@ -175,6 +233,7 @@
 
   <main id="stage">
     <canvas id="cv"></canvas>
+    <div class="probebar" id="probeBar"></div>
     <div class="hint" id="hint"></div>
     <div class="toast" id="toast"></div>
     <div class="tip" id="tip"></div>
@@ -268,7 +327,32 @@ zh:{
   noNet:"(未分配网络)",
   padNo:n=>"焊盘 "+n,
   feetTitle:"这次点亮的全部元件脚",
-  layerTitle:"单击开关　双击只看该层",
+  /* v1.9 新增：图层快捷键 / 找东西 / 通不通 / 存图 */
+  lyAll:"全选", lyNone:"全不选", lyCu:"顶底铜", lyInv:"反选",
+  lyAllTip:"打开所有图层", lyNoneTip:"关掉所有图层（再逐层点开，一层层叠加看）",
+  lyCuTip:"铜层只留顶层和底层（丝印、过孔不动，位号照样看得见）",
+  lyInvTip:"已显示的全关掉，已关掉的全打开",
+  findPh:"找位号 / 型号 / 网络",
+  findNone:"没找到。位号要连着字母输，比如 U100、R12",
+  findGrpComp:"元件", findGrpNet:"网络",
+  findTagComp:"元件", findTagNet:"网络",
+  findNoPad:k=>"「"+k+"」定位到了，但这块元件没有焊盘数据，点不亮",
+  tagComp:n=>"这颗元件的全部焊盘（"+n+" 处）",
+  tagProbe:"通不通检测",
+  lblPad:"焊盘", lblVia:"过孔", lblTrack:"走线", lblPour:"覆铜",
+  probeNeedA:"通不通：点第一个位置",
+  probeNeedB:a=>"A：<b>"+a+"</b>　再点第二个位置",
+  probeNoCu:"这个位置不导电（丝印 / 机械层），请点焊盘、走线或过孔",
+  probeOkNet:(a,b,nm)=>"● 通　"+a+" ↔ "+b+"　·　网络 "+nm+"　·　按网表判定",
+  probeOkCu:(a,b)=>"● 通　"+a+" ↔ "+b+"　·　按铜皮实际连通判定（这块板没有网表）",
+  probeOkPoly:(a,b)=>"● 通　"+a+" ↔ "+b+"　·　落在同一片覆铜上",
+  probeNo:(a,b,n1,n2)=>"✕ 不通　"+a+" ↔ "+b
+    +(n1&&n2?"　·　网络不同（"+n1+" / "+n2+"）":""),
+  noBoard:"先打开一块板子",
+  btnProbe:"通不通", btnProbeTip:"点两个位置，直接判断它们电气上通不通（快捷键 K）",
+  btnShot:"存图", btnShotTip:"把当前画面存成 PNG（含位号、高亮，可贴维修单）",
+  shotDone:n=>"已存图："+n,
+  shotFail:"存图失败：",  layerTitle:"单击开关　双击只看该层",
   /* 载入后的一行摘要 */
   fnameLine:(nm,ddb,n,polys)=>nm+(ddb?"（从设计库里直接提取）":"")+
     " · "+n+" 个对象"+(polys?" · 覆铜 "+polys+" 块":""),
@@ -347,13 +431,34 @@ zh:{
       <li>按 <kbd>Esc</kbd> 或点空白处取消高亮。</li>
     </ul>
 
+    <h3>通不通：查断线最快的办法</h3>
+    <p>点顶栏 <code>通不通</code>（或按 <kbd>K</kbd>），在板上点两个位置，画面上方直接给结论：</p>
+    <ul>
+      <li><b>● 通</b>　U100-4 ↔ C102-2 · 网络 GND · 按网表判定</li>
+      <li><b>✕ 不通</b>　U100-4 ↔ R12-1 · 网络不同（GND / VCC）</li>
+    </ul>
+    <p>判定先看文件里自带的网表（最准）；<b>没有网表的老板子按铜皮实际接触来追</b>——
+       线挨着线、穿过过孔到另一层都算连通，所以网络号为 0 的板一样能用。
+       通了点亮整条线，不通只点亮这两点，断在哪一眼就看出来。</p>
+
+    <h3>找一个元件 / 一个网络</h3>
+    <p>顶栏右边的搜索框（或 <kbd>Ctrl</kbd>+<kbd>F</kbd>）：输 <code>U100</code> 找位号、
+       输 <code>AMS1117</code> 找型号、输 <code>GND</code> 找网络。选中即定位并点亮。</p>
+
     <h3>看图</h3>
     <ul>
       <li>滚轮缩放，<b>以鼠标指着的位置为中心</b>；按住左键拖拽平移。</li>
       <li>右下角有方向按钮 <b>▲▼◀▶</b>，中间 <b>◎</b> 回到板子中心；键盘方向键也能平移。</li>
       <li><kbd>F</kbd> 适合窗口；<kbd>H</kbd> 一键隐藏所有大面积铺铜（看细走线时最好用）。</li>
       <li>左侧点层名 = 开关该层；双击层名 = 只看这一层。</li>
+      <li>图层上方的四个快捷键：<b>全选 / 全不选 / 顶底铜 / 反选</b>。
+          「顶底铜」把铜层收成顶层+底层，丝印和过孔留着——维修最常用的组合；
+          「全不选」之后可以一层层点开叠加。</li>
     </ul>
+
+    <h3>存图</h3>
+    <p>顶栏 <code>存图</code> 把当前画面存成 PNG（含位号、型号、高亮），
+       文件名带板名和时间，可以直接贴进维修单或发工作群。</p>
 
     <h3>标注</h3>
     <ul>
@@ -363,7 +468,8 @@ zh:{
     </ul>
 
     <h3>快捷键</h3>
-    <p><kbd>F</kbd> 适合窗口　<kbd>H</kbd> 覆铜开/关　<kbd>Esc</kbd> 取消高亮　
+    <p><kbd>F</kbd> 适合窗口　<kbd>H</kbd> 覆铜开/关　<kbd>K</kbd> 通不通　
+       <kbd>Ctrl</kbd>+<kbd>F</kbd> 找元件/网络　<kbd>Esc</kbd> 取消高亮　
        <kbd>方向键</kbd> 平移　<kbd>+</kbd> <kbd>-</kbd> 缩放</p>`,
   discHtml:`
     <h3>本软件不提供任何担保</h3>
@@ -404,9 +510,12 @@ zh:{
       <li>打开 .pcb 单板文件，或 .ddb 设计库（自动列出里面所有板）</li>
       <li>点一下走线/焊盘，亮出整条铜箔，并写出 U100-4 这样的具体脚位</li>
       <li>显示元件位号、型号、焊盘编号；大面积铺铜可一键隐藏</li>
+      <li><b>两点通不通</b>：点两个位置，直接判定电气上通不通（没网表的老板子也行）</li>
+      <li><b>找元件 / 找网络</b>：输 U100、型号或网络名，跳过去并点亮</li>
+      <li>图层一键全选 / 全不选 / 只看顶底铜；当前画面一键存 PNG</li>
     </ul>
     <h3>版本</h3>
-    <p>v1.8　·　x86 程序，64 位系统同样可用　·　单文件便携版</p>
+    <p>v1.9　·　x86 程序，64 位系统同样可用　·　单文件便携版</p>
     <div class="sig">© 永远的兰兰　·　Lanlan Eternal</div>`
 },
 en:{
@@ -443,7 +552,32 @@ en:{
   noNet:"(no net)",
   padNo:n=>"Pad "+n,
   feetTitle:"Every pin lit by this click",
-  layerTitle:"Click to toggle　double-click to show only this layer",
+  lyAll:"All", lyNone:"None", lyCu:"Top+Bot", lyInv:"Invert",
+  lyAllTip:"Show every layer",
+  lyNoneTip:"Hide every layer (then click layers one by one)",
+  lyCuTip:"Copper: top and bottom only (silkscreen and vias stay visible)",
+  lyInvTip:"Hide what is shown, show what is hidden",
+  findPh:"Find refdes / value / net",
+  findNone:"Nothing found. Type the whole refdes, e.g. U100, R12",
+  findGrpComp:"Components", findGrpNet:"Nets",
+  findTagComp:"part", findTagNet:"net",
+  findNoPad:k=>"\u201c"+k+"\u201d found, but this part has no pad data to light up",
+  tagComp:n=>"every pad of this part ("+n+")",
+  tagProbe:"continuity check",
+  lblPad:"pad", lblVia:"via", lblTrack:"trace", lblPour:"pour",
+  probeNeedA:"Continuity: click the first spot",
+  probeNeedB:a=>"A: <b>"+a+"</b> &nbsp;now click the second spot",
+  probeNoCu:"Not conductive here (silkscreen / mechanical) — click a pad, trace or via",
+  probeOkNet:(a,b,nm)=>"\u25cf CONNECTED &nbsp;"+a+" \u2194 "+b+" &nbsp;\u00b7&nbsp; net "+nm+" &nbsp;\u00b7&nbsp; by netlist",
+  probeOkCu:(a,b)=>"\u25cf CONNECTED &nbsp;"+a+" \u2194 "+b+" &nbsp;\u00b7&nbsp; by actual copper (this board has no netlist)",
+  probeOkPoly:(a,b)=>"\u25cf CONNECTED &nbsp;"+a+" \u2194 "+b+" &nbsp;\u00b7&nbsp; same copper pour",
+  probeNo:(a,b,n1,n2)=>"\u2715 NOT CONNECTED &nbsp;"+a+" \u2194 "+b
+    +(n1&&n2?" &nbsp;\u00b7&nbsp; different nets ("+n1+" / "+n2+")":""),
+  noBoard:"Open a board first",
+  btnProbe:"Continuity", btnProbeTip:"Click two spots to test whether they are electrically connected (K)",
+  btnShot:"Save PNG", btnShotTip:"Save the current view as PNG (refdes, highlight included)",
+  shotDone:n=>"Saved: "+n,
+  shotFail:"Save failed: ",  layerTitle:"Click to toggle　double-click to show only this layer",
   fnameLine:(nm,ddb,n,polys)=>nm+(ddb?"  (extracted from library)":"")+
     " · "+n+" objects"+(polys?" · "+polys+" pours":""),
   segWarn:"Some sections could not be read cleanly: ",
@@ -524,6 +658,23 @@ en:{
       <li><kbd>Esc</kbd> or click empty space to clear.</li>
     </ul>
 
+    <h3>Continuity: the fastest way to find a broken trace</h3>
+    <p>Click <code>Continuity</code> in the toolbar (or press <kbd>K</kbd>), then click two spots.
+       The verdict appears at the top of the canvas:</p>
+    <ul>
+      <li><b>● CONNECTED</b> &nbsp;U100-4 ↔ C102-2 · net GND · by netlist</li>
+      <li><b>✕ NOT CONNECTED</b> &nbsp;U100-4 ↔ R12-1 · different nets (GND / VCC)</li>
+    </ul>
+    <p>The netlist stored in the file is used first (most reliable). <b>Boards without a netlist
+       fall back to real copper contact</b> — traces touching traces, vias crossing layers all
+       count, so boards with net number 0 still work. Connected lights the whole trace,
+       not connected lights only the two spots: the break is right there.</p>
+
+    <h3>Find a part or a net</h3>
+    <p>Search box on the right of the toolbar (or <kbd>Ctrl</kbd>+<kbd>F</kbd>):
+       type <code>U100</code> for a refdes, <code>AMS1117</code> for a value, <code>GND</code> for a net.
+       Pick a result to jump there and light it up.</p>
+
     <h3>Navigation</h3>
     <ul>
       <li>Scroll wheel zooms <b>anchored at the cursor</b>; drag with the left button to pan.</li>
@@ -532,7 +683,14 @@ en:{
       <li><kbd>F</kbd> fit to window; <kbd>H</kbd> hides every copper pour — the fastest way
           to see fine traces.</li>
       <li>Click a layer name to toggle it; double-click to show only that layer.</li>
+      <li>Four shortcuts above the layer list: <b>All / None / Top+Bot / Invert</b>.
+          Top+Bot keeps top and bottom copper while silkscreen and vias stay visible —
+          the combination repair work needs most.</li>
     </ul>
+
+    <h3>Save PNG</h3>
+    <p><code>Save PNG</code> writes the current view (refdes, values, highlight included) as a PNG
+       named after the board and the time — ready for a repair sheet or a chat group.</p>
 
     <h3>Labels</h3>
     <ul>
@@ -543,7 +701,8 @@ en:{
     </ul>
 
     <h3>Shortcuts</h3>
-    <p><kbd>F</kbd> fit　<kbd>H</kbd> copper on/off　<kbd>Esc</kbd> clear highlight　
+    <p><kbd>F</kbd> fit　<kbd>H</kbd> copper on/off　<kbd>K</kbd> continuity　
+       <kbd>Ctrl</kbd>+<kbd>F</kbd> find　<kbd>Esc</kbd> clear highlight　
        <kbd>Arrows</kbd> pan　<kbd>+</kbd> <kbd>-</kbd> zoom</p>`,
   discHtml:`
     <h3>No warranty</h3>
@@ -589,9 +748,13 @@ en:{
       <li>Opens .pcb files, or .ddb design libraries (lists every board inside)</li>
       <li>Click a trace or pad to light the whole net and name the exact pins (U100-4 …)</li>
       <li>Shows component designators, values and pad numbers; copper pours hide with one key</li>
+      <li><b>Two-point continuity</b>: click two spots and get a straight yes/no
+          (works on old boards with no netlist)</li>
+      <li><b>Find</b> by refdes, value or net name — jumps there and lights it up</li>
+      <li>One-click layer All / None / Top+Bot; save the current view as PNG</li>
     </ul>
     <h3>Version</h3>
-    <p>v1.8　·　x86 build, runs fine on 64-bit Windows　·　portable single file</p>
+    <p>v1.9　·　x86 build, runs fine on 64-bit Windows　·　portable single file</p>
     <div class="sig">© Lanlan Eternal　·　永远的兰兰</div>`
 }
 };
@@ -621,6 +784,9 @@ function applyLang(){
   });
   document.querySelectorAll("[data-i18n-title]").forEach(el=>{
     el.title = T(el.dataset.i18nTitle);
+  });
+  document.querySelectorAll("[data-i18n-ph]").forEach(el=>{
+    el.placeholder = T(el.dataset.i18nPh);
   });
   document.getElementById("langTxt").textContent = (lang==="zh" ? "EN" : "中文");
   document.getElementById("hint").innerHTML = T(isWebMode() ? "hintWeb" : "hintHtml");
@@ -2316,6 +2482,8 @@ function updateStatus(h){
     tail="";
   }
   else if(pickMode==="cu-big") tag=T("tagCuBig", cuBig);
+  else if(pickMode==="comp"){ tag=T("tagComp", n); tail=""; }
+  else if(pickMode==="probe"){ tag=T("tagProbe"); tail=""; }
   const padName = (o.kind==="pad" && o.name && !o.compDes)
     ? ('<span class="chip blue">'+T("padNo",o.name)+'</span>') : "";
   /* 点亮的元件脚 —— 这是查线的答案本身，放在网络名后面第一位 */
@@ -2379,7 +2547,8 @@ window.addEventListener("mouseup",e=>{
   mouseDown=false;
   if(!moving && B){
     const r=cv.getBoundingClientRect();
-    pickAt(e.clientX-r.left, e.clientY-r.top);
+    const sx=e.clientX-r.left, sy=e.clientY-r.top;
+    if(probeOn) probeClick(sx,sy); else pickAt(sx,sy);
   }
   moving=false;
 });
@@ -2482,9 +2651,16 @@ window.addEventListener("keydown",e=>{
   const tag=(e.target && e.target.tagName)||"";
   if(tag==="INPUT"||tag==="SELECT"||tag==="TEXTAREA") return;
   const k=e.key;
+  if((k==="f"||k==="F") && (e.ctrlKey||e.metaKey)){
+    e.preventDefault(); findInput.focus(); findInput.select(); return;
+  }
   if(k==="f"||k==="F"){ fit(); return; }
   if(k==="h"||k==="H"){ togglePour(); return; }
-  if(k==="Escape"){ hi=null; LIT=null; pickMode=""; curHit=null; updateStatus(null); draw(); return; }
+  if(k==="k"||k==="K"){ toggleProbe(); return; }
+  if(k==="Escape"){
+    if(probeOn){ exitProbe(); return; }
+    hi=null; LIT=null; pickMode=""; curHit=null; updateStatus(null); draw(); return;
+  }
   // 方向键平移 / +- 缩放
   const s=panStep(e);
   if(k==="ArrowUp"){    panBy(0, s);  e.preventDefault(); return; }
@@ -2535,6 +2711,329 @@ function buildLayers(){
   }
 }
 
+/* ============================== 图层快捷 ============================== */
+/* 维修九成时间只看顶层和底层，一上来层层点开太慢，给四个一键操作。
+   solo（双击单层）要先清掉，否则"全选"看着像没反应。 */
+function layerBulk(kind){
+  if(!B) return;
+  const ns=[...B.bucket.keys()];
+  if(kind==="all"){
+    ns.forEach(n=>{ show[n]=true; });
+  }else if(kind==="none"){
+    ns.forEach(n=>{ show[n]=false; });
+  }else if(kind==="cu"){
+    /* 一键切到"只看顶层和底层"。这个组合要是幂等的：不管之前是全选还是
+       全不选，点一下都得到同一个干净画面 —— 顶底铜 + 丝印 + 过孔。
+       丝印必须留着，否则连位号都看不见；机械层/禁布保持用户原来的选择。 */
+    ns.forEach(n=>{
+      if(isCopper(n)) show[n]=(n===1||n===32);
+      else if(n===33||n===34||n===74) show[n]=true;
+    });
+  }else if(kind==="inv"){
+    ns.forEach(n=>{ show[n]=(show[n]===false); });
+  }
+  solo=null;
+  buildLayers(); draw();
+}
+document.getElementById("lybar").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-ly]");
+  if(b) layerBulk(b.dataset.ly);
+});
+
+/* ============================== 找东西：位号 / 型号 / 网络 ============================== */
+let FIND=[], findSel=-1, findHits=[];
+
+/* 下拉里的文字来自文件，可能带 < > 之类的字符，插进 innerHTML 前先转义 */
+function esc(s){
+  return String(s).replace(/[&<>"]/g,c=>(
+    {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+}
+
+function buildFind(){
+  FIND=[];
+  if(!B) return;
+  B.compInfo.forEach(ci=>{
+    const k=ci.des||ci.com;
+    if(!k) return;
+    FIND.push({t:"c", k:k, sub:(ci.des&&ci.com)?ci.com:"", ci:ci});
+  });
+  B.nets.forEach((nm,i)=>{ if(nm) FIND.push({t:"n", k:nm, sub:"", id:i+1}); });
+}
+
+function findMatches(q){
+  q=(q||"").trim().toLowerCase();
+  if(!q) return [];
+  const exact=[], pre=[], mid=[];
+  for(const f of FIND){
+    const k=f.k.toLowerCase();
+    if(k===q) exact.push(f);
+    else if(k.indexOf(q)===0) pre.push(f);
+    else if(k.indexOf(q)>0) mid.push(f);
+  }
+  const cmp=(a,b)=>a.k.length-b.k.length;
+  return exact.sort(cmp).concat(pre.sort(cmp), mid.sort(cmp)).slice(0,40);
+}
+
+function renderFind(){
+  const box=document.getElementById("findList");
+  const q=document.getElementById("find").value;
+  if(!q.trim()){ box.classList.remove("show"); box.innerHTML=""; findHits=[]; findSel=-1; return; }
+  findHits=findMatches(q);
+  findSel=findHits.length?0:-1;
+  if(!findHits.length){
+    box.innerHTML='<div class="empty">'+T("findNone")+'</div>';
+    box.classList.add("show");
+    return;
+  }
+  let html="", grp="";
+  findHits.forEach((f,i)=>{
+    const g=(f.t==="c")?T("findGrpComp"):T("findGrpNet");
+    if(g!==grp){ grp=g; html+='<div class="grp">'+g+'</div>'; }
+    html+='<div class="it'+(i===findSel?" sel":"")+'" data-i="'+i+'">'
+      + '<span class="k">'+esc(f.k)+'</span>'
+      + '<span class="s">'+(f.sub?esc(f.sub):"")+'</span>'
+      + '<span class="tag">'+(f.t==="c"?T("findTagComp"):T("findTagNet"))+'</span>'
+      + '</div>';
+  });
+  box.innerHTML=html;
+  box.classList.add("show");
+}
+
+function bboxOfSet(set){
+  let x1=Infinity,y1=Infinity,x2=-Infinity,y2=-Infinity;
+  for(const o of set){
+    if(!o.bb) continue;
+    x1=Math.min(x1,o.bb.x1); y1=Math.min(y1,o.bb.y1);
+    x2=Math.max(x2,o.bb.x2); y2=Math.max(y2,o.bb.y2);
+  }
+  return isFinite(x1)?{x1:x1,y1:y1,x2:x2,y2:y2}:null;
+}
+
+/* 把视野对准一个矩形（找元件、找网络时用） */
+function focusBox(bx){
+  if(!bx) return;
+  const W=cv.clientWidth||800, H=cv.clientHeight||600, pad=110;
+  const w=Math.max(8,bx.x2-bx.x1), h=Math.max(8,bx.y2-bx.y1);
+  const s=Math.min((W-pad)/w,(H-pad)/h);
+  view.s=Math.max(0.002,Math.min(900,s));
+  view.ox=W/2-(bx.x1+w/2)*view.s;
+  view.oy=H/2+(bx.y1+h/2)*view.s;
+  zoomLabel(); draw();
+}
+
+/* 点亮一颗元件的全部焊盘 —— "图纸上写着 U100，板子上是哪一颗" */
+function lightComp(ci){
+  const set=new Set();
+  for(const p of B.pads) if(p.comp===ci.id) set.add(p);
+  if(!set.size) return false;
+  LIT=set; hi="g"; pickMode="comp";
+  curHit={o:[...set][0], it:null};
+  updateStatus(curHit); draw();
+  return true;
+}
+
+/* 点亮一整条网络（和鼠标点铜皮走同一条路，结果一致） */
+function lightNet(n){
+  if(!(n>0) || !B.byNet.has(n)) return false;
+  const set=new Set(); let nt=0,np=0,nv=0;
+  for(const q of B.byNet.get(n)){
+    if(isPourPart(q)) continue;
+    set.add(q);
+    if(q.kind==="track") nt++; else if(q.kind==="pad") np++; else if(q.kind==="via") nv++;
+  }
+  if(!set.size) return false;
+  if(nt>60){
+    const keep=new Set();
+    for(const q of set) if(q.kind==="pad"||q.kind==="via") keep.add(q);
+    LIT=keep; pickMode="big-net"; litPads=np; litVias=nv;
+  }else{
+    LIT=set; pickMode="net"; litPads=np; litVias=nv;
+  }
+  hi="n"+n;
+  curHit={o:[...set][0], it:null};
+  updateStatus(curHit); draw();
+  return true;
+}
+
+function doFind(f){
+  document.getElementById("findList").classList.remove("show");
+  if(!f) return;
+  if(f.t==="c"){
+    const ci=f.ci;
+    focusBox(ci.bb || {x1:ci.x-40,y1:ci.y-40,x2:ci.x+40,y2:ci.y+40});
+    if(!lightComp(ci)) toast(T("findNoPad", f.k));
+  }else if(lightNet(f.id)){
+    focusBox(bboxOfSet(LIT));
+  }
+}
+
+const findInput=document.getElementById("find");
+findInput.addEventListener("input",renderFind);
+findInput.addEventListener("focus",()=>{ if(findInput.value.trim()) renderFind(); });
+findInput.addEventListener("keydown",e=>{
+  const box=document.getElementById("findList");
+  if(e.key==="Escape"){ box.classList.remove("show"); findInput.blur(); e.stopPropagation(); return; }
+  if(e.key==="ArrowDown"||e.key==="ArrowUp"){
+    if(!findHits.length) return;
+    e.preventDefault();
+    findSel=(findSel+(e.key==="ArrowDown"?1:-1)+findHits.length)%findHits.length;
+    const items=[...box.querySelectorAll(".it")];
+    items.forEach((el,i)=>el.classList.toggle("sel",i===findSel));
+    const sel=box.querySelector(".it.sel");
+    if(sel) sel.scrollIntoView({block:"nearest"});
+    return;
+  }
+  if(e.key==="Enter"){
+    e.preventDefault();
+    if(findSel>=0) doFind(findHits[findSel]);
+  }
+});
+document.getElementById("findList").addEventListener("click",e=>{
+  const it=e.target.closest(".it");
+  if(it) doFind(findHits[+it.dataset.i]);
+});
+document.addEventListener("mousedown",e=>{
+  if(!e.target.closest(".findwrap")) document.getElementById("findList").classList.remove("show");
+});
+
+/* ============================== 通不通（两点连通检测） ============================== */
+/* 维修最常问的一句话是"这两点通不通"。以前只能点一下看网络名，两边拼着看，
+   网络号为 0 的板子还判断不了。这里给一个直接的答案。
+   判定顺序：网表（最准）→ 同一片覆铜 → 实际铜皮连通（traceCu 追）。 */
+let probeOn=false, probeA=null;
+
+function endName(o){
+  if(!o) return "—";
+  if(o.kind==="pad"){
+    if(o.compDes) return o.compDes+(o.name?"-"+o.name:"");
+    if(o.name) return T("padNo",o.name);
+    return T("lblPad");
+  }
+  if(o.kind==="via") return T("lblVia");
+  if(o.kind==="polygon") return T("lblPour");
+  return T("lblTrack");
+}
+
+function setProbe(html, cls){
+  const bar=document.getElementById("probeBar");
+  bar.innerHTML='<span class="rd '+(cls||"")+'">'+html+'</span>'
+    + '<button class="x" title="Esc">✕</button>';
+  bar.classList.add("show");
+  bar.querySelector(".x").onclick=exitProbe;
+}
+function hideProbe(){ document.getElementById("probeBar").classList.remove("show"); }
+
+function enterProbe(){
+  if(!B){ toast(T("noBoard")); return; }
+  probeOn=true; probeA=null;
+  document.getElementById("probe").classList.add("on");
+  setProbe(T("probeNeedA"), "warn");
+}
+function exitProbe(){
+  probeOn=false; probeA=null;
+  document.getElementById("probe").classList.remove("on");
+  hideProbe();
+  hi=null; LIT=null; pickMode=""; curHit=null;
+  updateStatus(null); draw();
+}
+function toggleProbe(){ probeOn?exitProbe():enterProbe(); }
+document.getElementById("probe").onclick=toggleProbe;
+
+/* 判定两点是否电气相连 */
+function checkJoin(a,b){
+  if(a.net>0 && b.net>0){
+    return a.net===b.net
+      ? {ok:true, by:"net", net:a.net}
+      : {ok:false, by:"net", n1:a.net, n2:b.net};
+  }
+  if(a.poly>=0 && a.poly===b.poly) return {ok:true, by:"poly"};
+  if(typeof a._i==="number" && typeof b._i==="number"){
+    let s=null;
+    try{ s=new Set(traceCu(a._i)); }catch(e){ s=null; }
+    if(s && s.has(b._i)) return {ok:true, by:"cu"};
+  }
+  return {ok:false, by:"cu"};
+}
+
+function lightProbe(a,b,res){
+  const set=new Set([a,b]);
+  if(res.ok && res.by==="net"){ lightNet(res.net); return; }
+  if(res.ok){
+    for(const o of [a,b]){
+      if(typeof o._i!=="number") continue;
+      try{
+        for(const k of traceCu(o._i)){
+          const q=B.all[k];
+          if(q && !isPourPart(q)) set.add(q);
+        }
+      }catch(e){}
+    }
+    if(set.size>3000){
+      const keep=new Set([a,b]);
+      for(const q of set) if(q.kind==="pad"||q.kind==="via") keep.add(q);
+      LIT=keep;
+    }else{
+      LIT=set;
+    }
+  }else{
+    LIT=set;
+  }
+  hi="g"; pickMode="probe"; curHit={o:b, it:null};
+  updateStatus(curHit); draw();
+}
+
+function probeClick(sx,sy){
+  const h=hitTest(sx,sy);
+  if(!h){ return; }
+  const o=h.o;
+  if(!o.cu && o.kind!=="polygon"){
+    setProbe(T("probeNoCu"), "warn");
+    return;
+  }
+  if(!probeA){
+    probeA=o;
+    LIT=new Set([o]); hi="g"; pickMode="probe"; curHit=h;
+    updateStatus(h); draw();
+    setProbe(T("probeNeedB", endName(o)), "warn");
+    return;
+  }
+  const a=probeA, b=o;
+  const res=checkJoin(a,b);
+  const na=endName(a), nb=endName(o);
+  if(res.ok){
+    if(res.by==="net") setProbe(T("probeOkNet", na, nb, netNameOf("n"+res.net)), "ok");
+    else if(res.by==="poly") setProbe(T("probeOkPoly", na, nb), "ok");
+    else setProbe(T("probeOkCu", na, nb), "ok");
+  }else{
+    const n1=(a.net>0?netNameOf("n"+a.net):""), n2=(o.net>0?netNameOf("n"+o.net):"");
+    setProbe(T("probeNo", na, nb, n1, n2), "bad");
+  }
+  lightProbe(a, o, res);
+  probeA=null;      // 下一次点击重新开始
+}
+
+/* ============================== 存图 ============================== */
+/* 维修单要配图、工作群要发证据：一键把当前画面（含位号和高亮）存成 PNG。 */
+function saveShot(){
+  if(!B){ toast(T("noBoard")); return; }
+  try{
+    const d=new Date(), p=n=>String(n).padStart(2,"0");
+    const ts=d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+"-"
+           +p(d.getHours())+p(d.getMinutes())+p(d.getSeconds());
+    const base=String(lastName||"board").replace(/[\\/:*?"<>|]/g,"_").replace(/\.(pcb|ddb)$/i,"");
+    const a=document.createElement("a");
+    a.download=base+"_"+ts+".png";
+    a.href=cv.toDataURL("image/png");
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    toast(T("shotDone", a.download));
+  }catch(err){
+    toast(T("shotFail")+err.message);
+  }
+}
+document.getElementById("shot").onclick=saveShot;
+
 /* ============================== 载入 ============================== */
 function loadBuffer(buf,name){
   toast("");
@@ -2544,9 +3043,16 @@ function loadBuffer(buf,name){
     const dt=Math.round(performance.now()-t0);
     lastName=name; lastMs=dt;
     show={}; solo=null; hi=null; LIT=null; pickMode="";
+    probeOn=false; probeA=null;
+    document.getElementById("probe").classList.remove("on");
+    hideProbe();
+    const fi=document.getElementById("find");
+    if(fi) fi.value="";
+    document.getElementById("findList").classList.remove("show");
     document.getElementById("hint").style.display="none";
     refreshFileLine();
     buildLayers();
+    buildFind();
     requestAnimationFrame(()=>{
       fit();
       // 定位到指定坐标：#zoom=x,y,倍数（看细节时直接改地址栏就行）
