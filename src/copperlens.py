@@ -21,17 +21,22 @@ import base64
 import csv
 import ctypes
 import datetime as _dt
+import http.server
 import json
 import os
+import secrets
+import socketserver
 import subprocess
 import sys
 import tempfile
+import threading
 import time
+import urllib.parse
 from ctypes import wintypes
 from pathlib import Path
 
 APP_TITLE = "PCB 看板 CopperLens"
-VERSION = "1.9"
+VERSION = "1.11"
 
 _APPDIR = "CopperLens"
 _LOG = Path(tempfile.gettempdir()) / _APPDIR / "last-run.log"
@@ -131,6 +136,101 @@ OFN_FILEMUSTEXIST = 0x00001000
 OFN_EXPLORER = 0x00080000
 
 
+def _viewer_hwnd():
+    """找到我们自己那个显示窗口（Edge/Chrome 的 --app 窗口），当文件对话框的父窗口。
+
+    没有父窗口时，对话框是"无主窗口"，从后台线程弹出来很容易被浏览器窗口压住，
+    看着就像"点了没反应"。挂上父窗口，它一定浮在我们的窗口上面，也顺手变成模态。
+    """
+    try:
+        found = []
+        proc = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+
+        def cb(h, _):
+            try:
+                if not _user32.IsWindowVisible(h):
+                    return True
+                n = _user32.GetWindowTextLengthW(h)
+                if n <= 0:
+                    return True
+                b = ctypes.create_unicode_buffer(n + 1)
+                _user32.GetWindowTextW(h, b, n + 1)
+                t = b.value
+                if "CopperLens" in t or "PCB 看板" in t:
+                    found.append(h)
+            except Exception:
+                pass
+            return True
+
+        _user32.EnumWindows(proc(cb), 0)
+        return found[0] if found else None
+    except Exception:
+        return None
+
+
+def _raise_window(h):
+    """把窗口拽到最前面（单靠 SetForegroundWindow 常被系统"反抢焦点"规则挡掉）。"""
+    try:
+        HWND_TOPMOST, HWND_NOTOPMOST = -1, -2
+        SWP = 0x0001 | 0x0002 | 0x0040          # NOSIZE | NOMOVE | SHOWWINDOW
+        _user32.SetWindowPos(h, HWND_TOPMOST, 0, 0, 0, 0, SWP)
+        _user32.SetWindowPos(h, HWND_NOTOPMOST, 0, 0, 0, 0, SWP)
+        fg = _user32.GetForegroundWindow()
+        tid_fg = _user32.GetWindowThreadProcessId(fg, None)
+        tid_me = ctypes.windll.kernel32.GetCurrentThreadId()
+        if tid_fg and tid_fg != tid_me:
+            _user32.AttachThreadInput(tid_me, tid_fg, True)
+            _user32.SetForegroundWindow(h)
+            _user32.AttachThreadInput(tid_me, tid_fg, False)
+        else:
+            _user32.SetForegroundWindow(h)
+        # 上面都失败时还有这一招（微软内部也在用，效果最硬）
+        try:
+            _user32.SwitchToThisWindow(h, True)
+        except Exception:
+            pass
+    except Exception as e:
+        log("对话框置前失败：%r" % e)
+
+
+def _pop_dialog_forward(title, timeout=8.0):
+    """文件对话框是工作线程弹的，没有父窗口焦点时会躲在浏览器后面。
+
+    盯着 #32770（通用对话框类名），一出来就抓到最前面，并写一行记录。
+    """
+    end = time.time() + timeout
+    proc = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+    while time.time() < end:
+        time.sleep(0.08)
+        hits = []
+
+        def cb(h, _):
+            try:
+                n = _user32.GetWindowTextLengthW(h)
+                if n <= 0:
+                    return True
+                cls = ctypes.create_unicode_buffer(64)
+                _user32.GetClassNameW(h, cls, 64)
+                if cls.value != "#32770":
+                    return True
+                b = ctypes.create_unicode_buffer(n + 1)
+                _user32.GetWindowTextW(h, b, n + 1)
+                if b.value == title:
+                    hits.append(h)
+            except Exception:
+                pass
+            return True
+
+        try:
+            _user32.EnumWindows(proc(cb), 0)
+        except Exception:
+            return
+        if hits:
+            _raise_window(hits[0])
+            log("对话框已置前 hwnd=%r" % hits[0])
+            return
+
+
 def ask_file():
     """原生"打开文件"对话框。返回路径或 None。"""
     if _comdlg32 is None:
@@ -139,6 +239,11 @@ def ask_file():
                  "The file dialog component (comdlg32.dll) is missing.\n"
                  "Workaround: drag a .pcb / .ddb file onto this program's icon."))
         return None
+    # 对话框是走 shell 的，从工作线程弹之前先把 COM 起起来（已起过会返回 S_FALSE，无害）
+    try:
+        ctypes.windll.ole32.CoInitializeEx(None, 0x2)
+    except Exception:
+        pass
     buf = ctypes.create_unicode_buffer(32768)
     filt = L("PCB 文件 (*.pcb;*.ddb)\0*.pcb;*.ddb\0"
              "设计库 (*.ddb)\0*.ddb\0"
@@ -150,15 +255,19 @@ def ask_file():
              "All files (*.*)\0*.*\0\0")
     ofn = OPENFILENAMEW()
     ofn.lStructSize = ctypes.sizeof(OPENFILENAMEW)
-    ofn.hwndOwner = None
+    ofn.hwndOwner = _viewer_hwnd()
     ofn.lpstrFilter = filt
     ofn.nFilterIndex = 1
     ofn.lpstrFile = ctypes.cast(buf, wintypes.LPWSTR)
     ofn.nMaxFile = len(buf)
-    ofn.lpstrTitle = L("选择要看的板子", "Open a board")
+    title = L("选择要看的板子", "Open a board")
+    ofn.lpstrTitle = title
     ofn.Flags = (OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST |
                  OFN_NOCHANGEDIR)
     ofn.lpstrDefExt = "pcb"
+    # 后台线程弹的对话框默认可能落在别的窗口后面；派个哨兵把它抓到最前面
+    threading.Thread(target=_pop_dialog_forward, args=(title,),
+                     daemon=True).start()
     if not _comdlg32.GetOpenFileNameW(ctypes.byref(ofn)):
         return None
     path = buf.value
@@ -213,12 +322,13 @@ def find_browsers():
     return out
 
 
-def build_view_html(boards):
+def build_view_html(boards, file_name=""):
     """把查线器和板子数据塞进一个自包含的 HTML —— 不联网、不受跨域限制。
     boards = [(显示名, 字节)]，第一块默认打开，其余在下拉框里切换。
 
     窗口标题由页面自己拼：程序名（跟界面语言走） + __TITLE__（板子名）。
     Edge 用 --app 打开时，标题栏取的就是 document.title。
+    file_name 给页签用（拖到图标上打开时，页签显示的是文件名而不是板名）。
     """
     tpl = res_path("index.html").read_text(encoding="utf-8")
     data = [{"n": nm, "d": base64.b64encode(raw).decode("ascii")} for nm, raw in boards]
@@ -227,6 +337,8 @@ def build_view_html(boards):
         json.dumps(data, ensure_ascii=False, separators=(",", ":")) +
         ";window.__TITLE__=" +
         json.dumps(boards[0][0], ensure_ascii=False) +
+        ";window.__FILE__=" +
+        json.dumps(file_name or "", ensure_ascii=False) +
         ";</script>"
     )
     html = tpl.replace("</head>", inject + "</head>", 1)
@@ -237,8 +349,15 @@ def build_view_html(boards):
     return out
 
 
-def open_viewer(html_path):
-    url = html_path.resolve().as_uri()
+def open_viewer(target):
+    """用系统里的 Edge/Chrome 以 --app 方式开一个像独立程序的窗口。
+
+    target 可以是本地 html 路径，也可以是 http://127.0.0.1 的首页地址。
+    成功返回浏览器进程对象（首页模式要靠它判断窗口是否还开着），失败返回 None。
+    """
+    t = str(target)
+    is_url = t.startswith(("http://", "https://"))
+    url = t if is_url else Path(target).resolve().as_uri()
     log("open_viewer %s" % url)
     # 本程序是无控制台窗口的，子进程拿不到有效的标准句柄会直接启动失败，
     # 所以显式断开三个标准流。
@@ -265,14 +384,15 @@ def open_viewer(html_path):
         log("    退出码 %r" % p.poll())
         if p.poll() in (None, 0):
             log("    成功")
-            return True
-    log("  改用系统默认程序打开")
-    try:
-        os.startfile(str(html_path))
-        log("    startfile 成功")
-        return True
-    except OSError as e:
-        log("    startfile 失败：%r" % e)
+            return p
+    if not is_url:
+        log("  改用系统默认程序打开")
+        try:
+            os.startfile(str(Path(target)))
+            log("    startfile 成功")
+            return None
+        except OSError as e:
+            log("    startfile 失败：%r" % e)
     msgbox(L("没找到可以显示板子的浏览器。\n\n"
              "这台机器需要装有 Microsoft Edge 或 Google Chrome。\n"
              "Win10 / Win11 自带 Edge，不用另装；\n"
@@ -283,7 +403,7 @@ def open_viewer(html_path):
              "Windows 10 / 11 ship with Edge; Windows 7 / 8 do not — "
              "install one first.\n\n"
              "Log file:\n") + str(_LOG))
-    return False
+    return None
 
 
 # ---------------------------------------------------------------- 从 DDB 抽 PCB
@@ -512,6 +632,207 @@ def extract_pcbs(ddb):
     return out
 
 
+# ---------------------------------------------------------------- 首页模式
+"""双击 exe 不再直接弹"打开文件"，而是进首页：先海报，再欢迎页，用户自己点打开。
+
+页面跑在 Edge 里，要让它叫起 Windows 原生选择框（.ddb 只有 Python 这侧解得开），
+就需要一条"页面 → 程序"的通道。这里用最朴素的办法：在 127.0.0.1 上起一个只服务
+本机的临时端口（端口随机），URL 里带一次性令牌。不监听网卡、不上外网、不写注册表。
+
+为什么不用 pywebview 那类内嵌浏览器：那需要 WebView2 Runtime，Win7 和一部分 LTSC
+机器没有、离线也装不上，一旦缺了程序就打不开。Edge --app + 本机回环没有这个前提。
+"""
+
+_home_html = [b""]
+_last_ping = [0.0]
+
+
+def build_home_html(token):
+    tpl = res_path("index.html").read_text(encoding="utf-8")
+    inject = ("<script>window.__DESKTOP__=1;window.__TOKEN__=%s;"
+              "window.__TITLE__=\"\";</script>") % json.dumps(token)
+    return tpl.replace("</head>", inject + "</head>", 1).encode("utf-8")
+
+
+def _payload_for_path(p):
+    """把选中的文件读成前端要的结构：{boards:[{n,d}], ddb:bool}"""
+    ext = p.suffix.lower()
+    if ext == ".pcb":
+        raw = p.read_bytes()
+        return {"boards": [{"n": p.name,
+                            "d": base64.b64encode(raw).decode("ascii")}],
+                "ddb": False, "file": p.name}
+    if ext == ".ddb":
+        boards = extract_pcbs(p)
+        if not boards:
+            return {"error": L("这个设计库里没有 PCB。\n（它可能只存了原理图或元件库。）",
+                               "This design library contains no PCB "
+                               "(it may only hold schematics or part libraries).")}
+        return {"boards": [{"n": b["label"],
+                            "d": base64.b64encode(b["bytes"]).decode("ascii")}
+                           for b in boards],
+                "ddb": True, "file": p.name}
+    return {"error": L("只认 .pcb 和 .ddb 两种文件。",
+                       "Only .pcb and .ddb files are supported.")}
+
+
+def _payload_for_bytes(name, data):
+    """拖进窗口的文件走这里：落到临时目录再按扩展名照常处理。"""
+    suffix = Path(name).suffix or ".pcb"
+    work = Path(tempfile.mkdtemp(prefix="copperlens_up_"))
+    tmp = work / ("upload" + suffix)
+    try:
+        tmp.write_bytes(data)
+        res = _payload_for_path(tmp)
+        if not res.get("ddb") and res.get("boards"):
+            for b in res["boards"]:
+                b["n"] = name           # 别把临时文件名漏给用户看
+            res["file"] = name
+        return res
+    finally:
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+        try:
+            work.rmdir()
+        except OSError:
+            pass
+
+
+class _HomeServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
+    daemon_threads = True
+    allow_reuse_address = True
+
+
+def _make_handler(token, home_html):
+    class H(http.server.BaseHTTPRequestHandler):
+        server_version = "CopperLensHome"
+
+        def log_message(self, fmt, *args):
+            log("  http " + (fmt % args))
+
+        def _send(self, code, body, ctype):
+            if isinstance(body, str):
+                body = body.encode("utf-8")
+            self.send_response(code)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            try:
+                self.wfile.write(body)
+            except OSError:
+                pass
+
+        def _json(self, obj, code=200):
+            self._send(code, json.dumps(obj, ensure_ascii=False),
+                       "application/json; charset=utf-8")
+
+        def _gate(self):
+            u = urllib.parse.urlparse(self.path)
+            q = urllib.parse.parse_qs(u.query)
+            if (q.get("t") or [""])[0] != token:
+                self._json({"error": "forbidden"}, 403)
+                return None
+            return u
+
+        def do_GET(self):
+            # 浏览器自动要图标，它不带令牌；直接回空，别在记录里刷 403
+            if urllib.parse.urlparse(self.path).path.startswith("/favicon"):
+                return self._send(204, b"", "image/x-icon")
+            u = self._gate()
+            if u is None:
+                return
+            if u.path in ("/", "/index.html"):
+                return self._send(200, home_html, "text/html; charset=utf-8")
+            if u.path == "/api/ping":
+                _last_ping[0] = time.time()
+                return self._json({"ok": True})
+            self._json({"error": "not found"}, 404)
+
+        def do_POST(self):
+            u = self._gate()
+            if u is None:
+                return
+            n = int(self.headers.get("Content-Length") or 0)
+            body = self.rfile.read(n) if n > 0 else b""
+            if u.path == "/api/open":
+                log("弹出文件对话框（父窗口=%r）" % _viewer_hwnd())
+                path = ask_file()
+                log("对话框返回：%r" % path)
+                if not path:
+                    return self._json({"cancel": True})
+                try:
+                    return self._json(_payload_for_path(Path(path)))
+                except Exception as e:
+                    log("打开失败：%r" % e)
+                    return self._json({"error": str(e)})
+            if u.path == "/api/upload":
+                q = urllib.parse.parse_qs(u.query)
+                name = (q.get("name") or ["board.pcb"])[0]
+                if len(body) > 64 * 1024 * 1024:
+                    return self._json({"error": L("文件太大（超过 64MB）",
+                                                  "File too large (over 64 MB)")})
+                try:
+                    return self._json(_payload_for_bytes(name, body))
+                except Exception as e:
+                    log("拖入文件解析失败：%r" % e)
+                    return self._json({"error": str(e)})
+            self._json({"error": "not found"}, 404)
+
+    return H
+
+
+def run_home():
+    """双击启动：海报 → 首页 → 自己点"打开文件"。"""
+    token = secrets.token_hex(16)
+    _home_html[0] = build_home_html(token)
+    try:
+        srv = _HomeServer(("127.0.0.1", 0), _make_handler(token, _home_html[0]))
+    except OSError as e:
+        # 端口被安全软件挡住之类：退回老做法，宁可弹个框也不能打不开
+        log("本机服务起不来：%r —— 回退到直接弹文件对话框" % e)
+        f = ask_file()
+        return handle(f) if f else True
+
+    port = srv.server_address[1]
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    url = "http://127.0.0.1:%d/?t=%s" % (port, token)
+    log("首页地址：%s" % url)
+
+    proc = open_viewer(url)
+    if proc is None:
+        srv.shutdown()
+        return False
+
+    # 窗口关掉就退出，别在后台留进程。
+    # 浏览器进程还在 → 盯进程；边已经被别的窗口占用（进程立刻返回 0）→ 盯页面心跳。
+    start = time.time()
+    while True:
+        time.sleep(1.0)
+        if _last_ping[0]:
+            if time.time() - _last_ping[0] > 120:
+                log("页面已关闭（心跳静默），退出")
+                break
+        elif proc.poll() is not None and time.time() - start > 8:
+            log("浏览器已退出，退出")
+            break
+        elif time.time() - start > 300:
+            # 5 分钟一次心跳都没收到，说明页面根本没连上（浏览器复用了别的实例、
+            # 或者开着的是个错误页）。这种情况下别再后台挂着，直接退。
+            log("页面从未连上（无心跳），退出")
+            break
+        elif time.time() - start > 6 * 3600:
+            log("已运行 6 小时，退出")
+            break
+    try:
+        srv.shutdown()
+    except Exception:
+        pass
+    return True
+
+
 # ---------------------------------------------------------------- 主流程
 def handle(path):
     p = Path(path)
@@ -523,8 +844,8 @@ def handle(path):
     log("handle %s (%d 字节)" % (p, p.stat().st_size))
 
     if ext == ".pcb":
-        html = build_view_html([(p.name, p.read_bytes())])
-        return open_viewer(html)
+        html = build_view_html([(p.name, p.read_bytes())], p.name)
+        return open_viewer(html) is not None
 
     if ext == ".ddb":
         boards = extract_pcbs(p)
@@ -534,8 +855,8 @@ def handle(path):
                      "(It may only hold schematics or component libraries.)"))
             return False
         log("抽出 %d 块板：%r" % (len(boards), [b["label"] for b in boards]))
-        html = build_view_html([(b["label"], b["bytes"]) for b in boards])
-        return open_viewer(html)
+        html = build_view_html([(b["label"], b["bytes"]) for b in boards], p.name)
+        return open_viewer(html) is not None
 
     msgbox(L("只认 .ddb 和 .pcb 两种文件。\n你选的是：",
              "Only .ddb and .pcb files are supported.\nYou picked: ") + p.name)
@@ -550,11 +871,8 @@ def main():
          sys.version.split()[0], 64 if sys.maxsize > 2**32 else 32, _ZH))
 
     if not targets:
-        f = ask_file()
-        if not f:
-            log("用户取消了文件选择")
-            return 0
-        targets = [f]
+        # 双击启动：进首页（海报 → 欢迎页 → 自己点"打开文件"），不再直接弹框
+        return 0 if run_home() else 1
 
     ok = False
     for t in targets:
