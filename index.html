@@ -26,7 +26,7 @@
   #app.empty footer{opacity:.45}
   /* 没板时只剩「打开文件」，其余按钮点了也没反应，先收起来 */
   #app.empty #fit,#app.empty #invert,#app.empty #des,#app.empty #labels,
-  #app.empty #pour,#app.empty #probe,#app.empty #shot,#app.empty #lists,
+  #app.empty #pour,#app.empty #probe,#app.empty #meas,#app.empty #shot,#app.empty #lists,
   #app.empty .findwrap,#app.empty .hrow .sep{display:none}
   /* ===== 多文档页签（一个文件一格，可单独关闭） ===== */
   .tabs{display:none;align-items:flex-end;gap:3px;margin:8px -12px -7px;
@@ -59,9 +59,12 @@
   .mbtn:hover{background:var(--panel2);color:var(--fg)}
   .lang{display:flex;align-items:center;gap:5px;padding:4px 10px;font-size:12.5px}
   .lang .globe{font-size:14px;line-height:1}
-  /* 画布右侧的移动方向盘 */
-  .navpad{position:absolute;right:16px;bottom:52px;display:grid;
-    grid-template-columns:repeat(3,30px);grid-template-rows:repeat(3,30px);gap:3px;z-index:7}
+  /* 画布左下角的移动方向盘。
+     ⚠ 原来放在右下角，结果一开「清单」抽屉（右侧 282px）就把它整个盖住，
+       用户反映"上下左右按钮找不到了"。抽屉在右边，方向盘就搬到左边，
+       两个东西永远不抢位置。 */
+  .navpad{position:absolute;left:14px;bottom:46px;display:grid;
+    grid-template-columns:repeat(3,32px);grid-template-rows:repeat(3,32px);gap:4px;z-index:7}
   .navpad button{background:#1b2029e6;border:1px solid #333b4a;color:#b9c3d1;
     border-radius:6px;font-size:14px;line-height:1;cursor:pointer;padding:0;
     font-family:inherit;transition:.1s;backdrop-filter:blur(3px)}
@@ -212,8 +215,8 @@
     border-radius:4px;padding:1px 7px;font-size:12px}
   .chip.warn{background:#e2504f20;color:#f09a99;border-color:#e2504f55}
   .chip.blue{background:#4a8ee820;color:#9cc4f5;border-color:#4a8ee855}
-  /* 状态栏里的几个 chip 紧挨着会读成一串，留 5px 缝 */
-  #stNet{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap}
+  /* 状态栏里的几个 chip 紧挨着会读成一串，留 5px 缝（详情、量距同理） */
+  #stNet,#stDetail,#stMeas{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap}
   /* 在线版的隐私说明：这一条必须显眼，否则没人敢往网页里拖公司板子 */
   .privacy{margin-top:12px;padding:7px 14px;border-radius:999px;font-size:13px;
     color:#8fe0a8;background:#1f6b3a22;border:1px solid #2f8f5066}
@@ -287,6 +290,32 @@
   .mkpop input:focus{border-color:var(--accent)}
   .mkpop-b{display:flex;gap:6px;margin-top:7px}
   .mkpop-b .btn{flex:1;padding:5px 4px;font-size:12px}
+
+  /* ===== 板子信息（左侧栏，把文件里本来就有、以前没显示的数字都摆出来） ===== */
+  .binfo{padding:0 1px}
+  .binfo .r{display:flex;align-items:baseline;justify-content:space-between;gap:8px;
+    font-size:11.5px;color:var(--fg3);padding:2px 6px;border-radius:4px}
+  .binfo .r:hover{background:var(--panel2)}
+  .binfo .r b{color:var(--fg);font-weight:400;font-variant-numeric:tabular-nums;
+    text-align:right;white-space:nowrap}
+  /* ===== 量距：光标变成十字，像 Protel 那样量两点 ===== */
+  #stage.meas canvas{cursor:crosshair}
+  /* ===== 首页「最近打开」 ===== */
+  .hint .home .recent{margin:20px auto 0;width:100%;max-width:520px;display:none;
+    flex-direction:column;gap:2px;text-align:left;pointer-events:auto}
+  .hint .home .recent.on{display:flex}
+  .hint .home .recent .rt{font-size:10.5px;color:var(--fg3);letter-spacing:1.2px;
+    margin:0 0 3px 7px}
+  .hint .home .recent .ri{display:flex;align-items:baseline;gap:9px;padding:5px 9px;
+    border-radius:6px;cursor:pointer;font-size:12.5px;color:var(--fg2);
+    border:1px solid transparent}
+  .hint .home .recent .ri:hover{background:var(--panel2);border-color:var(--line);color:var(--fg)}
+  .hint .home .recent .ri b{color:var(--fg);font-weight:500;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap}
+  .hint .home .recent .ri .bd{color:var(--fg3);font-size:11px;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;flex:1}
+  .hint .home .recent .ri i{margin-left:auto;font-style:normal;color:var(--fg3);
+    font-size:11px;flex:none;font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
@@ -334,6 +363,7 @@
       <button class="btn on" id="pour" data-i18n="btnPour" data-i18n-title="btnPourTip">覆铜</button>
       <div class="sep"></div>
       <button class="btn" id="probe" data-i18n="btnProbe" data-i18n-title="btnProbeTip">通不通</button>
+      <button class="btn" id="meas" data-i18n="btnMeas" data-i18n-title="btnMeasTip">量距</button>
       <button class="btn" id="shot" data-i18n="btnShot" data-i18n-title="btnShotTip">存图</button>
       <button class="btn" id="lists" data-i18n="btnLists" data-i18n-title="btnListsTip">清单</button>
       <div class="spacer"></div>
@@ -359,6 +389,8 @@
     <div class="layer" id="optDim"><span class="nm" data-i18n="optDim">高亮时其余变暗</span></div>
     <div class="layer" id="optPen"><span class="nm" data-i18n="optPen">按真实线宽</span></div>
     <div class="layer" id="optVal"><span class="nm" data-i18n="optVal">显示型号 / 值</span></div>
+    <h3 data-i18n="asideBoard">板子</h3>
+    <div class="binfo" id="boardInfo"></div>
   </aside>
 
   <main id="stage">
@@ -404,6 +436,8 @@
     <span><span data-i18n="stLayer">层</span> <b id="stLayer">—</b></span>
     <span><span data-i18n="stWidth">线宽</span> <b id="stWidth">—</b></span>
     <span id="stNet"></span>
+    <span id="stDetail"></span>
+    <span id="stMeas"></span>
     <div class="spacer" style="flex:1"></div>
     <span id="stStats">—</span>
     <span><span data-i18n="stZoom">缩放</span> <b id="stZoom">—</b></span>
@@ -456,6 +490,24 @@ zh:{
   asideLayers:"图层", asideView:"视图",
   optDim:"高亮时其余变暗", optPen:"按真实线宽", optVal:"显示型号 / 值",
   stCoord:"坐标", stLayer:"层", stWidth:"线宽", stZoom:"缩放",
+  asideBoard:"板子",
+  biSize:"外形", biArea:"面积", biCu:"铜层", biComp:"元件",
+  biPad:"焊盘", biVia:"过孔", biNet:"网络", biMinW:"最细线", biMinH:"最小孔",
+  biPitch:"板厚", biNone:"—",
+  btnMeas:"量距", btnMeasTip:"快捷键 D：点第一个点，再点第二个点，量出两点距离（同时给 mil 和 mm）",
+  measPick:"量距：点第一个点（Esc 退出）",
+  measPick2:"量距：再点第二个点",
+  measAgain:"量距：已量出，再点一下重新量",
+  measLabel:(mm,mil)=>" "+mm+" mm / "+mil+" mil ",
+  measXY:(dx,dy)=>"Δ "+dx+" × "+dy+" mm",
+  stMeas:"量距",
+  detailComp:(w,h,n)=>"外形 "+w+"×"+h+" mm · "+n+" 脚",
+  detailNet:(mm,p,v)=>"布线 "+mm+" mm · 焊盘 "+p+" · 过孔 "+v,
+  detailPin:(x,y)=>"脚位 "+x+", "+y+" mil",
+  recentTitle:"最近打开",
+  recentGone:"文件不在原处了",
+  recentTip:"点一下直接打开，不用再找文件",
+  tabOfBoard:"板",
   ttl:"PCB 看板 CopperLens — 只读查线",
   author:"© 永远的兰兰",
   navCenter:"回到板子中心", navUp:"上移", navDown:"下移",
@@ -556,8 +608,9 @@ zh:{
         只读，不会修改你的任何文件　·　不联网
       </div>
       <div class="feats">
-        <span>查线路</span><span>两点通不通</span><span>找位号 / 型号</span><span>顶底铜一键切</span>
+        <span>查线路</span><span>两点通不通</span><span>量两点距离</span><span>找位号 / 型号</span><span>顶底铜一键切</span>
       </div>
+      <div class="recent" id="recentBox"></div>
     </div>`,
   reading:"读取中…",
   hintHtml:`<div class="drop">
@@ -655,13 +708,27 @@ zh:{
     <h3>看图</h3>
     <ul>
       <li>滚轮缩放，<b>以鼠标指着的位置为中心</b>；按住左键拖拽平移。</li>
-      <li>右下角有方向按钮 <b>▲▼◀▶</b>，中间 <b>◎</b> 回到板子中心；键盘方向键也能平移。</li>
+      <li><b>拖到画布边缘，画面自己往那个方向走</b>（像 Protel 一样）——
+          大板从左挪到右不用一直来回拖，越靠边走得越快，松手就停。</li>
+      <li>左下角有方向按钮 <b>▲▼◀▶</b>，中间 <b>◎</b> 回到板子中心；键盘方向键也能平移。</li>
+      <li>放大以后，<b>左上角会出现整板缩略图</b>，黄框就是当前看的位置，点一下直接跳过去。</li>
       <li><kbd>F</kbd> 适合窗口；<kbd>H</kbd> 一键隐藏所有大面积铺铜（看细走线时最好用）。</li>
       <li>左侧点层名 = 开关该层；双击层名 = 只看这一层。</li>
       <li>图层上方的四个快捷键：<b>全选 / 全不选 / 顶底铜 / 反选</b>。
           「顶底铜」把铜层收成顶层+底层，丝印和过孔留着——维修最常用的组合；
           「全不选」之后可以一层层点开叠加。</li>
     </ul>
+
+    <h3>量两点距离</h3>
+    <p>顶栏 <code>量距</code>（快捷键 <kbd>D</kbd>）：点第一个点、再点第二个点，
+       画面上的黄虚线就是这段距离，同时给<b>毫米和 mil</b>，状态栏还写着 ΔX × ΔY。
+       落点附近有焊盘/过孔时会自动吸到圆心（不然永远对不准）；
+       <kbd>Esc</kbd> 退出，再点一下重新量。</p>
+
+    <h3>板子本身有多大、多厚</h3>
+    <p>左侧栏最下面「板子」一块：外形尺寸（mm）、面积、铜层数、元件数、焊盘/过孔/网络数、
+       最细的线宽、最小的孔径。点中一颗元件时，状态栏还会写出它的<b>外形尺寸和脚数</b>；
+       点中一条网络时写出<b>这条线的布线总长</b>、焊盘数和过孔数。</p>
 
     <h3>存图</h3>
     <p>顶栏 <code>存图</code> 把当前画面存成 PNG（含位号、型号、高亮），
@@ -675,7 +742,7 @@ zh:{
     </ul>
 
     <h3>快捷键</h3>
-    <p><kbd>F</kbd> 适合窗口　<kbd>H</kbd> 覆铜开/关　<kbd>K</kbd> 通不通　
+    <p><kbd>F</kbd> 适合窗口　<kbd>H</kbd> 覆铜开/关　<kbd>K</kbd> 通不通　<kbd>D</kbd> 量距　
        <kbd>Ctrl</kbd>+<kbd>F</kbd> 找元件/网络　<kbd>Esc</kbd> 取消高亮　
        <kbd>方向键</kbd> 平移　<kbd>+</kbd> <kbd>-</kbd> 缩放</p>`,
   discHtml:`
@@ -720,12 +787,17 @@ zh:{
       <li><b>两点通不通</b>：点两个位置，直接判定电气上通不通（没网表的老板子也行）</li>
       <li><b>找元件 / 找网络</b>：输 U100、型号或网络名，跳过去并点亮</li>
       <li>图层一键全选 / 全不选 / 只看顶底铜；当前画面一键存 PNG</li>
-      <li><b>同时打开多个文件</b>：一个文件一个页签，可以来回切、各自关掉</li>
+      <li><b>同时打开多个文件</b>：一个文件一个页签，可以来回切、各自关掉；
+          同一个设计库（.ddb）里的不同板也能各占一个页签，并排对照</li>
       <li><b>清单</b>：全部位号、全部网络列成表，点一下跳过去点亮；当前网络的脚位可复制、可导出 CSV</li>
+      <li><b>量距</b>：点两个点，直接给出毫米和 mil（靠到焊盘会自动吸圆心）</li>
       <li><b>板上标记</b>：右键写一句"这里烧过"，按板子存档</li>
+      <li><b>板子信息</b>：外形尺寸、面积、铜层数、元件/焊盘/过孔/网络数、最细线宽、最小孔径</li>
+      <li><b>缩略导航图</b>：左上角一张整板小图，黄框标出当前看的位置，点一下跳过去</li>
+      <li><b>最近打开</b>：首页列出上次开过的文件，点一下直接再打开</li>
     </ul>
     <h3>版本</h3>
-    <p>v1.12　·　支持 x86 与 64 位系统　·　单文件便携版</p>
+    <p>v1.13　·　支持 x86 与 64 位系统　·　单文件便携版</p>
     <div class="sig">© 永远的兰兰　·　Lanlan Eternal</div>`
 },
 en:{
@@ -743,6 +815,24 @@ en:{
   asideLayers:"Layers", asideView:"View",
   optDim:"Dim others on highlight", optPen:"True line width", optVal:"Show value",
   stCoord:"X,Y", stLayer:"Layer", stWidth:"Width", stZoom:"Zoom",
+  asideBoard:"Board",
+  biSize:"Size", biArea:"Area", biCu:"Copper", biComp:"Parts",
+  biPad:"Pads", biVia:"Vias", biNet:"Nets", biMinW:"Min trace", biMinH:"Min hole",
+  biPitch:"Thickness", biNone:"—",
+  btnMeas:"Measure", btnMeasTip:"Shortcut D — click two points to measure (mil and mm)",
+  measPick:"Measure: click the first point (Esc to exit)",
+  measPick2:"Measure: click the second point",
+  measAgain:"Measure: done — click again to start over",
+  measLabel:(mm,mil)=>" "+mm+" mm / "+mil+" mil ",
+  measXY:(dx,dy)=>"Δ "+dx+" × "+dy+" mm",
+  stMeas:"Measure",
+  detailComp:(w,h,n)=>"Body "+w+"×"+h+" mm · "+n+" pins",
+  detailNet:(mm,p,v)=>"Route "+mm+" mm · pads "+p+" · vias "+v,
+  detailPin:(x,y)=>"Pin at "+x+", "+y+" mil",
+  recentTitle:"Recent",
+  recentGone:"File no longer there",
+  recentTip:"Click to open it again",
+  tabOfBoard:"board",
   ttl:"CopperLens — read-only PCB viewer",
   author:"© Lanlan Eternal",
   navCenter:"Back to board centre", navUp:"Pan up", navDown:"Pan down",
@@ -844,8 +934,9 @@ en:{
         Read-only, never modifies your files · no network access
       </div>
       <div class="feats">
-        <span>Trace a net</span><span>Continuity</span><span>Find part</span><span>Top+Bot</span>
+        <span>Trace a net</span><span>Continuity</span><span>Measure</span><span>Find part</span><span>Top+Bot</span>
       </div>
+      <div class="recent" id="recentBox"></div>
     </div>`,
   reading:"Reading…",
   hintHtml:`<div class="drop">
@@ -949,8 +1040,12 @@ en:{
     <h3>Navigation</h3>
     <ul>
       <li>Scroll wheel zooms <b>anchored at the cursor</b>; drag with the left button to pan.</li>
-      <li>Arrow buttons <b>▲▼◀▶</b> at the lower right pan the view; <b>◎</b> returns to the
+      <li><b>Drag to the edge of the canvas and the view keeps moving that way</b>
+          (Protel-style) — the closer to the edge, the faster; release to stop.</li>
+      <li>Arrow buttons <b>▲▼◀▶</b> at the lower left pan the view; <b>◎</b> returns to the
           board centre. Keyboard arrow keys work too.</li>
+      <li>Once zoomed in, a <b>whole-board minimap</b> appears top-left; the yellow box is
+          where you are — click it to jump there.</li>
       <li><kbd>F</kbd> fit to window; <kbd>H</kbd> hides every copper pour — the fastest way
           to see fine traces.</li>
       <li>Click a layer name to toggle it; double-click to show only that layer.</li>
@@ -958,6 +1053,17 @@ en:{
           Top+Bot keeps top and bottom copper while silkscreen and vias stay visible —
           the combination repair work needs most.</li>
     </ul>
+
+    <h3>Measure</h3>
+    <p><code>Measure</code> (shortcut <kbd>D</kbd>): click two points — the dashed yellow line
+       is the distance, given in <b>mm and mil</b> at the same time, with ΔX × ΔY in the status
+       bar. Landing near a pad or via snaps to its centre. <kbd>Esc</kbd> exits.</p>
+
+    <h3>Board facts</h3>
+    <p>The <b>Board</b> block at the bottom of the left panel: outline size in mm, area, copper
+       layers, parts, pads, vias, nets, thinnest trace and smallest hole — all read from the
+       file. Selecting a part also shows its <b>body size and pin count</b>; selecting a net
+       shows its <b>total routed length</b>, pad and via counts.</p>
 
     <h3>Save PNG</h3>
     <p><code>Save PNG</code> writes the current view (refdes, values, highlight included) as a PNG
@@ -972,7 +1078,7 @@ en:{
     </ul>
 
     <h3>Shortcuts</h3>
-    <p><kbd>F</kbd> fit　<kbd>H</kbd> copper on/off　<kbd>K</kbd> continuity　
+    <p><kbd>F</kbd> fit　<kbd>H</kbd> copper on/off　<kbd>K</kbd> continuity　<kbd>D</kbd> measure　
        <kbd>Ctrl</kbd>+<kbd>F</kbd> find　<kbd>Esc</kbd> clear highlight　
        <kbd>Arrows</kbd> pan　<kbd>+</kbd> <kbd>-</kbd> zoom</p>`,
   discHtml:`
@@ -1024,12 +1130,17 @@ en:{
           (works on old boards with no netlist)</li>
       <li><b>Find</b> by refdes, value or net name — jumps there and lights it up</li>
       <li>One-click layer All / None / Top+Bot; save the current view as PNG</li>
-      <li><b>Several files open at once</b>: one tab per file, switch or close them independently</li>
+      <li><b>Several files open at once</b>: one tab per file, switch or close them independently;
+          different boards inside one .ddb get their own tabs too</li>
       <li><b>Lists</b>: every designator and net in a clickable table; copy or export the pin list of the current net</li>
+      <li><b>Measure</b>: click two points for mm and mil (snaps to pad centres)</li>
       <li><b>Board marks</b>: right-click and type "burnt here" — stored per board</li>
+      <li><b>Board info</b>: outline size, area, copper layers, part/pad/via/net counts, thinnest trace, smallest hole</li>
+      <li><b>Minimap</b>: whole-board thumbnail top-left with a yellow viewport box — click to jump</li>
+      <li><b>Recent files</b>: the home page lists what you opened last; one click reopens it</li>
     </ul>
     <h3>Version</h3>
-    <p>v1.12　·　supports x86 and 64-bit Windows　·　portable single file</p>
+    <p>v1.13　·　supports x86 and 64-bit Windows　·　portable single file</p>
     <div class="sig">© Lanlan Eternal　·　永远的兰兰</div>`
 }
 };
@@ -1074,6 +1185,8 @@ function applyLang(){
   if(B){ refreshFileLine(); buildLayers(); }
   if(DRW) renderDrawer();
   if(DOCS.length) renderTabs();      /* 页签上的"×"提示与板数也跟着语言走 */
+  renderBoardInfo();                 /* 左侧"板子"那一块的标签是中文/英文 */
+  renderRecent();                    /* 首页"最近打开"（桌面版才有） */
 }
 /* 顶栏那行"文件名 · N 个对象" + 状态栏统计。单独抽出来，切语言时要跟着变。 */
 let lastName = "", lastMs = 0;
@@ -1085,6 +1198,11 @@ let MARKLIST = [];
 /* 抽屉当前是哪一页（""＝收起来）。和 MARKLIST 一样必须早早声明：
    applyLang() 在初始化时就会读它，那时脚本尾部的 let 还在 TDZ 里。 */
 let DRW = "";
+/* 最近打开（桌面版 exe 侧记的账，首页列出来）。同样要在 applyLang() 之前声明，
+   否则首屏里那次 renderRecent() 会踩到 TDZ。 */
+let RECENT = null;
+/* 左上角缩略导航图的数据（离屏 canvas）。同样要早声明：页签快照里会带它。 */
+let MINI = null;
 function refreshFileLine(){
   if(!B) return;
   const n=B.tracks.length+B.pads.length+B.vias.length+B.fills.length;
@@ -1095,6 +1213,53 @@ function refreshFileLine(){
     f:B.fills.length, po:B.polys.length, n:B.nets.length,
     d:B.desCount||0, val:B.valCount||0, ms:lastMs
   });
+}
+
+/* ============ 左侧栏「板子」：把文件里本来就有、以前没显示的数字摆出来 ============
+   维修接活要报价、要判断这块板值不值得修，"多大、几层、多少料、最细的线多宽、
+   最小的孔多大"这些一眼就该看到，而它们全都已经解析在 B 里，只是从来没显示过。 */
+function boardBox(){
+  if(!B) return null;
+  /* 板框层（KeepOut 56）才是"板子本身多大"；有些文件没有板框，就退回全部图元的外框 */
+  const ko=B.bucket && B.bucket.get(56);
+  if(ko && ko.length){
+    let x1=Infinity,y1=Infinity,x2=-Infinity,y2=-Infinity;
+    for(const it of ko){
+      const o=it.o;
+      if(!o || !o.segs) continue;
+      for(const s of o.segs){
+        x1=Math.min(x1,s[0],s[2]); x2=Math.max(x2,s[0],s[2]);
+        y1=Math.min(y1,s[1],s[3]); y2=Math.max(y2,s[1],s[3]);
+      }
+    }
+    if(isFinite(x1) && x2>x1 && y2>y1) return {x1:x1,y1:y1,x2:x2,y2:y2};
+  }
+  return B.bounds;
+}
+
+function renderBoardInfo(){
+  const box=document.getElementById("boardInfo");
+  if(!box) return;
+  const R=(k,v)=>'<div class="r"><span>'+esc(T(k))+'</span><b>'+esc(v)+'</b></div>';
+  if(!B){ box.innerHTML=R("biSize",T("biNone")); return; }
+  const bb=boardBox();
+  const w=bb?Math.max(0,bb.x2-bb.x1):0, h=bb?Math.max(0,bb.y2-bb.y1):0;
+  const mm=v=>(v*0.0254).toFixed(1);
+  let minW=Infinity, minH=Infinity;
+  for(const t of B.tracks){ const w2=t.w||0; if(w2>0 && w2<minW) minW=w2; }
+  for(const p of B.pads){ if(p.hole>0 && p.hole<minH) minH=p.hole; }
+  for(const v of B.vias){ if(v.hole>0 && v.hole<minH) minH=v.hole; }
+  const area=(w*0.0254)*(h*0.0254)/100;         /* mm² → cm² */
+  box.innerHTML=
+      R("biSize", mm(w)+" × "+mm(h)+" mm")
+    + R("biArea", area.toFixed(1)+" cm²")
+    + R("biCu", (B.copper.length||0)+"")
+    + R("biComp", (B.compInfo?B.compInfo.size:0)+"")
+    + R("biPad", B.pads.length+"")
+    + R("biVia", B.vias.length+"")
+    + R("biNet", (B.byNet?B.byNet.size:B.nets.length)+"")
+    + R("biMinW", isFinite(minW)?minW.toFixed(1)+" mil / "+mm(minW)+" mm":T("biNone"))
+    + R("biMinH", isFinite(minH)?minH.toFixed(0)+" mil / "+mm(minH)+" mm":T("biNone"));
 }
 
 /* ============================================================
@@ -2125,6 +2290,99 @@ function draw(){
   drawLabels(order);
   drawScale(r);
   drawMarks();          /* 自己打的标记画在最上层，别被覆铜盖住 */
+  drawMeasure();        /* 量距的线和读数压在标记之上 */
+  drawMini(r);          /* 缩略导航图：放大了以后靠它知道自己在板子哪儿 */
+}
+
+/* ============================ 缩略导航图（minimap） ============================
+   "从清单点一颗料，画面怼上去以后，我在板子的哪个角落？"
+   左上角常驻一张整板缩略图 + 一个黄框标出当前视野，点一下直接跳过去。
+   倍率小到能看全整板时自动收起 —— 那时候它没用，白占地方。
+   缩略图是一次性离屏画好的（只画走线和焊盘，跳过几千条覆铜填充线），
+   之后每帧只是 drawImage，不拖慢主画布。 */
+const MINI_W=176, MINI_H=132;
+function buildMini(){
+  MINI=null;
+  if(!B) return;
+  const bb=boardBox()||B.bounds;
+  if(!bb) return;
+  const bw=Math.max(1,bb.x2-bb.x1), bh=Math.max(1,bb.y2-bb.y1);
+  const sc=Math.min(MINI_W/bw, MINI_H/bh);
+  const w=Math.max(30,Math.round(bw*sc)), h=Math.max(24,Math.round(bh*sc));
+  try{
+    const c=document.createElement("canvas");
+    c.width=w*2; c.height=h*2;             /* 2 倍像素，缩下来不糊 */
+    const g=c.getContext("2d");
+    g.scale(2,2);
+    g.fillStyle=invert?"#f4f2ec":"#0b0d10"; g.fillRect(0,0,w,h);
+    const X=x=>(x-bb.x1)*sc, Y=y=>h-(y-bb.y1)*sc;
+    /* 先铺一层覆铜面的暗色：老板的顶层几乎全被铺铜盖住，
+       只画走线的话缩略图会是一片黑，看不出板形和铜的分布 */
+    g.fillStyle=invert?"#ddd8ca":"#1a2331";
+    for(const p of B.polys){
+      if(!p.pts || p.pts.length<3) continue;
+      g.beginPath();
+      g.moveTo(X(p.pts[0][0]),Y(p.pts[0][1]));
+      for(let i=1;i<p.pts.length;i++) g.lineTo(X(p.pts[i][0]),Y(p.pts[i][1]));
+      g.closePath(); g.fill();
+    }
+    g.strokeStyle=invert?"#7b8492":"#4b5a72"; g.lineWidth=0.55;
+    for(const t of B.tracks){
+      if(t.poly!==undefined && t.poly>=0) continue;   /* 覆铜填充线，画了就是一坨 */
+      g.beginPath(); g.moveTo(X(t.x1),Y(t.y1)); g.lineTo(X(t.x2),Y(t.y2)); g.stroke();
+    }
+    g.fillStyle=invert?"#5c6675":"#9fb4d0";
+    for(const p of B.pads){
+      g.beginPath(); g.arc(X(p.x),Y(p.y),Math.max(0.5,((p.xs||20)/2)*sc),0,Math.PI*2); g.fill();
+    }
+    MINI={c:c, w:w, h:h, bb:bb, sc:sc};
+  }catch(e){ MINI=null; }
+}
+function miniRect(){
+  if(!MINI || !B) return null;
+  const r=stage.getBoundingClientRect();
+  const bb=MINI.bb;
+  const bw=Math.max(1,bb.x2-bb.x1), bh=Math.max(1,bb.y2-bb.y1);
+  const fullS=Math.min(r.width/(bw*1.35), r.height/(bh*1.35));
+  if(view.s < fullS*1.5) return null;      /* 整板都看得见，不显示 */
+  return {x:14, y:14, w:MINI.w, h:MINI.h};
+}
+function drawMini(r){
+  const rc=miniRect();
+  if(!rc) return;
+  const bb=MINI.bb;
+  const bw=Math.max(1,bb.x2-bb.x1);
+  ctx.save();
+  ctx.globalAlpha=0.93;
+  ctx.fillStyle=invert?"#ffffffee":"#12161bf2";
+  ctx.fillRect(rc.x-4, rc.y-4, rc.w+8, rc.h+8);
+  ctx.globalAlpha=1;
+  ctx.strokeStyle=invert?"#b9bec7":"#2b3140"; ctx.lineWidth=1;
+  ctx.strokeRect(rc.x-3.5, rc.y-3.5, rc.w+7, rc.h+7);
+  ctx.drawImage(MINI.c, rc.x, rc.y, rc.w, rc.h);
+  /* 当前视野在缩略图上的位置（世界坐标 → 缩略图坐标） */
+  const wx1=(0-view.ox)/view.s, wx2=(r.width-view.ox)/view.s;
+  const wy1=-(r.height-view.oy)/view.s, wy2=-(0-view.oy)/view.s;
+  const k=MINI.sc;
+  const vx=rc.x+(Math.min(wx1,wx2)-bb.x1)*k;
+  const vy=rc.y+(bb.y2-Math.max(wy1,wy2))*k;
+  const vw=Math.abs(wx2-wx1)*k, vh=Math.abs(wy2-wy1)*k;
+  ctx.beginPath();
+  ctx.rect(rc.x, rc.y, rc.w, rc.h);
+  ctx.clip();
+  ctx.strokeStyle="#f0b429"; ctx.lineWidth=1.4;
+  ctx.strokeRect(vx, vy, Math.max(5,vw), Math.max(5,vh));
+  ctx.restore();
+}
+/* 点缩略图 = 跳过去。返回 true 表示这次点击已经被缩略图吃掉了 */
+function miniJump(sx,sy){
+  const rc=miniRect();
+  if(!rc || !MINI) return false;
+  if(sx<rc.x || sy<rc.y || sx>rc.x+rc.w || sy>rc.y+rc.h) return false;
+  const bb=MINI.bb;
+  centerOn(bb.x1+(sx-rc.x)/MINI.sc, bb.y2-(sy-rc.y)/MINI.sc);
+  draw();
+  return true;
 }
 
 function drawTexts(order){
@@ -2744,6 +3002,8 @@ function updateStatus(h){
   }
   if(DRW==="pins") renderDrawer();     /* 点了新东西，脚位页跟着刷新 */
   const sn=document.getElementById("stNet");
+  const det=document.getElementById("stDetail");
+  if(det) det.innerHTML="";
   if(!h){ sn.innerHTML=""; document.getElementById("stLayer").textContent="—";
     document.getElementById("stWidth").textContent="—"; return; }
   const o=h.o;
@@ -2786,6 +3046,52 @@ function updateStatus(h){
     + feet
     + padName
     + (tag? '<span class="chip">'+tag+tail+'</span>' : '');
+
+  /* ---- 底部"详情"：把文件里本来就有、以前没显示过的数字摆出来 ----
+     点元件 → 外形尺寸（mm）+ 脚数；点网络 → 布线总长 + 焊盘数 + 过孔数。
+     维修报价、判断"这条线怎么绕的"都用得上，而这些数据本来就躺在文件里。 */
+  if(!det) return;
+  let dh="";
+  if(pickMode==="comp"){
+    const id=(o && o.comp!==undefined) ? o.comp : null;
+    const ci=(id!==null && B.compInfo) ? B.compInfo.get(id) : null;
+    if(ci){
+      const bb=compBox(ci);
+      if(bb){
+        const wmm=((bb.x2-bb.x1)*0.0254).toFixed(1);
+        const hmm=((bb.y2-bb.y1)*0.0254).toFixed(1);
+        dh='<span class="chip blue">'+esc(T("detailComp", wmm, hmm, LIT?LIT.size:0))+'</span>';
+      }
+    }
+  }else if(LIT && LIT.size){
+    let len=0, nv=0, np=0;
+    for(const q of LIT){
+      if(q.kind==="track" && q.x1!==undefined) len+=Math.hypot(q.x2-q.x1, q.y2-q.y1);
+      else if(q.kind==="via") nv++;
+      else if(q.kind==="pad") np++;
+    }
+    if(len>0) dh='<span class="chip">'+esc(T("detailNet",
+      (len*0.0254).toFixed(1), np, nv))+'</span>';
+  }
+  det.innerHTML=dh;
+}
+
+/* 一颗元件的外形框：老设计里 bb 常是空的，退到它所有焊盘的包围盒 */
+function compBox(ci){
+  if(!ci) return null;
+  let bb=ci.bb;
+  if(!bb || !(bb.x2>bb.x1) || !(bb.y2>bb.y1)){
+    let x1=Infinity,y1=Infinity,x2=-Infinity,y2=-Infinity;
+    if(B && B.pads){
+      for(const p of B.pads){
+        if(p.comp!==ci.id) continue;
+        x1=Math.min(x1,p.x-p.xs/2); x2=Math.max(x2,p.x+p.xs/2);
+        y1=Math.min(y1,p.y-p.ys/2); y2=Math.max(y2,p.y+p.ys/2);
+      }
+    }
+    bb=isFinite(x1)?{x1:x1,y1:y1,x2:x2,y2:y2}:null;
+  }
+  return bb;
 }
 
 /* 缩放：以鼠标所在点为中心（专业绘图软件都是这个手感，鼠标指着的地方不动）。
@@ -2809,9 +3115,12 @@ stage.addEventListener("wheel",e=>{
 
 cv.addEventListener("mousedown",e=>{
   if(e.button!==0) return;
+  const r0=cv.getBoundingClientRect();
+  if(miniJump(e.clientX-r0.left, e.clientY-r0.top)) return;   /* 点缩略图＝跳过去 */
   mouseDown=true; moving=false;
   downX=e.clientX; downY=e.clientY;
   lastX=e.clientX; lastY=e.clientY;
+  edgeSince=Date.now();       /* 边缘自动平移的起手时间（有 180ms 缓冲，防误触） */
 });
 window.addEventListener("mousemove",e=>{
   const r=cv.getBoundingClientRect();
@@ -2822,7 +3131,12 @@ window.addEventListener("mousemove",e=>{
     document.getElementById("stCoord").textContent=
       wx.toFixed(0)+", "+wy.toFixed(0)+"  ·  "
       +(wx*0.0254).toFixed(1)+", "+(wy*0.0254).toFixed(1);
-    if(!mouseDown) hoverTip(wx,wy,e.clientX-r.left,e.clientY-r.top);
+    /* 量距时第二点跟着鼠标走；同时不弹脚位气泡，免得挡住读数 */
+    if(measOn){
+      measMove(e.clientX-r.left, e.clientY-r.top);
+    }else if(!mouseDown){
+      hoverTip(wx,wy,e.clientX-r.left,e.clientY-r.top);
+    }
   }
   if(!mouseDown) return;
   const dx=e.clientX-lastX, dy=e.clientY-lastY;
@@ -2832,17 +3146,22 @@ window.addEventListener("mousemove",e=>{
     lastX=e.clientX; lastY=e.clientY;
     draw();
   }
+  /* 按住鼠标时，指针靠近边缘就让画面自己滚（Protel 的手感） */
+  edgePanFrom(e.clientX, e.clientY);
 });
 window.addEventListener("mouseup",e=>{
   if(!mouseDown) return;
   mouseDown=false;
+  stopEdgePan();
   if(!moving && B){
     const r=cv.getBoundingClientRect();
     const sx=e.clientX-r.left, sy=e.clientY-r.top;
-    if(probeOn) probeClick(sx,sy); else pickAt(sx,sy);
+    if(measOn) measClick(sx,sy);
+    else if(probeOn) probeClick(sx,sy); else pickAt(sx,sy);
   }
   moving=false;
 });
+cv.addEventListener("mouseleave", stopEdgePan);
 cv.addEventListener("dblclick",()=>{ hi=null; LIT=null; updateStatus(null); draw(); });
 
 /* 平移：按屏幕像素走，一次 90px（按住 Shift 走 320px，快速跨板）。
@@ -2851,6 +3170,49 @@ cv.addEventListener("dblclick",()=>{ hi=null; LIT=null; updateStatus(null); draw
 function panBy(dx,dy){
   if(!B) return;
   view.ox+=dx; view.oy+=dy; draw();
+}
+
+/* ---------- 边缘自动平移：像 Protel 那样"拖到画布边上，画面自己走" ----------
+   看一块 300mm 的板，最常见的动作是从左挪到右一次看一截。只靠方向键太慢，
+   而拖着拖着鼠标就顶到窗口边、再也拖不动了。所以：按住左键时指针靠近画布
+   边缘就开始持续平移，越靠边越快（0→22px/帧），一松手立刻停。
+   ⚠ 加 180ms 的起手延迟：点边框附近的元件时手会抖一两个像素，
+     不延迟的话"点一下"会变成"板子跑掉"。 */
+let edgeTimer=0, edgeVX=0, edgeVY=0, edgeSince=0;
+const EDGE_PX=58, EDGE_MAX=22;
+
+function edgePanFrom(cx,cy){
+  const r=cv.getBoundingClientRect();
+  const x=cx-r.left, y=cy-r.top;
+  let vx=0, vy=0;
+  if(Date.now()-edgeSince>180){
+    const ramp=v=>Math.max(0,Math.min(1,v));
+    if(x<EDGE_PX)                vx= EDGE_MAX*ramp((EDGE_PX-x)/EDGE_PX);
+    else if(x>r.width-EDGE_PX)   vx=-EDGE_MAX*ramp((x-(r.width-EDGE_PX))/EDGE_PX);
+    if(y<EDGE_PX)                vy= EDGE_MAX*ramp((EDGE_PX-y)/EDGE_PX);
+    else if(y>r.height-EDGE_PX)  vy=-EDGE_MAX*ramp((y-(r.height-EDGE_PX))/EDGE_PX);
+  }
+  edgeVX=vx; edgeVY=vy;
+  if(vx||vy) edgeKick(); else stopEdgePan();
+}
+/* 用 setTimeout 自循环而不是 requestAnimationFrame：窗口被别的窗口挡住、或者
+   页面在后台时，rAF 会被浏览器挂起，指针贴在边上画面却一动不动（这个坑实测踩到过）。
+   setTimeout 在可见窗口里同样是每帧一次，而且不会在一次重绘没完时堆出第二个循环。 */
+function edgeKick(){
+  if(edgeTimer) return;
+  edgeTimer=setTimeout(edgeStep, 16);
+}
+function edgeStep(){
+  edgeTimer=0;
+  if(!edgeVX && !edgeVY) return;
+  view.ox+=edgeVX; view.oy+=edgeVY;
+  moving=true;        /* 画面已经动了，松手时别再当成"点了一下"去选中元件 */
+  draw();
+  edgeTimer=setTimeout(edgeStep, 16);
+}
+function stopEdgePan(){
+  if(edgeTimer){ clearTimeout(edgeTimer); edgeTimer=0; }
+  edgeVX=edgeVY=0;
 }
 function panStep(e){
   const s=(e && e.shiftKey) ? 320 : 90;
@@ -2862,8 +3224,7 @@ function centerView(){
      于是"回到中心"永远退化成"适合窗口"。 */
   const bb=B.bounds || B.bb;
   if(!bb){ fit(); return; }
-  view.ox=cv.clientWidth/2-(bb.x1+bb.x2)/2*view.s;
-  view.oy=cv.clientHeight/2+(bb.y1+bb.y2)/2*view.s;
+  centerOn((bb.x1+bb.x2)/2,(bb.y1+bb.y2)/2);
   draw();
 }
 const navpad=document.getElementById("navpad");
@@ -2950,7 +3311,9 @@ window.addEventListener("keydown",e=>{
   if(k==="f"||k==="F"){ fit(); return; }
   if(k==="h"||k==="H"){ togglePour(); return; }
   if(k==="k"||k==="K"){ toggleProbe(); return; }
+  if(k==="d"||k==="D"){ toggleMeas(); return; }
   if(k==="Escape"){
+    if(measOn){ exitMeas(); return; }
     if(probeOn){ exitProbe(); return; }
     hi=null; LIT=null; pickMode=""; curHit=null; updateStatus(null); draw(); return;
   }
@@ -3102,15 +3465,34 @@ function bboxOfSet(set){
   return isFinite(x1)?{x1:x1,y1:y1,x2:x2,y2:y2}:null;
 }
 
-/* 把视野对准一个矩形（找元件、找网络时用） */
-function focusBox(bx){
+/* 把视野对准一个矩形（找元件、找网络、点清单时用）。
+   ⚠ 老版本是"让这个矩形正好铺满窗口"（留边只有 110px）：从清单点一颗 0402，
+     画面直接怼到只剩那只元件，得先用滚轮缩小才认得出它在板子哪个位置。
+     维修要的是"这颗料 + 它周围一圈"，所以改成按比例留白：
+       zoomOut=2.9 → 目标最多占视口的 1/2.9（约 34%），其余全是周边；
+       找整条网络时传 1.35（占 74%），网络本来就该尽量铺开。 */
+function centerOn(x,y){
+  const W=cv.clientWidth||800, H=cv.clientHeight||600;
+  view.ox=W/2-x*view.s;
+  view.oy=H/2+y*view.s;
+}
+function focusBox(bx, zoomOut){
   if(!bx) return;
-  const W=cv.clientWidth||800, H=cv.clientHeight||600, pad=110;
+  const W=cv.clientWidth||800, H=cv.clientHeight||600;
+  const k=Math.max(1.05, zoomOut||2.4);
+  /* 下限 8 mil：单个焊盘/一根线的包围盒只有几 mil，那个尺度连铜皮形状都看不出来 */
   const w=Math.max(8,bx.x2-bx.x1), h=Math.max(8,bx.y2-bx.y1);
-  const s=Math.min((W-pad)/w,(H-pad)/h);
+  let s=Math.min(W/(w*k), H/(h*k));
+  /* 倍率上限：屏幕上至少装下 360 mil（约 9 mm）见方。
+     不加这条，一颗 0402 会被放到 300% 以上 —— 满屏就两颗焊盘，反而认不出它在哪儿。 */
+  s=Math.min(s, Math.min(W,H)/360);
+  /* 视野别放到比整板还大太多，否则板子缩成一个小方块，四周全是空 */
+  if(B && B.bounds){
+    const bw=Math.max(1,B.bounds.x2-B.bounds.x1), bh=Math.max(1,B.bounds.y2-B.bounds.y1);
+    s=Math.max(s, Math.min(W/(bw*1.35), H/(bh*1.35)));
+  }
   view.s=Math.max(0.002,Math.min(900,s));
-  view.ox=W/2-(bx.x1+w/2)*view.s;
-  view.oy=H/2+(bx.y1+h/2)*view.s;
+  centerOn((bx.x1+bx.x2)/2,(bx.y1+bx.y2)/2);
   zoomLabel(); draw();
 }
 
@@ -3153,11 +3535,18 @@ function doFind(f){
   if(!f) return;
   if(f.t==="c"){
     const ci=f.ci;
-    focusBox(ci.bb || {x1:ci.x-40,y1:ci.y-40,x2:ci.x+40,y2:ci.y+40});
+    focusComp(ci);
     if(!lightComp(ci)) toast(T("findNoPad", f.k));
   }else if(lightNet(f.id)){
-    focusBox(bboxOfSet(LIT));
+    focusBox(bboxOfSet(LIT), 1.35);     /* 整条网络：占七成屏，别缩成一个点 */
   }
+}
+
+/* 元件定位：优先用外形框；老设计里有些元件的 bb 是空的，那就退到它所有焊盘的包围盒。 */
+function focusComp(ci){
+  let bb=compBox(ci);
+  if(!bb) bb={x1:ci.x-50,y1:ci.y-50,x2:ci.x+50,y2:ci.y+50};
+  focusBox(bb, 2.9);                    /* 元件只占三成屏，周围留出"它在哪儿" */
 }
 
 const findInput=document.getElementById("find");
@@ -3305,6 +3694,108 @@ function probeClick(sx,sy){
   probeA=null;      // 下一次点击重新开始
 }
 
+/* ============================== 量距 ==============================
+   维修现场要回答的两句话："这两个孔差多少毫米""这颗料多宽"。
+   手感照 Protel：点第一个点、点第二个点，直接给 mil 和 mm 两种单位；
+   第二点没落下之前，线跟着鼠标走、数字实时变。
+   吸附：落点附近 9 个屏幕像素内有焊盘/过孔时吸到它中心 —— 不然永远对不准圆心，
+   量出来的 2.37mm 会被老板当成 2.4mm。 */
+let measOn=false, measA=null, measB=null, measCur=null;
+let measRAF=0;
+
+function setMeasStatus(html){
+  const el=document.getElementById("stMeas");
+  if(el) el.innerHTML=html||"";
+}
+function measReset(){
+  measA=null; measB=null; measCur=null;
+  setMeasStatus("");
+}
+function enterMeas(){
+  if(!B){ toast(T("noBoard")); return; }
+  if(probeOn) exitProbe();
+  measOn=true; measReset();
+  const b=document.getElementById("meas"); if(b) b.classList.add("on");
+  stage.classList.add("meas");
+  setMeasStatus('<span class="chip">'+esc(T("measPick"))+'</span>');
+}
+function exitMeas(){
+  measOn=false; measReset();
+  const b=document.getElementById("meas"); if(b) b.classList.remove("on");
+  stage.classList.remove("meas");
+  draw();
+}
+function toggleMeas(){ measOn?exitMeas():enterMeas(); }
+
+/* 屏幕点 → 世界点，带焊盘/过孔吸附 */
+function measPoint(sx,sy){
+  const wx=(sx-view.ox)/view.s, wy=-(sy-view.oy)/view.s;
+  const p=padAt(wx,wy);
+  if(p && Math.abs(p.x-wx)*view.s<9 && Math.abs(p.y-wy)*view.s<9){
+    return {x:p.x, y:p.y, snap:p};
+  }
+  return {x:wx, y:wy, snap:null};
+}
+function measFormat(ax,ay,bx,by){
+  const dx=bx-ax, dy=by-ay, d=Math.hypot(dx,dy);
+  return {d:d, mm:d*0.0254, dx:Math.abs(dx)*0.0254, dy:Math.abs(dy)*0.0254,
+          text:(d*0.0254).toFixed(2)+" mm  /  "+d.toFixed(0)+" mil"};
+}
+function measClick(sx,sy){
+  const p=measPoint(sx,sy);
+  if(!measA || measB){                 // 起一次新的测量
+    measA=p; measB=null; measCur=null;
+    setMeasStatus('<span class="chip">'+esc(T("measPick2"))+'</span>');
+  }else{
+    measB=p;
+    const f=measFormat(measA.x,measA.y,measB.x,measB.y);
+    setMeasStatus('<span class="chip">'+esc(f.text)+'</span>'
+      +'<span class="chip blue">'+esc(T("measXY", f.dx.toFixed(2), f.dy.toFixed(2)))+'</span>');
+  }
+  draw();
+}
+function measMove(sx,sy){
+  if(!measOn || !measA || measB) return;
+  measCur=measPoint(sx,sy);
+  const f=measFormat(measA.x,measA.y,measCur.x,measCur.y);
+  setMeasStatus('<span class="chip">'+esc(f.text)+'</span>'
+    +'<span class="chip blue">'+esc(T("measXY", f.dx.toFixed(2), f.dy.toFixed(2)))+'</span>');
+  /* 整板重绘一次不便宜（几千条线），鼠标一动就重画会拖慢；用 rAF 合并成一帧一次 */
+  if(!measRAF) measRAF=requestAnimationFrame(()=>{ measRAF=0; draw(); });
+}
+function drawMeasure(){
+  if(!measOn || !measA) return;
+  const E=measB||measCur;
+  if(!E) return;
+  const p1=w2s(measA.x,measA.y), p2=w2s(E.x,E.y);
+  const dark=!invert;
+  const col=dark?"#f0b429":"#9a6f00";
+  const f=measFormat(measA.x,measA.y,E.x,E.y);
+  ctx.save();
+  ctx.lineWidth=1.6; ctx.strokeStyle=col;
+  ctx.setLineDash([7,5]);
+  ctx.beginPath(); ctx.moveTo(p1[0],p1[1]); ctx.lineTo(p2[0],p2[1]); ctx.stroke();
+  ctx.setLineDash([]);
+  for(const p of [p1,p2]){                 /* 两端画小十字，落点看得见 */
+    ctx.beginPath();
+    ctx.moveTo(p[0]-7,p[1]); ctx.lineTo(p[0]+7,p[1]);
+    ctx.moveTo(p[0],p[1]-7); ctx.lineTo(p[0],p[1]+7);
+    ctx.stroke();
+  }
+  const mx=(p1[0]+p2[0])/2, my=(p1[1]+p2[1])/2;
+  ctx.font="600 12px ui-monospace,Consolas,monospace";
+  const tw=ctx.measureText(f.text).width;
+  const bx=mx-tw/2-9, by=my-32;
+  ctx.fillStyle=dark?"#1a1f27f2":"#fffffff2";
+  ctx.fillRect(bx,by,tw+18,23);
+  ctx.strokeRect(bx+0.5,by+0.5,tw+17,22);
+  ctx.fillStyle=col;
+  ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.fillText(f.text, mx, by+12);
+  ctx.restore();
+}
+document.getElementById("meas").onclick=toggleMeas;
+
 /* ============================== 存图 ============================== */
 /* 维修单要配图、工作群要发证据：一键把当前画面（含位号和高亮）存成 PNG。 */
 function saveShot(){
@@ -3337,6 +3828,7 @@ function loadBuffer(buf,name){
     lastName=name; lastMs=dt;
     show={}; solo=null; hi=null; LIT=null; pickMode="";
     probeOn=false; probeA=null;
+    measReset();
     document.getElementById("probe").classList.remove("on");
     hideProbe();
     const fi=document.getElementById("find");
@@ -3347,6 +3839,8 @@ function loadBuffer(buf,name){
     refreshFileLine();
     buildLayers();
     buildFind();
+    renderBoardInfo();                 /* 左侧「板子」：尺寸 / 层数 / 料数 / 最细线 / 最小孔 */
+    buildMini();                       /* 左上角缩略导航图 */
     loadMarks();                       /* 每块板有自己的标记 */
     if(DRW==="pins" || DRW==="marks") renderDrawer();
     requestAnimationFrame(()=>{
@@ -3472,6 +3966,50 @@ async function uploadToServer(f){
     toast(isNetErr(e) ? T("deskGone") : T("readFail"));
   }
 }
+/* ---------- 首页「最近打开」 ----------
+   exe 那侧把打开过的文件记在本机（%LOCALAPPDATA%\CopperLens\recent.json），
+   首页把它们列出来，点一下直接再打开 —— 不必每次都去翻文件夹找那个 .ddb。
+   只有桌面版有这一步：网页版碰不到本地文件系统。 */
+async function loadRecent(){
+  if(!window.__DESKTOP__) return;
+  try{
+    const r=await fetch(apiUrl("/api/recent"));
+    RECENT=await r.json();
+  }catch(e){ RECENT=null; }
+  renderRecent();
+}
+function renderRecent(){
+  const box=document.getElementById("recentBox");
+  if(!box) return;
+  const list=(RECENT && RECENT.items) || [];
+  if(!window.__DESKTOP__ || !list.length){ box.classList.remove("on"); box.innerHTML=""; return; }
+  box.classList.add("on");
+  box.innerHTML='<div class="rt">'+esc(T("recentTitle"))+'</div>'
+    + list.map((it,i)=>{
+        const gone=!!it.gone;
+        return '<div class="ri" data-r="'+i+'"'+(gone?' style="opacity:.45"':'')+'>'
+          + '<b>'+esc(it.name||"?")+'</b>'
+          + '<span class="bd">'+esc((it.boards&&it.boards.length?it.boards.join(" / "):""))+'</span>'
+          + '<i>'+esc(gone?T("recentGone"):(it.when||""))+'</i></div>';
+      }).join("");
+}
+async function openRecent(i){
+  if(!window.__DESKTOP__ || !RECENT) return;
+  toast(T("reading"));
+  try{
+    const r=await fetch(apiUrl("/api/recent", "i="+i), {method:"POST"});
+    handleOpenResult(await r.json());
+    loadRecent();                      /* 顺序可能变了，重新拉一遍 */
+  }catch(e){
+    toast(isNetErr(e) ? T("deskGone") : T("openFail")+(e && e.message || ""));
+  }
+}
+document.addEventListener("click",e=>{
+  const el=e.target.closest("#recentBox .ri");
+  if(el) openRecent(+el.dataset.r);
+});
+loadRecent();
+
 /* 一个入口：桌面版问 exe，网页版用浏览器自己的选择框 */
 function openAny(){
   if(window.__DESKTOP__) openViaServer();
@@ -3566,15 +4104,27 @@ function syncBoardSelect(){
   sel.value=Math.max(0,curBoard);
 }
 document.getElementById("boards").onchange=function(){
-  const i=+this.value;
-  if(i===curBoard) return;
-  const bd=BOARDS[i];
-  if(!bd) return;
-  curBoard=i;
-  let buf=bd.buf;
-  if(!buf && bd.d){ buf=b64ToBuf(bd.d); bd.d=null; bd.buf=buf; }
-  if(buf) loadBuffer(buf,bd.n);
+  openBoardTab(+this.value);
 };
+
+/* 下拉框换成"开页签"而不是"就地换板"。
+   以前选第二块板，第一块就被冲掉、视图也没了；现在同一个 .ddb 里的每块板
+   各自占一个页签，可以并排对照（比如主板和它的转接小板）。已经开过的那块
+   直接切过去，不重复解析；数据是共享的，base64 只解一次。 */
+function openBoardTab(i){
+  const d=DOCS[curDoc];
+  if(!d || !d.boards || !d.boards[i]){ syncBoardSelect(); return; }
+  if((d.bid||0)===i){ syncBoardSelect(); return; }
+  const key=(d.keyBase||"")+"|"+i;
+  const hit=DOCS.findIndex(x=>x.key===key);
+  if(hit>=0){ activate(hit); return; }
+  if(DOCS.length>=12){ toast(T("tabLimit")); syncBoardSelect(); return; }
+  snapshotDoc();
+  DOCS.push({key:key, keyBase:d.keyBase, bid:i, id:++docSeq, name:d.name,
+             boards:d.boards, cur:i, B:null, ms:0, st:null});
+  curDoc=-1;
+  activate(DOCS.length-1);
+}
 
 /* ===================== 多文档：一个文件一个页签（可分别关闭） ===================== */
 /* 维修时经常要「一边看这块板，一边翻另一块」——以前打开新文件就把前一块冲掉了。
@@ -3586,7 +4136,7 @@ function setOn(id,on){ const e=document.getElementById(id); if(e) e.classList.to
 function snapshotDoc(){
   const d=DOCS[curDoc];
   if(!d) return;
-  d.B=B; d.boards=BOARDS; d.cur=curBoard; d.ms=lastMs;
+  d.B=B; d.boards=BOARDS; d.cur=curBoard; d.ms=lastMs; d.mini=MINI;
   d.st={
     view:{s:view.s, ox:view.ox, oy:view.oy},
     show:Object.assign({},show), solo:solo,
@@ -3598,10 +4148,21 @@ function snapshotDoc(){
   };
 }
 
+/* 页签上的字：文件基础名 +（同一文件里有多块板时）这块板叫什么。
+   维修同时开着主板的几个版本，只写文件名根本分不清谁是谁。 */
+function tabBase(p){
+  const s=String(p||"board");
+  const i=Math.max(s.lastIndexOf("\\"), s.lastIndexOf("/"));
+  return i>=0 ? s.slice(i+1) : s;
+}
 function tabLabel(d){
-  let s=d.name||"board";
-  if(d.boards && d.boards.length>1) s+=" · "+d.boards.length+T("tabBoards");
-  return s;
+  const nm=tabBase(d.name||"board");
+  const bi=(d.bid!==undefined && d.bid!==null) ? d.bid : (d.cur||0);
+  const bd=d.boards && d.boards[bi];
+  /* 同一个 .ddb 里的每块板，文件名完全一样 —— 页签上再写文件名等于没写。
+     这种时候直接写板名（板名里本来就带着 .PCB 的名字和日期）。 */
+  if(d.boards && d.boards.length>1 && bd && bd.n) return bd.n;
+  return nm;
 }
 
 function renderTabs(){
@@ -3612,7 +4173,8 @@ function renderTabs(){
   DOCS.forEach((d,i)=>{
     const el=document.createElement("div");
     el.className="tab"+(i===curDoc?" on":"");
-    el.title=d.name;
+    const bd=d.boards && d.boards[(d.bid!==undefined&&d.bid!==null)?d.bid:(d.cur||0)];
+    el.title=(d.name||"")+(bd&&d.boards.length>1?"　—　"+bd.n:"");
     const nm=document.createElement("span");
     nm.className="tn";
     nm.textContent=tabLabel(d);
@@ -3641,14 +4203,19 @@ function restoreUi(){
   litFeet=s.litFeet||[]; litFeetAll=s.litFeetAll||0;
   cuBig=s.cuBig||0; netTouch=s.netTouch||0; litPads=s.litPads||0; litVias=s.litVias||0;
   pickMode=""; probeOn=false; probeA=null;
+  measReset();                        /* 换页签/换板：上一次量的两点不能留在新板上 */
   setOn("probe",false); hideProbe();
   setOn("invert",invert); setOn("des",showDes); setOn("labels",showLabels);
   setOn("pour",showPour); setOn("optVal",showVal); setOn("optDim",dimOthers);
   setOn("optPen",trueWidth);
   document.getElementById("hint").style.display="none";
   document.getElementById("app").classList.remove("empty");
-  buildLayers(); buildFind(); syncBoardSelect(); refreshFileLine();
+  buildLayers(); buildFind(); syncBoardSelect(); refreshFileLine(); renderBoardInfo();
+  MINI=d.mini||null; if(!MINI) buildMini();   /* 切回来不重新生成缩略图 */
   document.getElementById("stNet").innerHTML=s.stNet||"";
+  /* 详情那格是不进页签快照的（它是"上一次点了什么"的附属信息），换页签先清掉，
+     否则会看到上一块板的元件尺寸挂在新的板上。 */
+  const _sd=document.getElementById("stDetail"); if(_sd) _sd.innerHTML="";
 }
 
 function activate(i){
@@ -3677,22 +4244,27 @@ function activate(i){
   draw();
 }
 
-/* 打开一份新文档。items 形如 [{n:名字, d:base64 或 null, buf:ArrayBuffer 或 null}] */
-function openDoc(items, file){
+/* 打开一份新文档。items 形如 [{n:名字, d:base64 或 null, buf:ArrayBuffer 或 null}]
+   bi = 这份文件里的第几块板。同一个 .ddb 的不同板各开一个页签（共享 boards 数组，
+   数据只解一次），所以 key 必须带上 bi —— 否则第二块板会被判成"已经开着"。 */
+function openDoc(items, file, bi){
   if(!items || !items.length) return;
   file=file||"";
-  const key=file+"|"+items.length+"|"+String((items[0].d||"").length);
+  bi=Math.max(0, bi||0);
+  const keyBase=file+"|"+items.length+"|"+String((items[0].d||"").length);
+  const key=keyBase+"|"+bi;
   const old=DOCS.findIndex(d=>d.key===key);
   snapshotDoc();                       // 先把当前这份存好，再动全局
-  if(old>=0){                          // 同一个文件已经开着：切过去，不重复开
+  if(old>=0){                          // 同一个文件同一块板已经开着：切过去，不重复开
     curDoc=-1;
     activate(old);
     return;
   }
   if(DOCS.length>=12){ toast(T("tabLimit")); return; }
-  DOCS.push({key:key, id:++docSeq, name:file||items[0].n||"board",
+  DOCS.push({key:key, keyBase:keyBase, bid:bi, id:++docSeq,
+             name:file||items[0].n||"board",
              boards:items.map(b=>({n:b.n, d:b.d||null, buf:b.buf||null})),
-             cur:0, B:null, ms:0, st:null});
+             cur:bi, B:null, ms:0, st:null});
   curDoc=-1;                           // 新页签：让 activate 走「第一次载入」
   activate(DOCS.length-1);
 }
@@ -3718,6 +4290,11 @@ function showHome(){
   document.getElementById("stCoord").textContent="—";
   document.getElementById("layers").innerHTML="";
   document.getElementById("findList").classList.remove("show");
+  const sd=document.getElementById("stDetail"); if(sd) sd.innerHTML="";
+  measOn=false; measReset();
+  { const mb=document.getElementById("meas"); if(mb) mb.classList.remove("on"); }
+  stage.classList.remove("meas");
+  renderBoardInfo();
   syncBoardSelect();
   draw();
 }
@@ -3788,6 +4365,14 @@ if(!B) document.getElementById("app").classList.add("empty");
   };
   beat();
   setInterval(beat, 5000);
+
+  /* 窗口一关就告诉后台一声，exe 立刻退出 —— 不然窗口没了、进程还挂着，
+     下次想更新 exe 会说"文件被占用"。
+     用 sendBeacon：页面卸载时 fetch 会被掐断，beacon 不会。
+     刷新也会触发 pagehide，所以 exe 那侧留了 2.5 秒宽限，跟着的 ping 一到就取消退出。 */
+  window.addEventListener("pagehide", ()=>{
+    try{ navigator.sendBeacon(apiUrl("/api/bye")); }catch(_){}
+  });
 })();
 
 /* ================== 右侧清单抽屉：元件 / 网络 / 脚位 / 标记 ==================
@@ -3941,9 +4526,14 @@ function drwOpen(tab){
 function drwGoPoint(x, y, zoomIn){
   if(!B) return;
   const W = cv.clientWidth||800, H = cv.clientHeight||600;
-  if(zoomIn && view.s < 4) view.s = 6;
-  view.ox = W/2 - x*view.s;
-  view.oy = H/2 + y*view.s;
+  /* 以前一脚踩到 6 倍：视口只剩 130 mil 左右，除了那一只脚什么都看不见。
+     现在按"视口里至少装下 ±200 mil"来定倍率（700px 高的窗口约 1.7 倍），
+     用户本来就已经放得更大时就不动他。 */
+  if(zoomIn){
+    const vs = Math.min(W,H)/420;
+    if(view.s < vs) view.s = Math.min(vs, 8);
+  }
+  centerOn(x, y);
   zoomLabel(); draw();
 }
 
@@ -3953,14 +4543,15 @@ drwBody.addEventListener("click", e=>{
   const row = e.target.closest(".drw-row");
   if(!row || !B) return;
   const k = row.dataset.k;
+  measReset();                        /* 换了看的地方，量到一半的两点先清掉 */
   if(k === "c"){
     const ci = B.compInfo.get(+row.dataset.id);
     if(!ci) return;
-    focusBox(ci.bb || {x1:ci.x-50,y1:ci.y-50,x2:ci.x+50,y2:ci.y+50});
+    focusComp(ci);
     lightComp(ci);
     DRW = "pins"; renderDrawer();                 // 点了元件，接着就想看它有几个脚、各是什么网
   }else if(k === "n"){
-    if(lightNet(+row.dataset.n)) focusBox(bboxOfSet(LIT));
+    if(lightNet(+row.dataset.n)) focusBox(bboxOfSet(LIT), 1.35);
     DRW = "pins"; renderDrawer();
   }else if(k === "p"){
     drwGoPoint(+row.dataset.x, +row.dataset.y, true);
