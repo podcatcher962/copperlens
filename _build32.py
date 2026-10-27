@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""用 32 位 Python 打包成单文件 exe（x86，Win10 32 位可直接运行）。"""
+"""用 32 位 Python 打包成单文件 exe（x86；32 位系统直接跑，64 位系统向下兼容）。"""
 import os
 import sys
 
