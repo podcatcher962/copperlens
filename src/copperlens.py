@@ -9,7 +9,8 @@ PCB 看板 / CopperLens（桌面版 / 单 exe）
     · 抽出来立刻在窗口里显示，可缩放、点一下就能顺着铜皮查整条线路
 
 不需要安装任何 EDA 软件、不需要 Python，也不联网。
-显示用系统自带的 Edge（32 位 Win10 一定带）。
+显示用系统里的 Edge（Win10/11 自带；Win7/8 装了 Chrome 也行）。
+程序按 32 位打包，从 Win7 到 Win11、32 位和 64 位系统都能跑。
 
 ⚠ 这里刻意不用 tkinter：32 位 Python 环境经常没装 Tcl/Tk，打进 exe 也缺
    运行库，结果就是"双击没反应"。所有对话框改用 Win32 API（comdlg32/user32），
@@ -30,7 +31,7 @@ from ctypes import wintypes
 from pathlib import Path
 
 APP_TITLE = "PCB 看板 CopperLens"
-VERSION = "1.7"
+VERSION = "1.8"
 
 _APPDIR = "CopperLens"
 _LOG = Path(tempfile.gettempdir()) / _APPDIR / "last-run.log"
@@ -273,10 +274,14 @@ def open_viewer(html_path):
     except OSError as e:
         log("    startfile 失败：%r" % e)
     msgbox(L("没找到可以显示板子的浏览器。\n\n"
-             "这台机器需要装有 Microsoft Edge（Win10 自带）。\n"
+             "这台机器需要装有 Microsoft Edge 或 Google Chrome。\n"
+             "Win10 / Win11 自带 Edge，不用另装；\n"
+             "Win7 / Win8 没有自带，请先装一个。\n\n"
              "详细记录：\n",
              "No browser was found to display the board.\n\n"
-             "This program needs Microsoft Edge (bundled with Windows 10).\n"
+             "This program needs Microsoft Edge or Google Chrome.\n"
+             "Windows 10 / 11 ship with Edge; Windows 7 / 8 do not — "
+             "install one first.\n\n"
              "Log file:\n") + str(_LOG))
     return False
 
@@ -284,6 +289,76 @@ def open_viewer(html_path):
 # ---------------------------------------------------------------- 从 DDB 抽 PCB
 MAX_EMBED = 28 * 1024 * 1024     # 一次最多带进界面 28MB 板数据
 MAX_BOARDS = 8
+
+
+def _name_score(t):
+    """一串文字"像不像人话"的粗略打分，用来在几种编码里挑最合理的那个。
+
+    判据很朴素：汉字、中文标点加分；拉丁重音字母（Â/Ã/µ/¥ 这类）扣分——
+    真的西文文档名不会是这种拼法，出现它们基本就是编码没对上。
+    """
+    s = 0.0
+    for ch in t:
+        o = ord(ch)
+        if o < 0x80:
+            s += 1.0
+        elif 0x4E00 <= o <= 0x9FFF:          # 常用汉字
+            s += 3.0
+        elif 0x3400 <= o <= 0x4DBF:          # 扩展 A
+            s += 1.5
+        elif 0x3000 <= o <= 0x303F or 0xFF01 <= o <= 0xFF5E:
+            s += 2.0                          # 中文标点 / 全角字符
+        elif 0xE000 <= o <= 0xF8FF or o == 0xFFFD:
+            s -= 8.0                          # 私用区、替换符：铁定解错
+        elif 0x80 <= o <= 0x24F:
+            s -= 3.0                          # 拉丁扩展字母：铁定解错
+        else:
+            s -= 1.0
+    return s
+
+
+def _fix_text(s):
+    """把从 CSV 里按 latin-1 读进来的字符串还原成它本来的样子。
+
+    这里要剥两层错位，缺一层都还是乱码：
+
+    ① mdbtools 导出文本字段时会自作主张按 CP1252 把它转成 UTF-8，
+       于是原始 GBK 字节 B5 A5 变成 C2 B5 C2 A5 —— 先用 latin-1 还原成
+       字节、再按 UTF-8 解一次，就退回每个字节一个字符的原始形态。
+    ② 原始形态里 0x80 以上的是"某个单字节编码"的字节，简体中文机器建的
+       库就是 GBK。用打分在 utf-8 / gb18030 / big5 / cp932 里挑最像人话的。
+
+    纯 ASCII 完全不动，所以英文文档名一个字节都不会变。
+    """
+    if not s:
+        return s
+    try:
+        raw = s.encode("latin-1")
+    except UnicodeEncodeError:
+        return s                              # 已经是正常 Unicode
+    if raw.isascii():
+        return s
+
+    plain = None                              # ① 剥掉 mdbtools 的 UTF-8 化
+    try:
+        un = raw.decode("utf-8")
+        if un and all(ord(c) <= 0xFF for c in un):
+            cand = un.encode("latin-1")
+            if cand != raw:
+                plain, raw = un, cand
+    except (UnicodeDecodeError, UnicodeEncodeError):
+        pass
+
+    best, best_sc = (plain or s), None        # ② 挑编码
+    for enc in ("utf-8", "gb18030", "big5", "cp932"):
+        try:
+            t = raw.decode(enc)
+        except UnicodeDecodeError:
+            continue
+        sc = _name_score(t)
+        if best_sc is None or sc > best_sc:
+            best, best_sc = t, sc
+    return best
 
 
 def extract_pcbs(ddb):
@@ -334,7 +409,7 @@ def extract_pcbs(ddb):
                 rows.append({
                     "id": row[col["ID"]].strip(),
                     "pid": row[col["ParentID"]].strip(),
-                    "name": row[col["Name"]].strip(),
+                    "name": _fix_text(row[col["Name"]].strip()),
                     "kind": row[col["EditorName"]].strip(),
                     "size": row[col["Size"]].strip(),
                     "mtime": row[col["Modified"]].strip() if "Modified" in col else "",
