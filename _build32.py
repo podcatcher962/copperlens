@@ -10,7 +10,11 @@ import PyInstaller.__main__  # noqa: E402
 ROOT = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(ROOT, "src", "copperlens.py")
 NAME = "PCB看板"
-OUT = os.path.join(ROOT, NAME + ".exe")
+# 可选：把产物放到别的目录。exe 正在运行时没法覆盖它，先出到旁边再换。
+OUTDIR = sys.argv[1] if len(sys.argv) > 1 else ROOT
+if not os.path.isabs(OUTDIR):
+    OUTDIR = os.path.join(ROOT, OUTDIR)
+OUT = os.path.join(OUTDIR, NAME + ".exe")
 
 print("python:", sys.version)
 print("64bit :", sys.maxsize > 2 ** 32)
@@ -22,7 +26,7 @@ PyInstaller.__main__.run([
     "--noconfirm",
     "--clean",
     "--name", NAME,
-    "--distpath", ROOT,
+    "--distpath", OUTDIR,
     "--workpath", os.path.join(ROOT, "build"),
     "--specpath", os.path.join(ROOT, "build"),
     "--add-data", os.path.join(ROOT, "index.html") + ";.",
