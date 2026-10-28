@@ -37,7 +37,7 @@ from ctypes import wintypes
 from pathlib import Path
 
 APP_TITLE = "PCB 看板 CopperLens"
-VERSION = "1.16"
+VERSION = "1.17"
 
 _APPDIR = "CopperLens"
 _LOG = Path(tempfile.gettempdir()) / _APPDIR / "last-run.log"
