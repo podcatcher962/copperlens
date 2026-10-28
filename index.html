@@ -353,7 +353,7 @@
     <div class="hrow">
       <button class="btn primary" id="open" data-i18n="btnOpen"
               data-i18n-title="btnOpenTip">打开文件</button>
-      <input type="file" id="file" accept=".pcb,.PCB,.ddb,.DDB,.kicad_pcb,.KICAD_PCB,.gbr,.GBR,.gtl,.gbl,.gts,.gbs,.gto,.gbo,.gko,.drl,.xln,.zip,.ZIP" multiple>
+      <input type="file" id="file" accept=".pcb,.PCB,.ddb,.DDB,.kicad_pcb,.KICAD_PCB,.gbr,.GBR,.gtl,.gbl,.gts,.gbs,.gto,.gbo,.gko,.drl,.xln,.zip,.ZIP,.json,.JSON,.epro,.EPRO,.epro2,.EPRO2" multiple>
       <select id="boards" style="display:none"></select>
       <div class="sep"></div>
       <button class="btn" id="fit" data-i18n="btnFit" data-i18n-title="btnFitTip">适合窗口</button>
@@ -547,6 +547,12 @@ zh:{
   errNotKicad:"这个文件不是 KiCad 板文件（开头没有 kicad_pcb）。",
   errKicadEmpty:"KiCad 文件读通了，但里面既没有走线、也没有焊盘和覆铜。",
   errKicadBig:"文件超过 80 MB，本程序不敢硬读（怕是别的文件改了扩展名）。",
+  /* 立创EDA / EasyEDA */
+  errNotEe:"这不是立创EDA（标准版）的板文件 —— 它的开头应该有 shape 清单。",
+  errEeBig:"这个 JSON 超过 120 MB，本程序不敢硬读。",
+  /* 立创EDA 专业版 */
+  errProNoLog:"这个专业版工程包里没找到 .epru 设计日志。",
+  errProEmpty:"专业版工程解析完了，但里面没有走线也没有焊盘（可能只有原理图）。",
   /* Gerber 制造文件 / 钻孔 */
   errNotGerber:"这些文件里没有 Gerber（RS-274X）或钻孔内容。",
   gbNoLayer:n=>"有个文件认不出属于哪一层，已跳过："+n,
@@ -610,7 +616,7 @@ zh:{
     +"　解析 "+o.ms+"ms",
   objs:n=>n+" 个对象",
   pourN:n=>"　覆铜 "+n+" 块",
-  noPcb:"不是 .pcb / .ddb / .kicad_pcb 文件。选错了？",
+  noPcb:"认不出这个文件。支持 .pcb / .ddb / .kicad_pcb / 立创 .json / .epro2，或 Gerber 一包。",
   badFile:"这个文件读不出来：",
   multiBoard:"这个文件里有多块板，按修改时间从新到旧排：",
   latest:"★最新",
@@ -619,7 +625,7 @@ zh:{
       <div class="sub">点一下走线，就知道这根线通到哪儿、两头是哪颗元件的哪只脚</div>
       <button class="hbtn" id="hintOpen">打开文件</button>
       <div class="tip2">
-        也可以把 <b>.pcb</b> / <b>.ddb</b> / <b>.kicad_pcb</b> 文件直接拖到这里<br>
+        也可以把 <b>.pcb</b> / <b>.ddb</b> / <b>.kicad_pcb</b> / 立创 <b>.json</b> / <b>.epro2</b> 直接拖到这里<br>
         只读，不会修改你的任何文件　·　不联网
       </div>
       <div class="feats">
@@ -632,6 +638,7 @@ zh:{
       <div class="big">把板文件拖到这里</div>
       <div style="margin-top:8px;color:var(--fg3)">
         Protel 99SE：单板 <b>.pcb</b> 或设计库 <b>.ddb</b>　·　KiCad：<b>.kicad_pcb</b><br>
+        立创EDA：标准版 <b>.json</b>　·　专业版 <b>.epro2</b> / <b>.epro</b>（整个工程包直接拖）<br>
         Gerber：一堆 <b>.gbr / .gtl / .gbl / .gko</b> 连钻孔 <b>.drl</b> 一起拖进来（或直接给 <b>.zip</b>）
       </div>
     </div>
@@ -647,7 +654,7 @@ zh:{
   hintWeb:`<div class="drop">
       <div class="big">把板文件拖到这里</div>
       <div style="margin-top:8px;color:var(--fg3)">
-        也可以点左上角「打开文件」选择　·　支持 <b>.pcb</b> 单板与 <b>.kicad_pcb</b>
+        也可以点左上角「打开文件」选择　·　支持 <b>.pcb</b> / <b>.kicad_pcb</b> / 立创 <b>.json</b> / <b>.epro2</b>
       </div>
       <div class="privacy">文件只在你自己的浏览器里读取，<b>不会上传到任何服务器</b></div>
       <div style="margin-top:6px;color:var(--fg3);font-size:12px">
@@ -669,12 +676,15 @@ zh:{
     <p>双击程序图标，先看到一段<b>海报</b>（几秒后自动进首页），然后是<b>首页</b>——
        没带文件也能先把程序打开看界面：<b>点「打开文件」挑文件</b>，
        或者把 <code>.pcb</code> / <code>.ddb</code> / <code>.kicad_pcb</code> 直接拖进窗口。</p>
-    <p>三种文件在同一个对话框里，直接挑就行，也可以拖到窗口里：</p>
+    <p>这些文件在同一个对话框里，直接挑就行，也可以拖到窗口里：</p>
     <p style="color:var(--fg3)">
       · <b>.pcb</b> —— Protel / Altium 的老式二进制单板<br>
       · <b>.ddb</b> —— 老式设计库，里面可能有好几块板，一次全带出来<br>
       · <b>.kicad_pcb</b> —— KiCad 6 / 7 / 8 / 9 / 10 的板文件（纯文本 S 表达式），
-        4、5 版的老格式也认</p>
+        4、5 版的老格式也认<br>
+      · <b>.json</b> —— 立创EDA <b>标准版</b>的板文件（纯文本 JSON，导出的就是它）<br>
+      · <b>.epro2 / .epro</b> —— 立创EDA <b>专业版</b>的工程包，整个文件直接拖进来，
+        里面的 .epru 设计日志会自己解开</p>
 
     <h3>同时看几块板</h3>
     <p>每打开一个文件就多一个<b>页签</b>：可以一边看这块板、一边翻另一块，像 Protel 那样
@@ -802,7 +812,8 @@ zh:{
     <p class="dim">已在 Windows 10 x86 与 Windows 11 64 位上实测通过。</p>
     <h3>能做什么</h3>
     <ul>
-      <li>打开 .pcb 单板、.ddb 设计库（自动列出里面所有板），或 KiCad 的 .kicad_pcb</li>
+      <li>打开 .pcb 单板、.ddb 设计库（自动列出里面所有板）、KiCad 的 .kicad_pcb，
+          以及立创EDA 标准版 .json 与专业版 .epro2 工程包</li>
       <li>点一下走线/焊盘，亮出整条铜箔，并写出 U100-4 这样的具体脚位</li>
       <li>显示元件位号、型号、焊盘编号；大面积铺铜可一键隐藏</li>
       <li><b>两点通不通</b>：点两个位置，直接判定电气上通不通（没网表的老板子也行）</li>
@@ -818,7 +829,7 @@ zh:{
       <li><b>最近打开</b>：首页列出上次开过的文件，点一下直接再打开</li>
     </ul>
     <h3>版本</h3>
-    <p>v1.15　·　支持 x86 与 64 位系统　·　单文件便携版</p>
+    <p>v1.16　·　支持 x86 与 64 位系统　·　单文件便携版</p>
     <div class="sig">© 永远的兰兰　·　Lanlan Eternal</div>`
 },
 en:{
@@ -893,6 +904,13 @@ en:{
   errKicadEmpty:"The KiCad file parsed, but it holds no tracks, pads or pours.",
   errKicadBig:"File is over 80 MB — refusing to read it in one go "+
     "(probably not a board file at all).",
+  /* LCEDA / EasyEDA */
+  errNotEe:"This is not a LCEDA (Standard) board file — it should start with a shape list.",
+  errEeBig:"This JSON is over 120 MB; refusing to read it in one go.",
+  /* LCEDA Pro */
+  errProNoLog:"No .epru design log inside this Pro project package.",
+  errProEmpty:"The Pro project parsed, but it holds no tracks or pads "+
+    "(probably a schematic-only project).",
   /* Gerber / drill */
   errNotGerber:"None of these files holds Gerber (RS-274X) or drill data.",
   gbNoLayer:n=>"Could not tell which layer this file belongs to — skipped: "+n,
@@ -958,7 +976,7 @@ en:{
     +"　parsed in "+o.ms+"ms",
   objs:n=>n+" objects",
   pourN:n=>"　"+n+" pours",
-  noPcb:"Not a .pcb / .ddb / .kicad_pcb file.",
+  noPcb:"Unrecognised file. Supports .pcb / .ddb / .kicad_pcb / EasyEDA .json / .epro2, or a Gerber set.",
   badFile:"Cannot read this file: ",
   multiBoard:"Several boards in this file, newest first:",
   latest:"★latest",
@@ -980,6 +998,7 @@ en:{
       <div class="big">Drop a board file here</div>
       <div style="margin-top:8px;color:var(--fg3)">
         Protel 99SE: single board <b>.pcb</b> or design library <b>.ddb</b>　·　KiCad: <b>.kicad_pcb</b><br>
+        EasyEDA: standard <b>.json</b>　·　pro <b>.epro2</b> / <b>.epro</b> (drop the whole project file)<br>
         Gerber: drop the whole <b>.gbr / .gtl / .gbl / .gko</b> set plus the <b>.drl</b> drill file together (or just a <b>.zip</b>)
       </div>
     </div>
@@ -1017,12 +1036,15 @@ en:{
     <p>Double-click the exe: a short <b>splash</b> appears for a few seconds, then the <b>home page</b>.
        You can open the program without a board — click <b>Open File</b>, or drag a
        <code>.pcb</code> / <code>.ddb</code> / <code>.kicad_pcb</code> into the window.</p>
-    <p>All three formats share one dialog — no second button needed. You can also drag a file in:</p>
+    <p>All formats share one dialog — no second button needed. You can also drag a file in:</p>
     <p style="color:var(--fg3)">
       · <b>.pcb</b> — legacy Protel / Altium binary single board<br>
       · <b>.ddb</b> — legacy design library; all boards inside come along at once<br>
       · <b>.kicad_pcb</b> — KiCad 6 / 7 / 8 / 9 / 10 boards (plain-text S-expressions);
-        the older 4 and 5 formats work too</p>
+        the older 4 and 5 formats work too<br>
+      · <b>.json</b> — EasyEDA (LCEDA) <b>standard</b> board file, the plain-text JSON it exports<br>
+      · <b>.epro2 / .epro</b> — EasyEDA (LCEDA) <b>pro</b> project file; drop it as-is and the
+        .epru design log inside is unpacked for you</p>
 
     <h3>Several boards at once</h3>
     <p>Every file you open gets its own <b>tab</b> — keep one board open while you look at
@@ -1183,7 +1205,7 @@ en:{
       <li><b>Recent files</b>: the home page lists what you opened last; one click reopens it</li>
     </ul>
     <h3>Version</h3>
-    <p>v1.15　·　supports x86 and 64-bit Windows　·　portable single file</p>
+    <p>v1.16　·　supports x86 and 64-bit Windows　·　portable single file</p>
     <div class="sig">© Lanlan Eternal　·　永远的兰兰</div>`
 }
 };
@@ -3171,10 +3193,903 @@ function parseGerberSet(files){
   return b;
 }
 
+/* ==================== 立创EDA / EasyEDA 标准版（.json） ====================
+   这类文件是画布上所有图元的平铺清单：shape 数组里每一项是一条 "~" 分隔的
+   文本记录，元件（LIB）后面用 #@$ 挂着自己的焊盘、丝印、外框。
+
+   两个关键约定：
+     · 坐标以画布单位计，1 单位 = 0.254 mm = 10 mil（所以乘 10 就是 mil）
+     · Y 轴朝下，本程序朝上 —— 取反，旋转角也一起取反
+
+   元件（LIB）内部的子图元坐标已经是"展开后的绝对坐标"（含旋转、含平移），
+   不用再算一次变换 —— 这一点跟 KiCad 的封装完全不同，别照搬那套。
+*/
+const EEG_PM = 10;                        /* 1 画布单位 = 10 mil */
+
+const EEG_LNAME = {1:"TopLayer", 2:"BottomLayer", 3:"TopSilk", 4:"BottomSilk",
+                   5:"TopPaste", 6:"BottomPaste", 7:"TopSolder", 8:"BottomSolder",
+                   10:"BoardOutline", 11:"Multi-Layer"};
+
+/* 立创层号 → 本程序的 Protel 编号（1~32 信号层 / 74 多层 / 56 板框） */
+function eegLayerOf(id){
+  id=+id;
+  if(id===1) return 1;
+  if(id===2) return 32;
+  if(id>=3 && id<=8) return id+30;                    /* 3→33 丝印 … 8→38 阻焊 */
+  if(id===10) return 56;                              /* 板框，与 KiCad Edge.Cuts 同号 */
+  if(id===11) return 74;                              /* 多层：通孔焊盘、过孔 */
+  if(id>=21 && id<=52) return Math.min(31, id-19);    /* Inner1..32 → 2..31 */
+  return 0;                                           /* 飞线 / 装配 / 3D / 元件标记：不画 */
+}
+
+/* SVG 椭圆弧 → 折线（在原始坐标里算，调用方再统一换算）
+   立创的外框、圆弧走线都用 "M x y A rx ry rot large sweep x y" 这种写法。 */
+function eegArcPts(x1,y1,rx,ry,phiDeg,large,sweep,x2,y2){
+  const out=[];
+  if(!(rx>0) || !(ry>0)){ out.push([x2,y2]); return out; }
+  const phi=phiDeg*Math.PI/180, cosp=Math.cos(phi), sinp=Math.sin(phi);
+  const dx=(x1-x2)/2, dy=(y1-y2)/2;
+  const x1p= cosp*dx+sinp*dy, y1p=-sinp*dx+cosp*dy;
+  let rx2=rx*rx, ry2=ry*ry;
+  const lam=(x1p*x1p)/rx2+(y1p*y1p)/ry2;
+  if(lam>1){ const s=Math.sqrt(lam); rx*=s; ry*=s; rx2=rx*rx; ry2=ry*ry; }
+  const num=Math.max(0, rx2*ry2-rx2*y1p*y1p-ry2*x1p*x1p);
+  const den=rx2*y1p*y1p+ry2*x1p*x1p;
+  const co=((!!large)===(!!sweep) ? -1 : 1)*Math.sqrt(den>0 ? num/den : 0);
+  const cxp= co*rx*y1p/ry, cyp=-co*ry*x1p/rx;
+  const cx=cosp*cxp-sinp*cyp+(x1+x2)/2, cy=sinp*cxp+cosp*cyp+(y1+y2)/2;
+
+  const ang=(ux,uy,vx,vy)=>{
+    const dot=ux*vx+uy*vy, L=Math.hypot(ux,uy)*Math.hypot(vx,vy);
+    let a=Math.acos(Math.max(-1,Math.min(1,L?dot/L:1)));
+    if(ux*vy-uy*vx<0) a=-a;
+    return a;
+  };
+  const t1=ang(1,0,(x1p-cxp)/rx,(y1p-cyp)/ry);
+  let dt=ang((x1p-cxp)/rx,(y1p-cyp)/ry,(-x1p-cxp)/rx,(-y1p-cyp)/ry);
+  if(!sweep && dt>0) dt-=2*Math.PI;
+  if(sweep && dt<0) dt+=2*Math.PI;
+
+  const n=Math.max(2, Math.ceil(Math.abs(dt)/(Math.PI/18)));
+  for(let i=1;i<=n;i++){
+    const t=t1+dt*i/n, ex=rx*Math.cos(t), ey=ry*Math.sin(t);
+    out.push([cosp*ex-sinp*ey+cx, sinp*ex+cosp*ey+cy]);
+  }
+  return out;
+}
+
+/* SVG 路径 → 若干条折线（原始坐标，未换算）。
+   支持 M/L/H/V/A/Z；立创导出只有这几种，C/Q 之类出现也不至于崩。 */
+function eegPath(dstr){
+  const toks=String(dstr||"").match(/[MLHVAZmlhvaz]|-?\d*\.?\d+(?:[eE][-+]?\d+)?/g) || [];
+  const subs=[]; let sub=null, cmd="", cx=0, cy=0, sx=0, sy=0, i=0;
+  const num=()=>{ const v=parseFloat(toks[i]); i++; return isFinite(v)?v:0; };
+  const put=(x,y)=>{ if(!sub){ sub=[]; subs.push(sub); } sub.push([x,y]); };
+  while(i<toks.length){
+    const t=toks[i];
+    if(/^[A-Za-z]$/.test(t)){ cmd=t; i++; if(i>=toks.length) break; }
+    const C=cmd.toUpperCase(), rel=(cmd===cmd.toLowerCase());
+    if(C==="M"){
+      const x=num(), y=num();
+      cx=rel?cx+x:x; cy=rel?cy+y:y;
+      sub=[[cx,cy]]; subs.push(sub); sx=cx; sy=cy;
+      cmd=rel?"l":"L";                       /* M 后面跟的一串坐标是隐式 L */
+      continue;
+    }
+    if(C==="L"){ const x=num(), y=num(); cx=rel?cx+x:x; cy=rel?cy+y:y; put(cx,cy); continue; }
+    if(C==="H"){ const x=num(); cx=rel?cx+x:x; put(cx,cy); continue; }
+    if(C==="V"){ const y=num(); cy=rel?cy+y:y; put(cx,cy); continue; }
+    if(C==="A"){
+      const rx=num(), ry=num(), rot=num(), la=num(), sw=num(), x=num(), y=num();
+      const ex=rel?cx+x:x, ey=rel?cy+y:y;
+      for(const p of eegArcPts(cx,cy,rx,ry,rot,la,sw,ex,ey)) put(p[0],p[1]);
+      cx=ex; cy=ey; continue;
+    }
+    if(C==="Z"){
+      if(sub && sub.length && (Math.abs(cx-sub[0][0])>1e-6 || Math.abs(cy-sub[0][1])>1e-6))
+        put(sub[0][0], sub[0][1]);
+      cx=sx; cy=sy; sub=null; continue;
+    }
+    i++;                                     /* 不认识的命令：跳过，别死循环 */
+  }
+  return subs;
+}
+
+/* 认一下是不是立创标准版：JSON 开头 + 有 shape 数组 */
+function looksEasyEda(buf){
+  const u8=new Uint8Array(buf), n=Math.min(u8.length, 4096);
+  let s="";
+  for(let i=0;i<n;i++) s+=String.fromCharCode(u8[i]);
+  s=s.replace(/^\uFEFF/,"");
+  const t=s.replace(/^\s+/,"");
+  return t.charCodeAt(0)===123 && s.indexOf('"shape"')>=0;
+}
+
+function parseEasyEda(txt){
+  if(txt.length > 120e6) throw new Error(T("errEeBig"));
+  let d;
+  try{ d=JSON.parse(txt); }catch(_){ throw new Error(T("errNotEe")); }
+  if(!d || !Array.isArray(d.shape)) throw new Error(T("errNotEe"));
+
+  const b={
+    layers:{}, copper:[], nets:[], tracks:[], pads:[], vias:[], arcs:[],
+    fills:[], texts:[], comps:[], polys:[], sections:[], warn:[],
+    fmt:"easyeda", fromDdb:false, boardCount:1, layerNames:{}
+  };
+
+  for(const k in EEG_LNAME){
+    const id=eegLayerOf(k);
+    if(id) b.layerNames[id]=EEG_LNAME[k];
+  }
+
+  const netIds=new Map();
+  const netNum=nm=>{
+    if(nm===undefined || nm===null) return 0;
+    const s=String(nm).trim();
+    if(!s) return 0;
+    let id=netIds.get(s);
+    if(!id){ id=b.nets.length+1; netIds.set(s,id); b.nets[id-1]=s; }
+    return id;
+  };
+
+  const toX=v=>+v*EEG_PM;
+  const toY=v=>-(+v)*EEG_PM;
+  let polySeq=0;
+
+  const addPoly=(pts,layer,net)=>{
+    if(!(layer>0) || !pts || pts.length<3) return;
+    b.polys.push({kind:"polygon",layer:layer,net:net||0,pid:++polySeq,pts:pts,closed:true});
+  };
+
+  /* 位号长这样：R1 / U3 / CON106 / Q1A。封装里那些 "470Ω"、"WEMOS D1 Mini"
+     不匹配，就归到型号那一栏 —— 跟 Protel 的兜底判断是同一套规则。 */
+  const likeDes=/^[A-Za-z]{1,4}\d{1,4}[A-Za-z]?$/;
+
+  /* ---- 单个图元记录 ---- */
+  let curComp=-1;
+  const addShape=(rec, comp)=>{
+    const f=String(rec).split("~");
+    const k=f[0];
+    if(!k) return;
+    curComp=(comp===undefined?-1:comp);
+
+    if(k==="TRACK"){
+      const w=Math.abs(+f[1]||0)*EEG_PM || EEG_PM;
+      const lay=eegLayerOf(f[2]);
+      if(!lay || w<=0.01) return;
+      const net=netNum(f[3]);
+      const v=String(f[4]||"").trim().split(/[\s,]+/).map(Number);
+      for(let i=0;i+3<v.length;i+=2){
+        const x1=toX(v[i]), y1=toY(v[i+1]), x2=toX(v[i+2]), y2=toY(v[i+3]);
+        if(!isFinite(x1)||!isFinite(y1)||!isFinite(x2)||!isFinite(y2)) continue;
+        b.tracks.push({kind:"track",layer:lay,net:net,comp:curComp,
+                       x1:x1,y1:y1,x2:x2,y2:y2,w:w});
+      }
+      return;
+    }
+    if(k==="ARC"){
+      const w=Math.abs(+f[1]||0)*EEG_PM || EEG_PM;
+      const lay=eegLayerOf(f[2]);
+      if(!lay) return;
+      const net=netNum(f[3]);
+      const m=/M\s*(-?[\d.]+)[\s,]+(-?[\d.]+)\s*A\s*(-?[\d.]+)[\s,]+(-?[\d.]+)[\s,]+(-?[\d.]+)[\s,]+([01])[\s,]+([01])[\s,]+(-?[\d.]+)[\s,]+(-?[\d.]+)/i
+              .exec(String(f[4]||""));
+      if(!m) return;
+      const pts=[[+m[1],+m[2]]].concat(
+        eegArcPts(+m[1],+m[2],+m[3],+m[4],+m[5],+m[6],+m[7],+m[8],+m[9]));
+      for(let i=0;i+1<pts.length;i++){
+        b.tracks.push({kind:"track",layer:lay,net:net,comp:curComp,
+                       x1:toX(pts[i][0]),y1:toY(pts[i][1]),
+                       x2:toX(pts[i+1][0]),y2:toY(pts[i+1][1]),w:w});
+      }
+      return;
+    }
+    if(k==="CIRCLE"){
+      const x=toX(f[1]), y=toY(f[2]);
+      const r=Math.abs(+f[3]||0)*EEG_PM, w=Math.abs(+f[4]||0)*EEG_PM;
+      const lay=eegLayerOf(f[5]);
+      if(!lay || !(r>0)) return;
+      b.arcs.push({kind:"arc",layer:lay,net:0,comp:curComp,x:x,y:y,
+                   radius:r,a1:0,a2:360,w:w>0?w:EEG_PM});
+      return;
+    }
+    if(k==="RECT"){
+      const lay=eegLayerOf(f[5]);
+      if(!lay) return;
+      const x=+f[1], y=+f[2], w=Math.abs(+f[3]||0), h=Math.abs(+f[4]||0);
+      if(!(w>0)||!(h>0)) return;
+      b.fills.push({kind:"fill",layer:lay,net:0,comp:curComp,
+                    x1:toX(x),y1:toY(y+h),x2:toX(x+w),y2:toY(y),rot:0});
+      return;
+    }
+    if(k==="PAD"){
+      const shape=String(f[1]||"").toUpperCase();
+      let w=Math.abs(+f[4]||0)*EEG_PM, h=Math.abs(+f[5]||0)*EEG_PM;
+      let lay=eegLayerOf(f[6]);
+      const hole=Math.abs(+f[9]||0)*2*EEG_PM;      /* 第 9 项是孔半径 */
+      const net=netNum(f[7]);
+      if(!(w>0) && !(h>0)) return;
+      if(!(w>0)) w=h;
+      if(!(h>0)) h=w;
+      if(hole>0 && !lay) lay=74;
+      if(!lay) lay=1;
+      let sh=1;                                     /* 1 圆 / 椭圆，2 方，3 八角 */
+      if(shape==="RECT" || shape==="POLYGON") sh=2;
+      b.pads.push({kind:"pad",layer:lay,net:net,comp:curComp,
+                   x:toX(f[2]),y:toY(f[3]),xs:w,ys:h,
+                   xm:w,ym:h,xb:w,yb:h,stack:false,
+                   hole:hole,shape:sh,name:String(f[8]||""),
+                   rot:-(+f[11]||0),plated:true});
+      return;
+    }
+    if(k==="VIA"){
+      const dia=Math.abs(+f[3]||0)*EEG_PM;
+      const hole=Math.abs(+f[5]||0)*2*EEG_PM;
+      b.vias.push({kind:"via",layer:74,net:netNum(f[4]),
+                   x:toX(f[1]),y:toY(f[2]),
+                   dia:dia>0?dia:hole*2,hole:hole,start:1,end:32});
+      return;
+    }
+    if(k==="HOLE"){
+      const r=Math.abs(+f[3]||0)*EEG_PM;
+      if(!(r>0)) return;
+      b.pads.push({kind:"pad",layer:74,net:0,comp:-1,
+                   x:toX(f[1]),y:toY(f[2]),
+                   xs:r*2,ys:r*2,xm:r*2,ym:r*2,xb:r*2,yb:r*2,stack:false,
+                   hole:r*2,shape:1,name:"",rot:0,plated:false});
+      return;
+    }
+    if(k==="SOLIDREGION"){
+      const lay=eegLayerOf(f[1]);
+      const type=String(f[4]||"solid").toLowerCase();
+      if(!lay || type==="cutout" || type==="npth") return;
+      const net=netNum(f[2]);
+      for(const s of eegPath(f[3])){
+        if(s.length<3) continue;
+        addPoly(s.map(p=>[p[0]*EEG_PM, -p[1]*EEG_PM]), lay, net);
+      }
+      return;
+    }
+    if(k==="COPPERAREA"){
+      const lay=eegLayerOf(f[2]);
+      if(!lay) return;
+      const net=netNum(f[3]);
+      for(const s of eegPath(f[4])){
+        if(s.length<3) continue;
+        addPoly(s.map(p=>[p[0]*EEG_PM, -p[1]*EEG_PM]), lay, net);
+      }
+      return;
+    }
+    if(k==="TEXT"){
+      const lay=eegLayerOf(f[7]) || 33;
+      const t=String(f[10]||"").trim();
+      if(!t) return;
+      const h=Math.abs(+f[9]||0)*EEG_PM || 40;
+      const isDes = curComp>0 && likeDes.test(t);
+      b.texts.push({kind:"text",layer:lay,net:0,comp:curComp,
+                    x:toX(f[2]),y:toY(f[3]),h:h,rot:-(+f[5]||0),
+                    text:t,isDes:isDes,isCom:!isDes});
+      return;
+    }
+    /* SVGNODE（3D 模型）、DIMENSION、IMAGE 等：不参与查线，直接跳过 */
+  };
+
+  /* ---- 元件：LIB 记录 + 它自己的 #@$ 子图元 ---- */
+  let compSeq=0;
+  const addLib=rec=>{
+    const parts=String(rec).split("#@$");
+    const hf=parts[0].split("~");
+    const id=++compSeq;
+    const attrs=String(hf[3]||"");
+    const pm=/package`([^`]*)`/.exec(attrs);
+    const lay=eegLayerOf(hf[7]) || 1;
+    const rot=+(hf[4]||0) || 0;
+    b.comps.push({id:id,layer:lay,x:toX(hf[1]),y:toY(hf[2]),
+                  rot:-rot,lib:pm?pm[1]:""});
+    for(let i=1;i<parts.length;i++) addShape(parts[i], id);
+  };
+
+  for(const rec of d.shape){
+    if(typeof rec!=="string" || !rec) continue;
+    if(rec.lastIndexOf("LIB~",0)===0){ addLib(rec); continue; }
+    addShape(rec, -1);
+  }
+
+  /* 立创的画布原点是任意的：这块四层板的图元落在 x≈4000 单位（≈1000 mm）处。
+     整块搬到原点旁边，状态栏的 X/Y、量距读数、#zoom 分享链接才读得懂，
+     也免得这么大的数值在画布变换里丢精度。偏离不到 25 mm 就不动。 */
+  let mx=Infinity, my=Infinity;
+  const chew=(x,y)=>{ if(x<mx)mx=x; if(y<my)my=y; };
+  for(const o of b.tracks){ chew(o.x1,o.y1); chew(o.x2,o.y2); }
+  for(const o of b.pads){ chew(o.x,o.y); }
+  for(const o of b.vias){ chew(o.x,o.y); }
+  for(const o of b.arcs){ chew(o.x,o.y); }
+  for(const o of b.fills){ chew(o.x1,o.y1); chew(o.x2,o.y2); }
+  for(const p of b.polys) for(const q of p.pts) chew(q[0],q[1]);
+  if(isFinite(mx) && isFinite(my) && (Math.abs(mx)>1000 || Math.abs(my)>1000)){
+    const dx=-mx, dy=-my;
+    for(const o of b.tracks){ o.x1+=dx; o.x2+=dx; o.y1+=dy; o.y2+=dy; }
+    for(const o of b.pads){ o.x+=dx; o.y+=dy; }
+    for(const o of b.vias){ o.x+=dx; o.y+=dy; }
+    for(const o of b.arcs){ o.x+=dx; o.y+=dy; }
+    for(const o of b.fills){ o.x1+=dx; o.x2+=dx; o.y1+=dy; o.y2+=dy; }
+    for(const p of b.polys) for(const q of p.pts){ q[0]+=dx; q[1]+=dy; }
+    for(const o of b.texts){ o.x+=dx; o.y+=dy; }
+    for(const o of b.comps){ o.x+=dx; o.y+=dy; }
+  }
+
+  finish(b);
+  b.__isBoard=true;
+  return b;
+}
+
+/* ==================== 立创EDA 专业版（.epro / .epro2） ====================
+   专业版的工程包是个 zip，里面那份 .epru 是「日志文档」：一行一条变更，形如
+
+       {"type":"LINE","ticket":2414,"id":"e27"}||{"layerId":1,"startX":...}|
+
+   左边是变更流水（票号 / 编号），右边才是真正的内容。同一份日志里混着
+   封装库（FOOTPRINT）和板子（PCB）两种文档，靠 DOCHEAD 分隔。
+
+   所以这里的读法是：
+     ① 先扫一遍，把 FOOTPRINT 文档里的焊盘按 uuid 存起来 —— 板上并不重复
+        存焊盘，只存「元件实例 + 封装引用」，得自己把封装展开到板上；
+     ② 再扫 PCB 段：走线 / 过孔 / 区域 / 文字直接读，元件按位置和角度展开焊盘。
+
+   坐标单位是 mil，证据是线宽 3.937（正好 = 0.1 mm）。
+*/
+/* ===================== 立创EDA 专业版：层号 → Protel 编号 =====================
+   专业版的层号是它自己的一套（1 顶铜 / 2 底铜 / 3~14 固定用途 / 15~46 信号 / 47 以后杂项），
+   跟 Protel 的 1~32 铜 + 33~38 丝印阻焊 + 56 板框 + 74 多层不是一个体系。
+   下面这张表是兜底；真板里的 LAYER 记录会给出权威的层类型和层名，解析时优先用它覆盖。 */
+const LCP_LT={TOP:1,BOTTOM:32,TOP_SILK:33,BOT_SILK:34,TOP_PASTE_MASK:35,
+              BOT_PASTE_MASK:36,TOP_SOLDER_MASK:37,BOT_SOLDER_MASK:38,
+              OUTLINE:56,MULTI:74};
+
+function lcedaProLayer(id){
+  id=+id;
+  if(!id) return 0;
+  if(id===1) return 1;
+  if(id===2) return 32;
+  if(id===3) return 33;
+  if(id===4) return 34;
+  if(id===5) return 37;
+  if(id===6) return 38;
+  if(id===7) return 35;
+  if(id===8) return 36;
+  if(id===11) return 56;
+  if(id===12) return 74;
+  if(id>=15 && id<=44) return Math.min(31, id-13);   /* 15→2 16→3 … 44→31 */
+  return 0;                                          /* 装配 / 文档 / 机械：不画 */
+}
+
+/* 圆弧离散：起点终点 + 扫角（逆时针正），先定圆心再按角度取样。
+   专业版的圆弧只给两端和角度，圆心要自己解；两个候选圆心里，
+   取「从起点按扫角走过去正好落在终点」的那个。 */
+function lcpArcPts(x1,y1,x2,y2,sweepDeg){
+  const sweep=(+sweepDeg||0)*Math.PI/180;
+  const chord=Math.hypot(x2-x1, y2-y1);
+  if(!(chord>1e-7) || Math.abs(sweep)<1e-5) return [[x2,y2]];
+  const r=chord/(2*Math.sin(Math.min(Math.PI*0.98, Math.abs(sweep)/2)));
+  /* 扫角接近 0 时半径会飞到无穷，这种弧其实就是直线；算出来的圆心太离谱也退化成直线 */
+  if(!isFinite(r) || r>chord*50) return [[x2,y2]];
+  const seg=Math.sqrt(Math.max(0, r*r-chord*chord/4));
+  const mx=(x1+x2)/2, my=(y1+y2)/2;
+  const ux=-(y2-y1)/chord, uy=(x2-x1)/chord;
+  const nrm=a=>{ while(a>Math.PI)a-=2*Math.PI; while(a<=-Math.PI)a+=2*Math.PI; return a; };
+  let bx=0, by=0, ba=0, be=Infinity;
+  for(const sg of [1,-1]){
+    const cx=mx+ux*seg*sg, cy=my+uy*seg*sg;
+    const a1=Math.atan2(y1-cy, x1-cx);
+    const a2=Math.atan2(y2-cy, x2-cx);
+    const err=Math.abs(nrm(a1+sweep-a2));
+    if(err<be){ be=err; bx=cx; by=cy; ba=a1; }
+  }
+  const n=Math.max(2, Math.min(48, Math.ceil(Math.abs(sweep)/(Math.PI/18))));
+  const out=[];
+  for(let i=1;i<=n;i++){
+    const a=ba+sweep*i/n;
+    out.push([bx+r*Math.cos(a), by+r*Math.sin(a)]);
+  }
+  out[out.length-1]=[x2,y2];      /* 收尾对齐，避免累计误差留缝 */
+  return out;
+}
+
+/* 专业版的多边形不是 SVG 字符串，而是一串 token。五种模式：
+   x y L x y …            直线（L 可省略，也可以连写成多段）
+   x y ARC 角度 ex ey     圆弧
+   x y C x1 y1 x2 y2 x3 y3  三阶贝塞尔
+   R x y w h rot isCCW    矩形
+   CIRCLE cx cy r         圆
+   统一拆成若干条折线点集。 */
+function lcpSub(tk){
+  const out=[];
+  let cur=null;
+  const last=()=>cur && cur.length ? cur[cur.length-1] : null;
+  let i=0;
+  while(i<tk.length){
+    const v=tk[i];
+    if(typeof v==="number"){
+      if(!cur) cur=[];
+      cur.push([v, +tk[i+1]||0]);
+      i+=2;
+      continue;
+    }
+    const k=String(v).toUpperCase();
+    if(k==="L"){ i++; continue; }
+    if(k==="ARC" || k==="CARC"){
+      i++;
+      const ang=+tk[i]||0;
+      const ex=+tk[i+1]||0, ey=+tk[i+2]||0;
+      i+=3;
+      const p=last();
+      if(p) cur=cur.concat(lcpArcPts(p[0],p[1],ex,ey,ang));
+      else cur=[[ex,ey]];
+      continue;
+    }
+    if(k==="C"){
+      i++;
+      const p1=[+tk[i]||0,+tk[i+1]||0], p2=[+tk[i+2]||0,+tk[i+3]||0], p3=[+tk[i+4]||0,+tk[i+5]||0];
+      i+=6;
+      const p0=last() || p1;
+      if(!cur) cur=[[p0[0],p0[1]]];
+      for(let s=1;s<=8;s++){
+        const t=s/8, u=1-t;
+        cur.push([
+          u*u*u*p0[0]+3*u*u*t*p1[0]+3*u*t*t*p2[0]+t*t*t*p3[0],
+          u*u*u*p0[1]+3*u*u*t*p1[1]+3*u*t*t*p2[1]+t*t*t*p3[1]
+        ]);
+      }
+      continue;
+    }
+    if(k==="R"){
+      i++;
+      const x=+tk[i]||0, y=+tk[i+1]||0, w=+tk[i+2]||0, h=+tk[i+3]||0, rot=(+tk[i+4]||0)*Math.PI/180;
+      i+=6;                                   /* R x y w h rot isCCW */
+      const ca=Math.cos(rot), sa=Math.sin(rot);
+      const q=[[x,y],[x+w,y],[x+w,y+h],[x,y+h]].map(p=>{
+        const dx=p[0]-x, dy=p[1]-y;
+        return [x+dx*ca-dy*sa, y+dx*sa+dy*ca];
+      });
+      out.push(q);
+      cur=null;
+      continue;
+    }
+    if(k==="CIRCLE"){
+      i++;
+      const cx=+tk[i]||0, cy=+tk[i+1]||0, r=Math.abs(+tk[i+2]||0);
+      i+=3;
+      const q=[];
+      for(let s=0;s<24;s++){
+        const a=s/24*Math.PI*2;
+        q.push([cx+r*Math.cos(a), cy+r*Math.sin(a)]);
+      }
+      out.push(q);
+      cur=null;
+      continue;
+    }
+    i++;                                      /* 认不出的 token：跳过 */
+  }
+  if(cur && cur.length>1) out.push(cur);
+  return out;
+}
+function lcpPath(path){
+  if(!Array.isArray(path) || !path.length) return [];
+  if(Array.isArray(path[0])){
+    const out=[];
+    for(const seg of path) out.push(...lcpPath(seg));
+    return out;
+  }
+  return lcpSub(path);
+}
+
+function looksLcedaPro(entries){
+  if(!entries) return false;
+  for(const e of entries)
+    if(/\.epru$/i.test(e.name) || /project2\.json$/i.test(e.name)) return true;
+  return false;
+}
+
+async function parseLcedaPro(entries){
+  let epru=null;
+  for(const e of entries) if(/\.epru$/i.test(e.name)){ epru=e; break; }
+  if(!epru) throw new Error(T("errProNoLog"));
+  let buf;
+  if(epru.method===0){
+    const d=epru.data;
+    buf=d.buffer.slice(d.byteOffset, d.byteOffset+d.byteLength);
+  }else{
+    buf=await inflateRaw(epru.data);
+  }
+  if(!buf) throw new Error(T("zipNeedUnzip"));
+  return parseLcedaLog(new TextDecoder("utf-8").decode(new Uint8Array(buf)));
+}
+
+function parseLcedaLog(txt){
+  const b={
+    layers:{}, copper:[], nets:[], tracks:[], pads:[], vias:[], arcs:[],
+    fills:[], texts:[], comps:[], polys:[], sections:[], warn:[],
+    fmt:"lceda", fromDdb:false, boardCount:1, layerNames:{}
+  };
+  const DEFN={1:"Top Layer",32:"Bottom Layer",33:"TopSilk",34:"BottomSilk",
+              56:"BoardOutline",74:"Multi-Layer"};
+  for(const k in DEFN) b.layerNames[+k]=DEFN[k];
+
+  const netIds=new Map();
+  const netNum=nm=>{
+    if(nm===undefined || nm===null) return 0;
+    const s=String(nm).trim();
+    if(!s) return 0;
+    let id=netIds.get(s);
+    if(!id){ id=b.nets.length+1; netIds.set(s,id); b.nets[id-1]=s; }
+    return id;
+  };
+  let polySeq=0;
+  const addPoly=(pts,layer,net)=>{
+    if(!(layer>0) || !pts || pts.length<3) return;
+    b.polys.push({kind:"polygon",layer:layer,net:net||0,pid:++polySeq,pts:pts,closed:true});
+  };
+
+  const lines=txt.split("\n");
+
+  /* 头部 id 有两种写法：普通字符串 "e21"，和字符串化数组 "[\"PAD_NET\",\"e0\",\"2\",\"e12\"]"。
+     后者是焊盘网络映射，元件号和焊盘号都藏在这串里，不拆开就拿不到焊盘的网络。 */
+  const head=ln=>{
+    const k=ln.indexOf("||");
+    if(k<0) return null;
+    let o;
+    try{ o=JSON.parse(ln.slice(0,k)); }catch(_){ return null; }
+    if(!o || typeof o!=="object") return null;
+    let id=o.id;
+    if(typeof id==="string" && id.charCodeAt(0)===91){
+      try{ id=JSON.parse(id); }catch(_){}
+    }
+    return {type:o.type, id:id, body:ln.slice(k+2, ln.lastIndexOf("|"))};
+  };
+
+  /* ---- 第一遍：封装库（焊盘 + 丝印），以及 PCB 文档的权威层表 ---- */
+  const fps=new Map();          /* 封装 uuid → {pads:[], geo:[]} */
+  const layMap=new Map();       /* 专业版层号 → Protel 编号 */
+  const devs=new Map();         /* 器件 uuid → 型号 / 值（DEVICE 文档里才有） */
+  let doc=null, fp=null, docUuid="";
+  for(let n=0;n<lines.length;n++){
+    const ln=lines[n];
+    if(ln.length<20 || ln.charCodeAt(0)!==123) continue;
+    const h=head(ln);
+    if(!h) continue;
+    if(h.type==="DOCHEAD"){
+      let d=null;
+      try{ d=JSON.parse(h.body); }catch(_){ d=null; }
+      doc=d?d.docType:null;
+      docUuid=d?String(d.uuid||""):"";
+      fp=null;
+      if(doc==="FOOTPRINT"){
+        /* 封装 uuid 必须整串用：属性里的 Footprint 就是这一整串，
+           按 "_" 截断会把好几个不同的封装（565 盘 / 260 盘）并成一个。 */
+        const u=docUuid;
+        if(!fps.has(u)) fps.set(u,{pads:[], geo:[]});
+        fp=fps.get(u);
+      }
+      continue;
+    }
+    if(doc==="PCB"){
+      if(h.type!=="LAYER" || !Array.isArray(h.id)) continue;
+      const lid=+h.id[1]||0;
+      if(!lid) continue;
+      let o;
+      try{ o=JSON.parse(h.body); }catch(_){ continue; }
+      const ty=String(o.layerType||"").toUpperCase();
+      let p=LCP_LT[ty];
+      if(p===undefined && ty==="SIGNAL") p=Math.min(31, lid-13);
+      if(p===undefined) p=0;
+      layMap.set(lid,p);
+      if(p && o.layerName) b.layerNames[p]=String(o.layerName);
+      continue;
+    }
+    if(!fp && doc!=="DEVICE") continue;
+    if(doc==="DEVICE"){
+      /* 元件的型号 / 值不在 PCB 里，在 DEVICE 文档的 META 里：
+         Value 是纯值（2.2kΩ），Name 有时写成 ={Value} 这种公式，要往下退一级。 */
+      if(h.type!=="META") continue;
+      let o;
+      try{ o=JSON.parse(h.body); }catch(_){ continue; }
+      const at=o.attributes || {};
+      let v=at.Value;
+      if(!v || /^=/.test(String(v))) v=at.Name;
+      if(!v || /^=/.test(String(v))) v=o.title;   /* 器件名缺失时退到料号 */
+      if(v) devs.set(docUuid, String(v).trim());
+      continue;
+    }
+    if(!fp) continue;
+    const t=h.type;
+    if(t!=="PAD" && t!=="LINE" && t!=="ARC" && t!=="POLY" && t!=="FILL" &&
+       t!=="CIRCLE" && t!=="ELLIPSE") continue;
+    let o;
+    try{ o=JSON.parse(h.body); }catch(_){ continue; }
+    if(t==="PAD"){
+      const dp=o.defaultPad || {};
+      const ho=o.hole;
+      let hole=0;
+      if(ho && typeof ho==="object"){
+        /* hole 是 {holeType, width, height}，不是单个数字。
+           长圆孔（SLOT）的短轴才是真正的钻孔径，取小的那个。 */
+        const hw=Math.abs(+ho.width||0), hh=Math.abs(+ho.height||0);
+        hole=(hw>0 && hh>0) ? Math.min(hw,hh) : (hw||hh);
+      }else if(ho){
+        hole=Math.abs(+ho)||0;
+      }
+      const pt=String(dp.padType||"").toUpperCase();
+      fp.pads.push({
+        cx:+o.centerX||0, cy:+o.centerY||0,
+        lid:+o.layerId||1, num:String(o.num||""),
+        rot:+o.padAngle||0,
+        w:Math.abs(+dp.width||0), h:Math.abs(+dp.height||0),
+        /* RECT 画方盘，ROUND/OVAL/ELLIPSE/NGON/POLY 都按圆头画 */
+        shape:(pt==="RECT"||pt==="SQUARE"||pt==="POLYGON")?2:1,
+        hole:hole, plated:(o.plated!==false && o.plated!==0)
+      });
+      continue;
+    }
+    /* 封装里的图形只收丝印层（3 顶 / 4 底）。铜层图形交给焊盘，不然重复画。 */
+    const lid=+o.layerId||0;
+    if(lid!==3 && lid!==4) continue;
+    if(t==="LINE"){
+      fp.geo.push({k:1,x1:+o.startX||0,y1:+o.startY||0,x2:+o.endX||0,y2:+o.endY||0,
+                   w:Math.abs(+o.width||0),lid:lid});
+    }else if(t==="ARC"){
+      fp.geo.push({k:2,x1:+o.startX||0,y1:+o.startY||0,x2:+o.endX||0,y2:+o.endY||0,
+                   ang:+o.angle||0,w:Math.abs(+o.width||0),lid:lid});
+    }else{
+      const w=Math.abs(+o.width||0), fill=(t==="FILL");
+      for(const pts of lcpPath(o.path)){
+        if(pts.length<2) continue;
+        fp.geo.push({k:3,pts:pts,w:w,fill:fill,lid:lid});
+      }
+    }
+  }
+
+  /* 层表是权威的；万一某个层号没在表里（老文件），退回内置映射 */
+  const layOf=id=>{
+    const v=layMap.get(+id);
+    return v!==undefined ? v : lcedaProLayer(id);
+  };
+
+  /* ---- 第二遍：板子本体 ---- */
+  const comps=new Map();        /* 元件号 → {x,y,angle,lid,fp,ref,com} */
+  const attrs=[];
+  const padNet=new Map();       /* 元件号 → Map(焊盘号 → 网络名) */
+  doc=null;
+  for(let n=0;n<lines.length;n++){
+    const ln=lines[n];
+    if(ln.length<20 || ln.charCodeAt(0)!==123) continue;
+    const h=head(ln);
+    if(!h) continue;
+    const t=h.type;
+    if(t==="DOCHEAD"){
+      let d=null;
+      try{ d=JSON.parse(h.body); }catch(_){ d=null; }
+      doc=d?d.docType:null;
+      continue;
+    }
+    if(doc!=="PCB") continue;
+
+    if(t==="LINE"){
+      let o; try{ o=JSON.parse(h.body); }catch(_){ continue; }
+      const lay=layOf(o.layerId);
+      if(!lay) continue;
+      b.tracks.push({kind:"track",layer:lay,net:netNum(o.netName),comp:-1,
+                     x1:+o.startX,y1:+o.startY,x2:+o.endX,y2:+o.endY,
+                     w:Math.abs(+o.width||0)||6});
+      continue;
+    }
+    if(t==="VIA"){
+      let o; try{ o=JSON.parse(h.body); }catch(_){ continue; }
+      b.vias.push({kind:"via",layer:74,net:netNum(o.netName),
+                   x:+o.centerX,y:+o.centerY,
+                   dia:Math.abs(+o.viaDiameter||0)||12,
+                   hole:Math.abs(+o.holeDiameter||0),start:1,end:32});
+      continue;
+    }
+    if(t==="ARC"){
+      let o; try{ o=JSON.parse(h.body); }catch(_){ continue; }
+      const lay=layOf(o.layerId);
+      if(!lay) continue;
+      const x1=+o.startX, y1=+o.startY, x2=+o.endX, y2=+o.endY;
+      const w=Math.abs(+o.width||0)||6, net=netNum(o.netName);
+      const pts=[[x1,y1]].concat(lcpArcPts(x1,y1,x2,y2,+o.angle||0));
+      for(let i=0;i+1<pts.length;i++){
+        b.tracks.push({kind:"track",layer:lay,net:net,comp:-1,
+                       x1:pts[i][0],y1:pts[i][1],x2:pts[i+1][0],y2:pts[i+1][1],w:w});
+      }
+      continue;
+    }
+    if(t==="FILL" || t==="POLY" || t==="REGION" || t==="POUR"){
+      let o; try{ o=JSON.parse(h.body); }catch(_){ continue; }
+      /* 覆铜（POUR/POURED）内部存的是归一化坐标，跟板坐标不是一个原点，
+         硬画会整片错位，宁可不画。 */
+      if(t==="POUR") continue;
+      const lay=layOf(o.layerId);
+      if(!lay) continue;
+      const net=netNum(o.netName);
+      const w=Math.abs(+o.width||0);
+      for(const pts of lcpPath(o.path)){
+        if(pts.length<2) continue;
+        /* REGION 是禁止布线区，不是铜；它用的还是画布局部坐标，
+           画出来会有一大块游离图形，直接丢。 */
+        if(t==="REGION") continue;
+        if(t==="FILL"){ addPoly(pts,lay,net); continue; }
+        /* POLY 是折线：板框直接闭合，其余按线宽描边 */
+        if(lay===56 && pts.length>=3){ addPoly(pts,lay,net); continue; }
+        const ww=w>0.2?w:6;
+        for(let i=0;i+1<pts.length;i++){
+          b.tracks.push({kind:"track",layer:lay,net:net,comp:-1,
+                         x1:pts[i][0],y1:pts[i][1],x2:pts[i+1][0],y2:pts[i+1][1],w:ww});
+        }
+      }
+      continue;
+    }
+    if(t==="STRING" || t==="TEXT"){
+      let o; try{ o=JSON.parse(h.body); }catch(_){ continue; }
+      const lay=layOf(o.layerId)||(o.layerId?0:33);
+      if(!lay) continue;
+      const s=String(o.text!==undefined?o.text:(o.value||"")).trim();
+      if(!s) continue;
+      b.texts.push({kind:"text",layer:lay,net:0,comp:-1,
+                    x:+o.x||0, y:+o.y||0,
+                    h:Math.abs(+o.fontSize||0)/2||40,
+                    rot:-(+o.angle||0)/10, text:s, isDes:false, isCom:false});
+      continue;
+    }
+    if(t==="COMPONENT"){
+      let o; try{ o=JSON.parse(h.body); }catch(_){ continue; }
+      if(h.id===undefined || Array.isArray(h.id)) continue;
+      comps.set(h.id, {
+        x:+o.x||0, y:+o.y||0, angle:+o.angle||0,
+        lid:+o.layerId||1, fp:"", dev:"", ref:"", com:""
+      });
+      continue;
+    }
+    if(t==="PAD_NET"){
+      let o; try{ o=JSON.parse(h.body); }catch(_){ continue; }
+      if(!Array.isArray(h.id)) continue;
+      const cid=h.id[1], num=String(h.id[2]===undefined?"":h.id[2]), nm=String(o.padNet||"");
+      if(!cid || !nm) continue;
+      let m=padNet.get(cid);
+      if(!m) padNet.set(cid, m=new Map());
+      m.set(num, nm);
+      continue;
+    }
+    if(t==="ATTR"){
+      /* 属性行和元件行不一定谁先谁后（日志按变更时间排），先收着，最后统一并 */
+      let o; try{ o=JSON.parse(h.body); }catch(_){ continue; }
+      attrs.push(o);
+      continue;
+    }
+  }
+
+  /* 属性并回元件：Footprint = 封装 uuid（整串），Designator = 位号，Device = 器件 uuid */
+  for(const a of attrs){
+    const c=comps.get(a.parentId);
+    if(!c) continue;
+    const k=String(a.key||""), v=String(a.value===undefined?"":a.value);
+    if(k==="Footprint") c.fp=v;
+    else if(k==="Designator") c.ref=v;
+    else if(k==="Device") c.dev=v;
+    else if(k==="Value" && !c.com) c.com=v;
+  }
+
+  /* ---- 展开元件：把封装里的焊盘和丝印按位置 / 角度搬到板上 ---- */
+  let compSeq=0;
+  comps.forEach((c,cid)=>{
+    const id=++compSeq;
+    const back=(c.lid===2);            /* 元件在底面：局部坐标先镜像 X 再旋转 */
+    b.comps.push({id:id,layer:back?32:1,x:c.x,y:c.y,rot:-c.angle,lib:c.fp});
+    const rad=(c.angle||0)*Math.PI/180;
+    const ca=Math.cos(rad), sa=Math.sin(rad);
+    /* 封装局部坐标 → 板坐标 */
+    const tp=(lx,ly)=>{
+      const mx=back?-lx:lx;
+      return [c.x+mx*ca-ly*sa, c.y+mx*sa+ly*ca];
+    };
+    const silkOf=lid=>((lid===3)===(!back))?33:34;   /* 翻面后丝印层互换 */
+
+    const f=fps.get(c.fp)||{pads:[],geo:[]};
+    const nms=padNet.get(cid);
+
+    for(const p of f.pads){
+      const q=tp(p.cx,p.cy);
+      let lay;
+      if(p.lid===12) lay=74;                 /* 多层焊盘 = 通孔 */
+      else if(p.lid===2) lay=back?1:32;      /* 只做在底面的焊盘 */
+      else lay=back?32:1;
+      if(p.hole>0) lay=74;
+      b.pads.push({kind:"pad",layer:lay,
+                   net:(nms && p.num)?netNum(nms.get(p.num)):0,
+                   comp:id,x:q[0],y:q[1],
+                   xs:p.w,ys:p.h,xm:p.w,ym:p.h,xb:p.w,yb:p.h,stack:false,
+                   hole:p.hole,shape:p.shape,name:p.num,
+                   rot:-(p.rot+(back?-c.angle:c.angle)),plated:p.plated});
+    }
+
+    for(const g of f.geo){
+      const sl=silkOf(g.lid);
+      if(g.k===1){
+        const a=tp(g.x1,g.y1), d=tp(g.x2,g.y2);
+        b.tracks.push({kind:"track",layer:sl,net:0,comp:id,
+                       x1:a[0],y1:a[1],x2:d[0],y2:d[1],
+                       w:g.w>0.3?g.w:4});
+      }else if(g.k===2){
+        const a=tp(g.x1,g.y1), d=tp(g.x2,g.y2);
+        const pts=[[a[0],a[1]]].concat(lcpArcPts(a[0],a[1],d[0],d[1],back?-g.ang:g.ang));
+        for(let i=0;i+1<pts.length;i++){
+          b.tracks.push({kind:"track",layer:sl,net:0,comp:id,
+                         x1:pts[i][0],y1:pts[i][1],x2:pts[i+1][0],y2:pts[i+1][1],
+                         w:g.w>0.3?g.w:4});
+        }
+      }else{
+        const pts=g.pts.map(q=>tp(q[0],q[1]));
+        if(g.fill && pts.length>=3){ addPoly(pts,sl,0); continue; }
+        const w=g.w>0.3?g.w:4;
+        for(let i=0;i+1<pts.length;i++){
+          b.tracks.push({kind:"track",layer:sl,net:0,comp:id,
+                         x1:pts[i][0],y1:pts[i][1],x2:pts[i+1][0],y2:pts[i+1][1],
+                         w:w});
+        }
+      }
+    }
+
+    if(c.ref){
+      b.texts.push({kind:"text",layer:back?34:33,comp:id,x:c.x,y:c.y,
+                    h:40,rot:0,text:c.ref,isDes:true,isCom:false});
+    }
+    const com0=c.com || devs.get(c.dev) || "";
+    /* 有些器件的名字是一整句话（屏蔽夹写成「长6.5mm*高…」），
+       原样画上去会盖住半块板，掐短再显示。 */
+    const com=com0.length>18 ? com0.slice(0,18)+"…" : com0;
+    if(com && com!==c.ref){
+      b.texts.push({kind:"text",layer:back?34:33,comp:id,x:c.x,y:c.y-60,
+                    h:32,rot:0,text:com,isDes:false,isCom:true});
+    }
+  });
+
+  if(!b.tracks.length && !b.pads.length){
+    throw new Error(T("errProEmpty"));
+  }
+
+  /* 跟标准版一样：立创的原点在画布左下角，坐标常在一千多毫米处，
+     整块搬回原点旁边，状态栏和分享链接才读得懂。 */
+  let mx=Infinity, my=Infinity;
+  const chew=(x,y)=>{ if(x<mx)mx=x; if(y<my)my=y; };
+  for(const o of b.tracks){ chew(o.x1,o.y1); chew(o.x2,o.y2); }
+  for(const o of b.pads){ chew(o.x,o.y); }
+  for(const o of b.vias){ chew(o.x,o.y); }
+  for(const o of b.fills){ chew(o.x1,o.y1); chew(o.x2,o.y2); }
+  for(const p of b.polys) for(const q of p.pts) chew(q[0],q[1]);
+  if(isFinite(mx) && isFinite(my) && (Math.abs(mx)>1000 || Math.abs(my)>1000)){
+    const dx=-mx, dy=-my;
+    for(const o of b.tracks){ o.x1+=dx; o.x2+=dx; o.y1+=dy; o.y2+=dy; }
+    for(const o of b.pads){ o.x+=dx; o.y+=dy; }
+    for(const o of b.vias){ o.x+=dx; o.y+=dy; }
+    for(const o of b.arcs){ o.x+=dx; o.y+=dy; }
+    for(const o of b.fills){ o.x1+=dx; o.x2+=dx; o.y1+=dy; o.y2+=dy; }
+    for(const p of b.polys) for(const q of p.pts){ q[0]+=dx; q[1]+=dy; }
+    for(const o of b.texts){ o.x+=dx; o.y+=dy; }
+    for(const o of b.comps){ o.x+=dx; o.y+=dy; }
+  }
+
+  finish(b);
+  b.__isBoard=true;
+  return b;
+}
+
 function parseAny(buf,name){
   if(looksKicad(buf)){
     const txt=new TextDecoder("utf-8").decode(new Uint8Array(buf));
     return parseKicad(txt);
+  }
+  if(looksEasyEda(buf)){
+    const txt=new TextDecoder("utf-8").decode(new Uint8Array(buf));
+    return parseEasyEda(txt);
   }
   return parseBoard(buf);
 }
@@ -4879,7 +5794,7 @@ function loadBuffer(buf,name,gerSet){
   toast("");
   try{
     const t0=performance.now();
-    B=gerSet ? parseGerberSet(gerSet) : parseAny(buf);
+    B = (buf && buf.__isBoard) ? buf : (gerSet ? parseGerberSet(gerSet) : parseAny(buf));
     const dt=Math.round(performance.now()-t0);
     lastName=name; lastMs=dt;
     show={}; solo=null; hi=null; LIT=null; pickMode="";
@@ -4988,7 +5903,8 @@ function apiUrl(path, extra){
 function applyBoards(list, file){
   if(!list || !list.length){ toast(T("errNoSec", /\.ddb$/i.test(file||""))); return; }
   /* 不再冲掉当前这份 —— 每个文件开一个页签 */
-  openDoc(list.map(b=>({n:b.n, d:b.d, buf:null, g:b.g||null})), file||"");
+  openDoc(list.map(b=>({n:b.n, d:b.d, buf:null, g:b.g||null,
+                        ptxt:b.ptxt||null, ptxz:b.ptxz||null})), file||"");
 }
 function handleOpenResult(j){
   if(!j) return;
@@ -5011,7 +5927,11 @@ async function openViaServer(){
 }
 async function uploadToServer(f){
   const nm=f.name||"board.pcb";
-  if(!/\.(pcb|ddb|kicad_pcb)$/i.test(nm)){ toast(T("noPcb")); return; }
+  /* 后缀只是一道粗筛：板厂给的 Gerber 包常常没后缀，光看名字会把好东西挡在门外。
+     真正的判断交给 exe 那侧（它按内容嗅 + 按 zip 内部结构认工程包）。 */
+  if(!/\.(pcb|ddb|kicad_pcb|json|epro|epro2|zip)$/i.test(nm) && !GER_EXT.test(nm)){
+    toast(T("noPcb")); return;
+  }
   toast(T("reading"));
   try{
     const buf=await f.arrayBuffer();
@@ -5091,7 +6011,9 @@ const hint=document.getElementById("hint");
 /* 一次拖进来好几个文件：
      · .pcb / .ddb / .kicad_pcb → 各开一个页签（.ddb 一次出多块板的仍算一个页签）
      · Gerber / 钻孔            → 归成一组，合成一块板（一个页签）
-     · .zip                     → 解开后按上面两条走
+     · .zip / .epro / .epro2    → 解开后按上面两条走（专业版工程包也是 zip）
+     · 立创标准版 .json         → 一个页签
+   认不出来的按内容嗅，别只看后缀 —— 板厂给的包常常压根没后缀。
    顺次等待，是为了让"新文档"的创建不打架 —— 同一时刻只能有一份在解析。
    Gerber 的后缀各家各样，认不出来的就读文件头嗅探（板厂给的包常常压根没后缀）。 */
 const GER_EXT=/\.(gbr|gbl|gtl|gbs|gts|gbo|gto|gko|gm1|gml|gmb|gpt|gbp|pho|art|gbx|g\d+|gl\d|gp\d|gg\d|drl|xln|nc|ncd|exc)$/i;
@@ -5171,16 +6093,35 @@ async function openFiles(list){
   const arr=[...list];
   if(!arr.length){ toast(T("noPcb")); return Promise.resolve(); }
   return (async()=>{
-    const solo=[], ger=[], zips=[];
+    const solo=[], ger=[], zips=[], easy=[];
     for(const f of arr){
       const n=f.name||"";
       if(/\.(pcb|ddb|kicad_pcb)$/i.test(n)){ solo.push(f); continue; }
-      if(/\.zip$/i.test(n)){ zips.push(f); continue; }
+      /* 立创EDA 专业版的工程包就是 zip，只是后缀改成 .epro / .epro2 */
+      if(/\.(zip|epro|epro2)$/i.test(n)){ zips.push(f); continue; }
       if(GER_EXT.test(n)){ ger.push(f); continue; }
       const head=await readHeadOf(f, 4096);
-      if(head && gbLooks(head)) ger.push(f);
+      if(head && gbLooks(head)){ ger.push(f); continue; }
+      /* 剩下的按内容嗅：立创标准版是 .json，专业版丢过来可能连后缀都没有 */
+      const all=await readAllOf(f);
+      if(!all) continue;
+      const u8=new Uint8Array(all);
+      if(u8.length>3 && u8[0]===0x50 && u8[1]===0x4b){ zips.push(f); continue; }
+      if(looksEasyEda(all)) easy.push({f:f, buf:all});
     }
     for(const f of solo){ await openLocalFile(f); await new Promise(r=>setTimeout(r,300)); }
+
+    for(const e of easy){
+      const nm=(e.f.name||"easyeda").replace(/\.[^.]+$/,"");
+      try{
+        toast(T("reading"));
+        const b3=parseEasyEda(new TextDecoder("utf-8").decode(new Uint8Array(e.buf)));
+        openDoc([{n:nm, d:null, buf:null, pre:b3}], nm);
+      }catch(err){
+        toast(nm+" — "+(err&&err.message||err));
+      }
+      await new Promise(r=>setTimeout(r,300));
+    }
 
     if(zips.length){
       for(const zf of zips){
@@ -5188,6 +6129,18 @@ async function openFiles(list){
         let ents=null;
         try{ ents=await unzipAll(buf); }catch(_){ ents=null; }
         if(!ents){ toast(T("zipNeedUnzip")); continue; }
+        /* 立创EDA 专业版的工程包：里面是一份 .epru 设计日志，不是一层一个 gerber */
+        if(looksLcedaPro(ents)){
+          const nm=zf.name.replace(/\.[^.]+$/,"");
+          try{
+            toast(T("reading"));
+            const b2=await parseLcedaPro(ents);
+            openDoc([{n:nm, d:null, buf:null, pre:b2}], nm);
+          }catch(e){
+            toast(nm+" — "+(e&&e.message||e));
+          }
+          continue;
+        }
         const inner=[];
         for(const e of ents){
           if(/\/$/.test(e.name)) continue;
@@ -5215,7 +6168,7 @@ async function openFiles(list){
       }
     }
     if(ger.length) await openGerberPack(ger);
-    if(!solo.length && !ger.length && !zips.length) toast(T("noPcb"));
+    if(!solo.length && !ger.length && !zips.length && !easy.length) toast(T("noPcb"));
   })();
 }
 stage.addEventListener("drop",e=>{
@@ -5423,7 +6376,35 @@ function activate(i){
     loadMarks();
   }else{
     const bd=BOARDS[curBoard]||BOARDS[0];
-    if(bd && bd.g){
+    if(bd && (bd.ptxt || bd.ptxz)){
+      /* 立创专业版：exe 那侧已经把 .epru 设计日志从工程包里掏出来了。
+         ptxt  = 明文（base64）
+         ptxtz = raw deflate（base64），18 MB 的日志压完只剩 14%，内嵌 html 不至于爆 */
+      syncBoardSelect();
+      (async()=>{
+        let txt;
+        try{
+          if(bd.ptxt){
+            txt=new TextDecoder("utf-8").decode(b64ToBuf(bd.ptxt));
+          }else{
+            const z=new Uint8Array(b64ToBuf(bd.ptxz));
+            const ab=await inflateRaw(z);
+            if(!ab) throw new Error(T("zipNeedUnzip"));
+            txt=new TextDecoder("utf-8").decode(new Uint8Array(ab));
+          }
+        }catch(err){
+          toast((bd.n||d.name)+" — "+(err&&err.message||err));
+          return;
+        }
+        bd.ptxt=txt; bd.ptxz=null;      /* 解过一次就留着，切页签不用再解一遍 */
+        try{ loadBuffer(parseLcedaLog(txt), bd.n||d.name); }
+        catch(err){ toast((bd.n||d.name)+" — "+(err&&err.message||err)); }
+      })();
+    }else if(bd && bd.pre){
+      /* 立创专业版：包解开就得先解析一遍才知道有没有板，结果直接挂在这里 */
+      syncBoardSelect();
+      loadBuffer(bd.pre, bd.n||d.name);
+    }else if(bd && bd.g){
       syncBoardSelect();
       /* 拖进来的是现成的 ArrayBuffer；从 exe 传来的那份是 base64，要现解 */
       loadBuffer(null, bd.n||d.name, bd.g.map(x=>({
@@ -5453,6 +6434,7 @@ function openDoc(items, file, bi){
      否则同样的文件名会被当成"已经开着"直接切过去。 */
   const g0=items[0].g;
   const keyBase=file+"|"+items.length+"|"+String((items[0].d||"").length)
+              +String((items[0].ptxt||"").length)+String((items[0].ptxz||"").length)
               +(g0 ? "|g"+g0.length+"|"+(g0[0].n||"")+(g0[0].buf?g0[0].buf.byteLength:0) : "");
   const key=keyBase+"|"+bi;
   const old=DOCS.findIndex(d=>d.key===key);
@@ -5465,7 +6447,9 @@ function openDoc(items, file, bi){
   if(DOCS.length>=12){ toast(T("tabLimit")); return; }
   DOCS.push({key:key, keyBase:keyBase, bid:bi, id:++docSeq,
              name:file||items[0].n||"board",
-             boards:items.map(b=>({n:b.n, d:b.d||null, buf:b.buf||null, g:b.g||null})),
+             boards:items.map(b=>({n:b.n, d:b.d||null, buf:b.buf||null, g:b.g||null,
+                                pre:b.pre||null, ptxt:b.ptxt||null,
+                                ptxz:b.ptxz||null})),
              cur:bi, B:null, ms:0, st:null});
   curDoc=-1;                           // 新页签：让 activate 走「第一次载入」
   activate(DOCS.length-1);
@@ -5509,7 +6493,8 @@ function showHome(){
 (async()=>{
   try{
     if(window.__BOARDS__ && window.__BOARDS__.length){
-      openDoc(window.__BOARDS__.map(x=>({n:x.n, d:x.d, buf:null, g:x.g||null})),
+      openDoc(window.__BOARDS__.map(x=>({n:x.n, d:x.d, buf:null, g:x.g||null,
+                                        ptxt:x.ptxt||null, ptxz:x.ptxz||null})),
               window.__FILE__||"");
       return;
     }
