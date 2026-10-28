@@ -1,4 +1,4 @@
-# PCB 看板 / CopperLens v1.15
+# PCB 看板 / CopperLens v1.16
 
 **中文** ｜ [English](#english) ｜ [版本履历 Changelog](CHANGELOG.md)
 
@@ -27,6 +27,8 @@
 | `.ddb`（设计库） | 一次抽出库里所有板子，**每块板各占一个页签**，能并排对照 |
 | `.kicad_pcb`（KiCad） | KiCad 6 / 7 / 8 / 9 / 10 的板文件（纯文本）；4、5 版的老格式也认。见「v1.14 重点」 |
 | **Gerber + 钻孔**（`.gbr` `.gtl` `.gbl` `.gko` `.drl` `.xln` …） | 板厂给的那一包制造文件，**一层一个文件，整包一起拖进来合成一块板**；也可以直接给 `.zip`。见「v1.15 重点」 |
+| 立创EDA **标准版** `.json` | 立创EDA 导出的板文件（纯文本 JSON）。见「v1.16 重点」 |
+| 立创EDA **专业版** `.epro2` / `.epro` | 整个工程包直接拖进来，里面那份 `.epru` 设计日志会自己解开。见「v1.16 重点」 |
 
 明确**不做**：原理图（`.sch`）、`PCB 3.0`（更早的 16 位版本，部分兼容、未逐一验证）。
 宁可明确报错，也不给一张假图 —— 照假图查线是要出事的。
@@ -34,7 +36,7 @@
 ## 用法
 
 双击 exe → 先过一段**海报**（几秒，点一下可跳过）→ 进**首页**；
-首页点「打开文件」选 `.ddb` / `.pcb` / `.kicad_pcb` / Gerber（同一个对话框），
+首页点「打开文件」选 `.ddb` / `.pcb` / `.kicad_pcb` / 立创 `.json` / `.epro2` / Gerber（同一个对话框），
 也可以把文件拖到 exe 图标上，或拖进窗口。**手上没文件也能打开程序看界面**。
 
 点一下走线或焊盘 → 与之电气相连的整条铜亮黄，状态栏写出具体脚位。
@@ -58,6 +60,50 @@
 鼠标：滚轮**以指针位置为锚点**缩放；**按住左键拖到画布边缘，画面自己往那个方向走**
 （越靠边越快，松手就停）；放大后**左上角缩略图**里的黄框是当前视野，点一下跳过去；
 板上**右键写一句话**就是一条标记，按板子存档。
+
+## v1.16 重点
+
+**立创EDA（EasyEDA）两种版本的板子都能看了。** 标准版是 `.json`，专业版是 `.epro2` / `.epro`
+工程包 —— 国内打板圈最常用的就是这两样，对方给文件十有八九是它们。
+
+| 之前 | 现在 |
+|---|---|
+| 只有 Protel、KiCad、Gerber 三条路，**立创画的板打不开** | 标准版 `.json` 直接拖；专业版 `.epro2` 整个工程包直接拖 |
+| — | 铜层按板子自己的名字列：`GND02` / `S03` / `POWER05` / `GND07`，不是笼统的"内层 1" |
+| — | 焊盘带真实网络名（`I2C5_SCL_M0`、`VCC_3V3`），查线、清单照样按名字走 |
+| — | 位号与型号从器件库里翻出来：`U6 = RK3566`、`R70 = 2.2kΩ` |
+
+专业版那个包其实是 **zip**，里面除了一堆图片，真正的板子只有一份 `.epru` **设计日志**：
+一行一条变更，形如 `{"type":"LINE","ticket":2414,"id":"e27"}||{"layerId":1,"startX":…}|`，
+左边是流水号，右边才是内容 —— 所以读法是"按日志重建"，不是"按表取数"。
+
+### 五个坑（都踩过）
+
+1. **元件和它的属性分两行存，先后顺序不保证** —— 属性行可能排在同一条元件之前。
+   边读边合会丢掉一半位号，得先全收着，扫完再统一并。
+2. **封装 uuid 必须整串匹配。** 属性里的 `Footprint` 是 `49e9c3dbcc05e765_a816…` 这种整串；
+   我一开始按 `_` 截断去前缀，结果把 8 个不同的封装并成同一个，单个元件摊出 2114 个焊盘，
+   整板虚报 **17818** 个（实际 1963）。
+3. **焊盘的孔是个对象，不是数字**：`{"holeType":"ROUND","width":40,"height":40}`。
+   长圆孔（SLOT）要取短轴才是钻孔径，取 `width` 会把槽长当孔径。
+4. **焊盘网络在 `PAD_NET` 里，而它的 `id` 是"字符串化了的数组"** ——
+   `"[\"PAD_NET\",\"e0\",\"2\",\"e12\"]"`。不拆开这一层，所有焊盘的网络号都是 0。
+5. **`REGION`（禁止布线区）用的是画布局部坐标**，跟板坐标不是一个原点。硬当铜画，
+   板子下面会凭空多出一个菱形和一个大灰框 —— 现在直接丢掉。
+
+验证用的是立创官方开源工程「泰山派1F 金手指核心板」（RK3566，8 层板，260 针金手指）：
+**12995** 段走线 / **1963** 个焊盘 / **1078** 个过孔 / **347** 个元件 / **400** 个网络，
+板框量出 **69.6 × 30.0 mm** —— 正好是 DDR4 内存条那个尺寸。
+标准版另外两块真板（2 层 / 4 层）37 项断言、专业版 42 项断言（含 exe 传数据的两条通道），全过。
+
+### 立创这两版的边界（先说清楚）
+
+- **专业版的覆铜（POUR / POURED）不展开**：它存的是归一化坐标，跟板坐标不是一个原点，
+  硬画整片错位。所以内层电地平面看起来是"空的 + 一片过孔"，这是实情，不是漏画。
+- **只读 PCB**：工程包里的原理图、多板结构不读。
+- **型号偶尔只有料号**：器件库里没填值的时候只能显示料号（比如屏蔽夹），长句会截短到 18 个字显示。
+- **那份日志很大**：泰山派这块板的 `.epru` 有 18 MB。exe 把它压缩到 **14%** 再交给显示端
+  （3.5 MB），双击打开照样是秒开；否则内嵌页面会胀到 24 MB。
 
 ## v1.15 重点
 
@@ -190,6 +236,9 @@ Gerber 是**制造文件**，不是设计文件：它只描述形状，不写哪
   圆弧按折线离散（每 8° 一段），放大到极限能看出棱角。
 - **KiCad 的规则区（rule area）、3D 模型、尺寸标注不显示** —— 这些不影响查线。
 - KiCad 4 / 5 的老文件里位号常常还是 `REF**`（没编号），那种板子的清单里就没有位号可找。
+- **立创专业版的覆铜（POUR / POURED）不展开**：文件里存的是归一化坐标，跟板坐标不是一个原点，
+  硬画整片错位，所以内层电地平面看起来是空的 + 一片过孔 —— 这是实情，不是漏画。
+- **立创专业版的规则区（REGION / 禁止布线区）不画**：它同样用局部坐标，画出来会有一大块游离图形。
 - 无代码签名，SmartScreen 可能提示"未知发布者"。
 
 ## 重新打包
@@ -310,6 +359,8 @@ double-click and go.
 | `.ddb` (design database) | Every board inside is extracted; **each board gets its own tab** so you can compare them side by side |
 | `.kicad_pcb` (KiCad) | KiCad 6 / 7 / 8 / 9 / 10 board files (plain text); the older 4 and 5 formats work too. See "What's new in v1.14" |
 | **Gerber + drill** (`.gbr` `.gtl` `.gbl` `.gko` `.drl` `.xln` …) | The fabrication set your board house sends: **one file per layer, drop the whole set in and it becomes one board**. A `.zip` works too. See "What's new in v1.15" |
+| EasyEDA **standard** `.json` | The board file EasyEDA exports (plain-text JSON). See "What's new in v1.16" |
+| EasyEDA **pro** `.epro2` / `.epro` | Drop the whole project file; the `.epru` design log inside is unpacked for you. See "What's new in v1.16" |
 
 Explicitly **not supported**: schematics (`.sch`), and `PCB 3.0` (the earlier 16-bit
 format) is only partially compatible and not verified case by case. A clear error beats a
@@ -345,6 +396,56 @@ Mouse: the wheel zooms **anchored at the pointer**; **drag to the edge of the ca
 view keeps moving that way** (faster the closer you get, stops when you let go); once zoomed
 in, the **mini-map in the top-left** shows your viewport as a yellow box — click to jump;
 **right-click on the board writes a note**, saved per board.
+
+## What's new in v1.16
+
+**Both flavours of EasyEDA (LCEDA) boards now open.** The standard edition exports a `.json`;
+the pro edition saves a `.epro2` / `.epro` project file. These two are what most Chinese
+prototype houses hand you, so odds are this is the file you actually get.
+
+| Before | Now |
+|---|---|
+| Protel, KiCad and Gerber only — **an EasyEDA board simply would not open** | Standard `.json` drops straight in; the pro `.epro2` project file goes in whole |
+| — | Copper layers carry the board's own names — `GND02` / `S03` / `POWER05` / `GND07`, not a generic "inner 1" |
+| — | Pads carry real net names (`I2C5_SCL_M0`, `VCC_3V3`), so tracing and the net list work by name |
+| — | Designator and value come out of the device library: `U6 = RK3566`, `R70 = 2.2kΩ` |
+
+The pro file is really a **zip**. Besides a pile of images it holds one `.epru` **design log**:
+one change per line, `{"type":"LINE","ticket":2414,"id":"e27"}||{"layerId":1,"startX":…}|`,
+ticket on the left, payload on the right — so the board is *rebuilt from a log*, not read from tables.
+
+### Five traps, all of them hit
+
+1. **A component and its attributes live on separate lines, in no guaranteed order.** The
+   attribute line can come *before* the component it belongs to; merging on the fly loses half
+   the designators. Collect first, merge after the scan.
+2. **The footprint uuid must match in full.** The `Footprint` attribute is a whole string like
+   `49e9c3dbcc05e765_a816…`. Splitting on `_` merged eight distinct footprints into one, which
+   put 2114 pads on a single part and reported **17818** pads for the board (the real count is 1963).
+3. **A pad's hole is an object, not a number**: `{"holeType":"ROUND","width":40,"height":40}`.
+   For a slot, the short axis is the drill — taking `width` turns slot length into hole size.
+4. **Pad nets live in `PAD_NET`, and its `id` is a stringified array** —
+   `"[\"PAD_NET\",\"e0\",\"2\",\"e12\"]"`. Without unwrapping that, every pad has net 0.
+5. **`REGION` (keep-out) uses a drawing-local coordinate frame**, not the board origin. Drawing it
+   as copper adds a stray diamond and a big grey rectangle below the board — it is dropped now.
+
+Verified on LCEDA's own open-source project "TaishanPi 1F gold-finger core board" (RK3566,
+8 layers, 260-pin edge connector): **12995** trace segments / **1963** pads / **1078** vias /
+**347** parts / **400** nets, outline measuring **69.6 × 30.0 mm** — exactly DDR4 SODIMM size.
+37 assertions on two more real standard-edition boards plus 42 on the pro edition
+(including both data channels the exe uses) all pass.
+
+### Limits of the EasyEDA support (up front)
+
+- **Pro-edition copper pours (POUR / POURED) are not expanded**: they use a normalised coordinate
+  space that does not share the board origin, so drawing them shifts whole regions. Inner ground
+  planes therefore look like bare vias and voids — that is the real data, not a miss.
+- **PCB only**: the schematic and multi-board structure inside the project are not read.
+- **Occasionally only a part number is available**: when the device library has no value, the part
+  number is shown instead (e.g. a shield clip), trimmed to 18 characters.
+- **That log is big**: the `.epru` for this board is 18 MB. The exe compresses it to **14%**
+  (3.5 MB) before handing it to the viewer, so double-click still opens instantly; embedding it
+  raw would bloat the page to 24 MB.
 
 ## What's new in v1.15
 
