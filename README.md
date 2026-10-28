@@ -1,4 +1,4 @@
-# PCB 看板 / CopperLens v1.14
+# PCB 看板 / CopperLens v1.15
 
 **中文** ｜ [English](#english) ｜ [版本履历 Changelog](CHANGELOG.md)
 
@@ -11,7 +11,7 @@
 
 | | 地址 | 适合 |
 |---|---|---|
-| **在线版**（推荐先试） | <https://podcatcher962.github.io/copperlens/> | 浏览器直接打开，把 `.pcb` 拖进去。**文件只在本机读取，不上传服务器**。读不了设计库（`.ddb`） |
+| **在线版**（推荐先试） | <https://podcatcher962.github.io/copperlens/> | 浏览器直接打开，把板文件拖进去。**文件只在本机读取，不上传服务器**。读不了设计库（`.ddb`） |
 | **桌面版 exe** | [Releases](../../releases) 里下载，约 9 MB | **支持 x86 与 64 位系统**，Win7 / 8 / 10 / 11 双击即用。**能读设计库 `.ddb`**（自动抽出里面所有板子） |
 
 ![查线](预览_查线.png)
@@ -26,6 +26,7 @@
 | `.pcb`（`PCB 4.0 Binary`） | 单块板，1998–2000 年前后那一代设计文件 |
 | `.ddb`（设计库） | 一次抽出库里所有板子，**每块板各占一个页签**，能并排对照 |
 | `.kicad_pcb`（KiCad） | KiCad 6 / 7 / 8 / 9 / 10 的板文件（纯文本）；4、5 版的老格式也认。见「v1.14 重点」 |
+| **Gerber + 钻孔**（`.gbr` `.gtl` `.gbl` `.gko` `.drl` `.xln` …） | 板厂给的那一包制造文件，**一层一个文件，整包一起拖进来合成一块板**；也可以直接给 `.zip`。见「v1.15 重点」 |
 
 明确**不做**：原理图（`.sch`）、`PCB 3.0`（更早的 16 位版本，部分兼容、未逐一验证）。
 宁可明确报错，也不给一张假图 —— 照假图查线是要出事的。
@@ -33,7 +34,7 @@
 ## 用法
 
 双击 exe → 先过一段**海报**（几秒，点一下可跳过）→ 进**首页**；
-首页点「打开文件」选 `.ddb` / `.pcb` / `.kicad_pcb`（三种文件同一个对话框），
+首页点「打开文件」选 `.ddb` / `.pcb` / `.kicad_pcb` / Gerber（同一个对话框），
 也可以把文件拖到 exe 图标上，或拖进窗口。**手上没文件也能打开程序看界面**。
 
 点一下走线或焊盘 → 与之电气相连的整条铜亮黄，状态栏写出具体脚位。
@@ -57,6 +58,45 @@
 鼠标：滚轮**以指针位置为锚点**缩放；**按住左键拖到画布边缘，画面自己往那个方向走**
 （越靠边越快，松手就停）；放大后**左上角缩略图**里的黄框是当前视野，点一下跳过去；
 板上**右键写一句话**就是一条标记，按板子存档。
+
+## v1.15 重点
+
+![Gerber：整包文件合成一块板](预览_Gerber.png)
+
+**现在能看 Gerber 了 —— 也就是"板厂手里那一包文件"。** 这是唯一一种所有 EDA 都导得出的格式，
+所以从此不论对方用什么软件画的板，只要能导制造文件，这里就能看。
+
+| 之前 | 现在 |
+|---|---|
+| 只有对方愿意给原始工程文件（`.pcb` / `.kicad_pcb`）才看得了；**维修现场最常见的"只给一包 Gerber"完全打不开** | 一层一个文件，整包一起拖进来合成一块板；`.zip` 也行 |
+| — | 光圈的直径当线宽 / 焊盘尺寸；钻孔按坐标套到铜皮上，套不上的当安装孔单独画 |
+| — | 没有板框层就按铜皮外包补一圈，尺寸照样量得准 |
+| — | 导出时勾了 X2 属性的，网络名和位号能接回来，查线和清单照样按名字走 |
+
+三件必须按实情处理的地方：
+
+- **零直径光圈**（`ADD10C,0.0000`）只是"抬笔挪位置"，不能落笔 —— 当真画成线，一块板会凭空多出几千条假线。
+  板框层反过来：Altium 的机械层就是用 0 宽光圈画轮廓的，得给一个最小宽度，否则板子没边框、尺寸只能靠猜。
+- **钻孔的小数位要跟着同批 Gerber 走**：RPI CAN Hat 的 Gerber 是 `FSLAX25`（5 位小数），钻孔 `X174291`
+  就是 1.74291 英寸；DCF77 是 `FSLAX24`（4 位），同样的 `X26114` 是 2.6114 英寸。按固定 2:4 算会整整差 10 倍。
+- **钻孔文件的名字各家各样**：Altium 叫 `.TXT`、Eagle 叫 `.drd`、KiCad 叫 `.drl`。所以只点中其中一层时，
+  程序会按内容（有没有 `M48` 头）去同目录把同一块板的其它文件找齐 —— 不用按住 Ctrl 一个个点。
+
+验证用的是两块真实板子（都取自开源仓库里的板厂成品包）：Raspberry Pi CAN HAT（Altium 导出，9 层 + 钻孔）
+和 DCF77 时钟模块（Eagle 导出，含八角焊盘宏）。外形分别量出 **65.0 × 56.0 mm** 与 **99.0 × 74.5 mm**，
+孔数与源文件的坐标行数逐个对上（106 / 98），33 项断言全过。
+
+### Gerber 的边界（先说清楚）
+
+Gerber 是**制造文件**，不是设计文件：它只描述形状，不写哪里是 GND、哪颗是 R1（除非导出时勾了 X2）。
+
+- **清单里通常没有位号** —— 丝印上的字是被"描"成一条条线段的，没有文字语义，读不出 `R1`。
+  只有 X2 属性里带了位号的才有。
+- **查线变成"按铜皮连"**：没有网络号，就按几何接触去找相连的铜。结果通常是对的，
+  但遇到大面积铺铜会一次点亮一大片 —— 因为它们在电气上确实连着。
+- **过孔不单独统计**：Gerber 里的过孔就是铜层上的一个小圆，和圆焊盘长得一样，没法区分。
+- **覆铜是"线填充"**：一大片铺铜在文件里是几千条密集的线，画出来就是满版实心色。想看清细走线，
+  按 <kbd>H</kbd> 收起覆铜，或者在图层面板里关掉那一层。
 
 ## v1.14 重点
 
@@ -269,6 +309,7 @@ double-click and go.
 | `.pcb` (`PCB 4.0 Binary`) | A single board; the 1998–2000 era of design files |
 | `.ddb` (design database) | Every board inside is extracted; **each board gets its own tab** so you can compare them side by side |
 | `.kicad_pcb` (KiCad) | KiCad 6 / 7 / 8 / 9 / 10 board files (plain text); the older 4 and 5 formats work too. See "What's new in v1.14" |
+| **Gerber + drill** (`.gbr` `.gtl` `.gbl` `.gko` `.drl` `.xln` …) | The fabrication set your board house sends: **one file per layer, drop the whole set in and it becomes one board**. A `.zip` works too. See "What's new in v1.15" |
 
 Explicitly **not supported**: schematics (`.sch`), and `PCB 3.0` (the earlier 16-bit
 format) is only partially compatible and not verified case by case. A clear error beats a
@@ -277,7 +318,7 @@ wrong picture — tracing a fault off a wrong rendering is how people scrap boar
 ## Usage
 
 Double-click the exe → a short **poster** (a few seconds, click to skip) → **home**.
-Click **Open file** and pick a `.ddb`, `.pcb` or `.kicad_pcb` (one dialog for all three), or
+Click **Open file** and pick a `.ddb`, `.pcb`, `.kicad_pcb` or a Gerber set (one dialog for all), or
 drag a file onto the exe icon or into the window. **You can open the program with no file at all** and just
 look around.
 
@@ -304,6 +345,55 @@ Mouse: the wheel zooms **anchored at the pointer**; **drag to the edge of the ca
 view keeps moving that way** (faster the closer you get, stops when you let go); once zoomed
 in, the **mini-map in the top-left** shows your viewport as a yellow box — click to jump;
 **right-click on the board writes a note**, saved per board.
+
+## What's new in v1.15
+
+![Gerber: the whole set becomes one board](预览_Gerber.png)
+
+**It reads Gerber now — the set of files your board house actually holds.** Gerber is the one
+format every EDA can export, so from here on it does not matter what the other side drew with:
+if they can hand over fabrication data, you can look at it.
+
+| Before | Now |
+|---|---|
+| Only if they gave you the original project (`.pcb` / `.kicad_pcb`); **the most common case in repair — "all I have is a Gerber set" — did not open at all** | One file per layer; drop the whole set in and it becomes one board. A `.zip` works too |
+| — | Aperture diameter becomes the trace width / pad size; drill hits are matched onto copper by coordinate, unmatched ones are drawn as mounting holes |
+| — | No profile layer? The outline is closed from the copper extents, so board size still measures correctly |
+| — | If the export carried X2 attributes, net names and refdes come back, and tracing / the parts list work by name |
+
+Three things that had to be handled the way real files actually behave:
+
+- **Zero-diameter apertures** (`ADD10C,0.0000`) only mean "pen up, move"; they must not draw.
+  Treat them as lines and a single board grows thousands of phantom traces. The profile layer is
+  the opposite case: Altium's mechanical layer draws its outline *with* a zero-width aperture,
+  so it needs a minimum width or the board has no border and the size has to be guessed.
+- **Drill decimal places must follow the Gerber of the same set.** The RPI CAN Hat Gerber is
+  `FSLAX25` (5 decimals), so drill `X174291` is 1.74291 inch; DCF77 is `FSLAX24` (4 decimals),
+  so the same-shaped `X26114` is 2.6114 inch. Assuming a fixed 2:4 is off by a factor of ten.
+- **Drill files are named differently everywhere**: `.TXT` from Altium, `.drd` from Eagle,
+  `.drl` from KiCad. So when you click just one layer, the program looks in the same folder for
+  the rest of that board by content (does it carry an `M48` header) instead of by extension.
+
+Verified against two real boards, both taken from finished fabrication sets in public repos:
+a Raspberry Pi CAN HAT (Altium export, 9 layers + drill) and a DCF77 clock module (Eagle export,
+including an octagonal pad macro). Outlines measure **65.0 × 56.0 mm** and **99.0 × 74.5 mm**;
+hole counts match the source files' coordinate lines exactly (106 / 98). 33 assertions pass.
+
+### Gerber's limits (stated up front)
+
+Gerber is **fabrication data, not design data**: it describes shapes and never says which net is
+GND or which part is R1 — unless the export carried X2 attributes.
+
+- **The parts list usually has no refdes.** Text on the silkscreen is *stroked* into line segments
+  with no character semantics, so `R1` cannot be read back. Only X2 tags give you refdes.
+- **Tracing becomes "connected copper"**: with no net codes, connectivity is found by geometric
+  contact. Usually correct, but a large pour will light up in one go — because it really is
+  electrically continuous.
+- **Vias are not counted separately**: in Gerber a via is just a small circle on a copper layer,
+  indistinguishable from a round pad.
+- **Pours are line-filled**: a large plane is thousands of closely spaced lines in the file, so it
+  renders as a solid sheet. Press <kbd>H</kbd> to hide pours, or switch that layer off in the
+  layer panel, to see fine traces.
 
 ## What's new in v1.14
 
