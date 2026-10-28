@@ -68,6 +68,11 @@
 
 ![立创EDA 专业版：泰山派 1F 金手指核心板（RK3566）](预览_立创.png)
 
+<sub>演示用板：**立创·泰山派 RK3566-1F 金手指核心板**，作者「立创开发板」（LCKFB），
+来自[立创开源硬件平台](https://oshwhub.com/li-chuang-kai-fa-ban/tai-shan-pai-1f-jin-shou-zhi-he-xin-ban)，
+按 **CC BY-NC-SA 4.0** 许可展示。截图由本程序渲染其公开的设计数据得出，未经修改；
+本程序不附带该设计的任何工程文件。详见 [第三方组件与许可.txt](第三方组件与许可.txt)。</sub>
+
 | 之前 | 现在 |
 |---|---|
 | 只有 Protel、KiCad、Gerber 三条路，**立创画的板打不开** | 标准版 `.json` 直接拖；专业版 `.epro2` 整个工程包直接拖 |
@@ -280,7 +285,8 @@ CHANGELOG.md              逐版改动记录
 |---|---|---|
 | mdbtools（`mdb-export.exe`） | GPL-2.0-or-later | 读 `.ddb`（设计库） |
 | libmdb / libiconv（DLL） | LGPL-2.1 | 同上，动态链接 |
-| 预览截图所涉开源硬件设计 | CERN-OHL v1.2 | 截图里展示的板子（© René Richard, 2017） |
+| 预览截图所涉开源硬件设计 ① | CERN-OHL v1.2 | 截图里展示的板子（© René Richard, 2017） |
+| 预览截图所涉开源硬件设计 ② | **CC BY-NC-SA 4.0** | 立创·泰山派 RK3566-1F 金手指核心板（© 立创开发板 LCKFB，来自立创开源硬件平台） |
 
 调用方式是**进程外调用 exe**，不与本程序链接成单一作品，因此不传染 GPL。
 GPL-2.0 §3(b) 的三年书面源码要约写在 `第三方组件与许可.txt` 第 1 节。
@@ -297,7 +303,7 @@ GPL-2.0 §3(b) 的三年书面源码要约写在 `第三方组件与许可.txt` 
 | 4 | 免责声明里写明"无隶属关系、商标归各自所有者" | ✅ 已做 | 免责声明第 5 节 + 关于 |
 | 5 | mdbtools（GPL-2.0-or-later + LGPL）随附许可证 + 源码书面要约 | ✅ 已做 | 发行包内 `第三方组件与许可.txt` + `COPYING-GPL-2.0.txt` + `COPYING-LGPL-2.1.txt`。GPL-2.0 §3(b) 的三年 written offer 已写进 `第三方组件与许可.txt` 第 1 节 |
 | 6 | 代码里不留任何第三方项目名 / 厂商名 | ✅ 已做 | 注释里原有的外部参考已删除，改为「由本人对样本文件做二进制差分实测得出」（这本来也是实际做法） |
-| 7 | **PCB 设计文件一个都不分发** | ✅ 已做 | 预览截图用的那块板来自开源硬件项目（© René Richard 2017, CERN-OHL v1.2）。**这个文件不进发行包、不进仓库、不进 Release** —— 不发出就不产生再分发义务。截图已随附 `LICENSE-CERN-OHL-1.2.txt` + 署名，并在 `第三方组件与许可.txt` 第 2 节写明。对外演示将换自画板 |
+| 7 | **PCB 设计文件一个都不分发** | ✅ 已做 | 预览截图用的两块板都来自开源硬件项目：PC-Henshin（© René Richard 2017, CERN-OHL v1.2）与立创·泰山派 1F（© 立创开发板 LCKFB, CC BY-NC-SA 4.0）。**这些文件一个都不进发行包、不进仓库、不进 Release** —— 不发出就不产生再分发义务。截图已随附 `LICENSE-CERN-OHL-1.2.txt` + 双重署名，并在 `第三方组件与许可.txt` 第 2 节写明（CC BY-NC-SA 的署名/非商业/相同方式共享三项义务逐条对应）。对外演示可换自画板 |
 | 8 | 不要把公司真实板子 / 客户资料放进仓库 | ⚠️ 自己把关 | 生产板的 PCB 文件属公司资产，示例请用开源板或纯自制 |
 | 9 | 免责声明写清"仅供参考、不得作生产依据、维修自负" | ✅ 已做 | 免责声明第 1/3/4 节，中英各一份 |
 | 10 | 签名 / 证书 | — | 无代码签名，SmartScreen 可能提示"未知发布者"；内部分发属正常，对外分发可忽略或自行签 |
@@ -312,7 +318,8 @@ GPL-2.0 §3(b) 的三年书面源码要约写在 `第三方组件与许可.txt` 
 1. **不拿别人名字当自己名字**（产品名、图标、快捷方式、窗口标题都不带）；
 2. **提名字只为说明"能打开这种文件"**，并在免责声明里声明商标归属与无隶属关系；
 3. **随包分发的第三方东西把许可证、署名、源码渠道一起给出去**（mdbtools 的 GPL / LGPL；
-   截图所涉开源硬件的 CERN-OHL）；**拿不到授权的文件干脆不放进包里**。
+   截图所涉开源硬件的 CERN-OHL 与 CC BY-NC-SA）；**拿不到授权的文件干脆不放进包里**。
+   带 **NC（非商业）** 条款的素材（如泰山派那块板）只用于展示，不改作卖点、不做广告。
 
 格式兼容这件事本身，国内外都有大量工具在做（各类板图查看器、格式转换脚本），
 属于事实上的行业惯例，不是在蹭品牌。而且本程序**只读**、不碰加密、不绕过任何授权机制，
@@ -332,7 +339,7 @@ CERN-OHL v1.2，全文见仓库根目录。第三方组件的完整清单与授�
 
 # English
 
-**English** ｜ [中文](#pcb-看板--copperlens-v114) ｜ [Changelog](CHANGELOG.md)
+**English** ｜ [中文](#pcb-看板--copperlens-v116) ｜ [Changelog](CHANGELOG.md)
 
 A **read-only** PCB viewer for repair work. Click a trace or a pad and the whole net lights
 up in yellow, with the actual pin names right there in the status bar — `U100-4 / C102-1`,
@@ -404,6 +411,10 @@ in, the **mini-map in the top-left** shows your viewport as a yellow box — cli
 **Both flavours of EasyEDA (LCEDA) boards now open.** The standard edition exports a `.json`;
 the pro edition saves a `.epro2` / `.epro` project file. These two are what most Chinese
 prototype houses hand you, so odds are this is the file you actually get.
+
+The board in the screenshot is the **LCKFB Taishan Pi RK3566-1F gold-finger SoM**, published on the
+EasyEDA open-hardware platform under **CC BY-NC-SA 4.0**; the image is this program rendering that
+board's published design data, unmodified. No files from that design ship with this program.
 
 | Before | Now |
 |---|---|
@@ -620,7 +631,8 @@ exe is running and cannot be overwritten).
 |---|---|---|
 | mdbtools (`mdb-export.exe`) | GPL-2.0-or-later | Reading `.ddb` databases |
 | libmdb / libiconv (DLLs) | LGPL-2.1 | Same, dynamically linked |
-| Open-hardware design shown in screenshots | CERN-OHL v1.2 | The board in the screenshots (© René Richard, 2017) |
+| Open-hardware design shown in screenshots ① | CERN-OHL v1.2 | PC-Henshin (© René Richard, 2017) |
+| Open-hardware design shown in screenshots ② | **CC BY-NC-SA 4.0** | LCKFB Taishan Pi RK3566-1F gold-finger SoM (© 立创开发板 LCKFB, EasyEDA open-hardware platform) |
 
 mdbtools is invoked **out of process**, not linked into a single work, so the GPL does not
 propagate. The GPL-2.0 §3(b) three-year written offer is in section 1 of
@@ -638,7 +650,7 @@ Checked before any distribution (colleague, chat group, intranet share, GitHub):
 | 4 | Disclaimer states non-affiliation and trademark ownership | ✅ | Disclaimer section 5 + About |
 | 5 | mdbtools (GPL-2.0-or-later + LGPL) ships with licences and a written offer | ✅ | `第三方组件与许可.txt` + `COPYING-GPL-2.0.txt` + `COPYING-LGPL-2.1.txt`; GPL-2.0 §3(b) offer in section 1 |
 | 6 | No third-party project names left in the code | ✅ | Original external references removed; the offsets were derived by binary diffing sample files, which is what was actually done |
-| 7 | **No PCB design files are distributed at all** | ✅ | The board in the previews comes from an open-hardware project (© René Richard 2017, CERN-OHL v1.2). **That file is not in the release package, the repo or any release asset** — not shipping it creates no redistribution obligation. Previews ship with `LICENSE-CERN-OHL-1.2.txt` and attribution, noted in section 2 of `第三方组件与许可.txt` |
+| 7 | **No PCB design files are distributed at all** | ✅ | Both boards in the previews come from open-hardware projects: PC-Henshin (© René Richard 2017, CERN-OHL v1.2) and the LCKFB Taishan Pi 1F (© 立创开发板 LCKFB, CC BY-NC-SA 4.0). **None of those files are in the release package, the repo or any release asset** — not shipping them creates no redistribution obligation. Previews ship with `LICENSE-CERN-OHL-1.2.txt` and dual attribution, noted in section 2 of `第三方组件与许可.txt` (BY / NC / SA each addressed) |
 | 8 | No real company boards or customer data in the repo | ⚠️ | Production PCB files belong to the employer; use open-hardware or self-made sample boards |
 | 9 | Disclaimer: reference only, not for production, repair at your own risk | ✅ | Disclaimer sections 1 / 3 / 4, in both languages |
 | 10 | Signing / certificate | — | Unsigned; SmartScreen may warn. Normal for internal use |
