@@ -26,7 +26,8 @@
   #app.empty footer{opacity:.45}
   /* 没板时只剩「打开文件」，其余按钮点了也没反应，先收起来 */
   #app.empty #fit,#app.empty #invert,#app.empty #des,#app.empty #labels,
-  #app.empty #pour,#app.empty #probe,#app.empty #meas,#app.empty #shot,#app.empty #lists,
+  #app.empty #pour,#app.empty #grid,#app.empty #probe,#app.empty #meas,
+  #app.empty #shot,#app.empty #prn,#app.empty #lists,
   #app.empty .findwrap,#app.empty .hrow .sep{display:none}
   /* ===== 多文档页签（一个文件一格，可单独关闭） ===== */
   .tabs{display:none;align-items:flex-end;gap:3px;margin:8px -12px -7px;
@@ -236,7 +237,7 @@
     white-space:nowrap;box-shadow:0 2px 10px rgba(0,0,0,.5)}
   .tip b{color:#8fd0ff;font-weight:600}
   .tip .v{color:#9aa5b5;margin-left:5px}
-  /* ===== 右侧清单抽屉：元件 / 网络 / 脚位 / 标记 =====
+  /* ===== 右侧清单抽屉：元件 / 网络 / 脚位 / 孔表 / 标记 =====
      借用同类开源板图工具的做法（OpenBoardView 的元件表、网络表、板上注释）：
      维修时两个最常问的问题是"这个位号在板上哪儿"和"这条线都连了谁"，
      一张能点的清单比在密密麻麻的铜皮里瞎点快得多。 */
@@ -247,9 +248,12 @@
   .drawer.on{transform:none}
   .drw-hd{display:flex;align-items:center;gap:6px;padding:8px 8px 7px 10px;
     border-bottom:1px solid var(--line)}
-  .drw-tabs{display:flex;gap:2px;flex:1}
+  .drw-tabs{display:flex;gap:1px;flex:1;min-width:0}
+  /* 页签从 4 个涨到 6 个（孔表、测点都是后加的），282 px 的抽屉里
+     "元件"两个字会被挤成上下两行。收紧内边距 + 禁掉换行，六个刚好排满一行。 */
   .drw-tabs button{background:transparent;border:none;color:var(--fg3);font:inherit;
-    font-size:12px;padding:4px 9px;border-radius:6px;cursor:pointer}
+    font-size:12px;padding:4px 6px;border-radius:6px;cursor:pointer;
+    white-space:nowrap;flex:0 0 auto}
   .drw-tabs button:hover{color:var(--fg)}
   .drw-tabs button.on{background:var(--panel2);color:var(--accent)}
   .drw-x{background:transparent;border:none;color:var(--fg3);font-size:17px;line-height:1;
@@ -275,10 +279,17 @@
   .drw-row .drw-del{position:absolute;right:2px;top:2px;background:none;border:none;
     color:var(--fg3);cursor:pointer;font-size:14px;line-height:1;padding:0 3px;display:none}
   .drw-row.mk:hover .drw-del{display:block}
+  /* 测点页：焊盘太小（0.5 mm 以下）的那几行尺寸写橙色，扫一眼就知道哪几处不好搭 */
+  .drw-row.tp-s i{color:#e0a355}
   .drw-empty{padding:20px 10px;color:var(--fg3);font-size:12px;text-align:center;line-height:1.7}
   .drw-note{padding:8px 8px 0;color:var(--fg3);font-size:11px;line-height:1.6}
-  .drw-ft{display:flex;gap:6px;padding:8px 10px;border-top:1px solid var(--line)}
+  .drw-ft{display:flex;gap:6px;padding:8px 10px;border-top:1px solid var(--line);
+    flex-wrap:wrap}
   .drw-ft .btn{flex:1;padding:6px 4px;font-size:12px}
+  /* 条数放在按钮下面一行：6 个页签已经把表头挤满了，再塞一个数字会把页签挤换行。 */
+  .drw-ft .drw-cnt{order:3;flex:1 0 100%;text-align:right;color:var(--fg3);
+    font-size:11px;line-height:1.5;padding-top:1px}
+  .drw-ft .drw-cnt:empty{display:none}
   /* 板上标注的小输入窗（右键点在板子上就出来） */
   .mkpop{position:absolute;z-index:60;width:248px;background:var(--panel2);
     border:1px solid var(--line);border-radius:9px;padding:9px;
@@ -316,6 +327,46 @@
     text-overflow:ellipsis;white-space:nowrap;flex:1}
   .hint .home .recent .ri i{margin-left:auto;font-style:normal;color:var(--fg3);
     font-size:11px;flex:none;font-variant-numeric:tabular-nums}
+
+  /* ===== 打印预览 / A4 出图 =====
+     纸就是纸：白底、黑字、只有板子和两行说明。屏幕上看到的这张 A4 和
+     打印机出来的那一张是同一份 DOM，所以"预览"不是模拟，就是成品。 */
+  .prw{display:none}
+  .prw.on{display:flex;flex-direction:column;position:fixed;inset:0;z-index:210;
+    background:#1a1d22}
+  .prbar{display:flex;align-items:center;gap:10px;padding:9px 14px;flex:none;
+    background:var(--panel);border-bottom:1px solid var(--line);font-size:12.5px;color:var(--fg2)}
+  .prbar b{color:var(--fg);font-weight:600}
+  .prhint{color:var(--fg3);font-size:11.5px}
+  .prscroll{flex:1;overflow:auto;padding:18px 0 40px;display:flex;justify-content:center}
+  /* A4：210×297mm。宁可写死毫米，也不要"大概像张纸"。
+     高度比 297 少 1mm：正好等于纸高时，Chrome 常会多吐一张空白页。 */
+  .pg{width:210mm;height:296mm;background:#fff;color:#1a1a1a;
+    padding:12mm;box-sizing:border-box;box-shadow:0 10px 34px rgba(0,0,0,.5);
+    display:flex;flex-direction:column;gap:4mm}
+  .pg.land{width:297mm;height:209mm}
+  .pgcap{font:600 12.5px/1.45 "Microsoft YaHei",system-ui,sans-serif;color:#111;
+    border-bottom:1px solid #d6d6d6;padding-bottom:2.4mm}
+  .pgcap s{text-decoration:none;font-weight:400;color:#555;margin-left:6px;font-size:11.5px}
+  /* 图装在弹性盒子里：max-height:100% 只在这种"高度确定"的父级里才算得出来，
+     所以纸的高度必须写死（见上）。图本身按 contain 缩，永远不出纸。 */
+  .pgimg{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center}
+  #prImg{display:block;max-width:100%;max-height:100%;object-fit:contain;
+    background:#fff;border:1px solid #e2e2e2}
+  .pgfoot{font:11px/1.5 "Microsoft YaHei",system-ui,sans-serif;color:#666;
+    border-top:1px solid #d6d6d6;padding-top:2mm;display:flex;justify-content:space-between;gap:10px}
+  @media print{
+    /* 打出来的只能有那一张纸：界面、按钮、抽屉、弹窗全部退出 */
+    html,body{background:#fff !important}
+    body > *{display:none !important}
+    #printWrap{display:block !important;position:static;background:#fff}
+    .prbar{display:none !important}
+    .prscroll{padding:0;overflow:visible;display:block}
+    /* 纸的尺寸和物理页一样（@page margin 0），所以预览用的这套毫米数
+       就是打印机拿到的毫米数，不用为打印再写一套。 */
+    .pg{box-shadow:none;margin:0}
+    .pgcap,.pgfoot{page-break-inside:avoid}
+  }
 </style>
 </head>
 <body>
@@ -361,10 +412,12 @@
       <button class="btn on" id="des" data-i18n="btnDes" data-i18n-title="btnDesTip">位号</button>
       <button class="btn on" id="labels" data-i18n="btnLabels" data-i18n-title="btnLabelsTip">焊盘号</button>
       <button class="btn on" id="pour" data-i18n="btnPour" data-i18n-title="btnPourTip">覆铜</button>
+      <button class="btn" id="grid" data-i18n="btnGrid" data-i18n-title="btnGridTip">网格</button>
       <div class="sep"></div>
       <button class="btn" id="probe" data-i18n="btnProbe" data-i18n-title="btnProbeTip">通不通</button>
       <button class="btn" id="meas" data-i18n="btnMeas" data-i18n-title="btnMeasTip">量距</button>
       <button class="btn" id="shot" data-i18n="btnShot" data-i18n-title="btnShotTip">存图</button>
+      <button class="btn" id="prn" data-i18n="btnPrint" data-i18n-title="btnPrintTip">打印</button>
       <button class="btn" id="lists" data-i18n="btnLists" data-i18n-title="btnListsTip">清单</button>
       <div class="spacer"></div>
       <div class="findwrap">
@@ -416,17 +469,20 @@
           <button data-dt="parts" data-i18n="drwParts">元件</button>
           <button data-dt="nets" data-i18n="drwNets">网络</button>
           <button data-dt="pins" data-i18n="drwPins">脚位</button>
+          <button data-dt="holes" data-i18n="drwHoles">孔表</button>
+          <button data-dt="tp" data-i18n="drwTp">测点</button>
           <button data-dt="marks" data-i18n="drwMarks">标记</button>
         </div>
         <button class="drw-x" id="drawerX" title="收起">×</button>
       </div>
       <input class="drw-q" id="drwQ" type="search" autocomplete="off" spellcheck="false"
-             data-i18n-ph="drwQPh" placeholder="筛选位号 / 型号 / 网络名">
+             placeholder="筛选位号 / 型号 / 网络名">
       <div class="drw-lit" id="drwTitle"></div>
       <div class="drw-list" id="drwList"></div>
       <div class="drw-ft">
         <button class="btn" id="drwCopy" data-i18n="drwCopy">复制清单</button>
         <button class="btn" id="drwCsv" data-i18n="drwCsv">导出 CSV</button>
+        <span class="drw-cnt" id="drwCount"></span>
       </div>
     </aside>
   </main>
@@ -467,6 +523,28 @@
   </div>
 </div>
 
+<!-- ============ 打印预览：一张 A4 纸，所见即所得 ============
+     维修单、报价单、发群里都还是要纸（或 PDF）。直接把界面打出来会带着
+     一坨深色 UI 和大半页空白，所以单独做一张"纸"：白底、只有这块板、
+     上面一行板名尺寸、下面一行出图信息。横图自动改成横向出纸。 -->
+<div class="prw" id="printWrap">
+  <div class="prbar">
+    <b data-i18n="prTitle">打印预览</b>
+    <span class="prhint" id="prHint"></span>
+    <div class="spacer"></div>
+    <button class="btn primary" id="prGo" data-i18n="prGo">打印…</button>
+    <button class="btn" id="prClose" data-i18n="prClose">关闭</button>
+  </div>
+  <div class="prscroll">
+    <div class="pg" id="prPage">
+      <div class="pgcap" id="prCap"></div>
+      <div class="pgimg"><img id="prImg" alt=""></div>
+      <div class="pgfoot" id="prFoot"></div>
+    </div>
+  </div>
+</div>
+<style id="pgStyle">@page{size:A4 portrait;margin:0}</style>
+
 <script>
 "use strict";
 
@@ -487,6 +565,7 @@ zh:{
   btnDes:"位号", btnDesTip:"显示元件位号（U3 / R12）",
   btnLabels:"焊盘号", btnLabelsTip:"显示焊盘编号（1、2、3…）",
   btnPour:"覆铜", btnPourTip:"快捷键 H：关掉可以看清覆铜下面的走线",
+  btnGrid:"网格", btnGridTip:"快捷键 G：板面按行列切块标坐标，说位置时直接讲「E5 那颗电容」",
   asideLayers:"图层", asideView:"视图",
   optDim:"高亮时其余变暗", optPen:"按真实线宽", optVal:"显示型号 / 值",
   stCoord:"坐标", stLayer:"层", stWidth:"线宽", stZoom:"缩放",
@@ -514,6 +593,23 @@ zh:{
   navLeft:"左移", navRight:"右移",
   btnLists:"清单", btnListsTip:"快捷键 C / N：按位号或网络名找，点一下直接跳过去",
   drwParts:"元件", drwNets:"网络", drwPins:"脚位", drwMarks:"标记",
+  drwHoles:"孔表", drwHoleKind:"种孔径", drwTp:"测点",
+  drwTpSmall:"小", drwQPhTp:"筛选网络名",
+  tpVia:d=>"过孔 Φ"+d, tpPad:"焊盘",
+  drwTpNote:(n,k,v)=>"共 "+n+" 条网络，每条只给一处最好下探头的点"+
+    (v? "；其中 "+v+" 处焊盘太小，改推这条线上最大的过孔":"")+
+    (k? "；剩下 "+k+" 处连过孔都没有，只有细焊盘，标「小」，得用最细的针" : "")+"。",
+  tagTp:(w,h)=>"测点 "+w+" × "+h+" mil",
+  tagTpVia:d=>"测点 过孔 Φ"+d+" mil",
+  drwHoleMix:(v,p)=>"过孔 "+v+" · 焊盘 "+p,
+  drwHoleNote:(k,min,t)=>"共 "+k+" 种孔径、"+t+" 个孔；最细 "+min+" mil。"+
+    "孔径按 1 mil 归组，过孔与插件脚都算。",
+  drwHoleColA:"孔径（mil）", drwHoleColB:"孔径（mm）",
+  drwHoleColC:"过孔", drwHoleColD:"焊盘", drwHoleColE:"合计",
+  drwQPhHole:"筛选孔径（mil 或 mm）",
+  drwTpColA:"网络", drwTpColB:"类型", drwTpColC:"位号 / 脚",
+  drwTpColD:"尺寸（mil）", drwTpColE:"孔（mil）", drwTpColF:"坐标（mil）",
+  tagHole:(mil,v,p)=>"孔径 "+mil+" mil：过孔 "+v+" / 焊盘 "+p,
   drwQPh:"筛选位号 / 型号 / 网络名",
   drwCopy:"复制清单", drwCsv:"导出 CSV",
   drwNoBoard:"还没打开板子。先点左上角「打开文件」。",
@@ -591,6 +687,17 @@ zh:{
   noBoard:"先打开一块板子",
   btnProbe:"通不通", btnProbeTip:"点两个位置，直接判断它们电气上通不通（快捷键 K）",
   btnShot:"存图", btnShotTip:"把当前画面存成 PNG（含位号、高亮，可贴维修单）",
+  btnPrint:"打印", btnPrintTip:"A4 出图：先给一张纸看看，满意再打；横图自动横向出纸",
+  prTitle:"打印预览", prGo:"打印…", prClose:"关闭",
+  prGridHint:"先按 G 打开定位网格，出图就带着 A1~H8 参考格",
+  prPaperHint:"打印对话框里取消「页眉和页脚」，纸上就只剩这张图",
+  prSize:(w,h)=>"外形 "+w+" × "+h+" mm",
+  prCu:n=>"铜层 "+n,
+  prNet:n=>n+" 个网络",
+  prZoom:p=>"缩放 "+p+"%",
+  prTime:s=>"出图 "+s,
+  prFootL:"PCB 看板 CopperLens",
+  prFootR:"© 永远的兰兰　·　纸上的位号与实物一一对应",
   shotDone:n=>"已存图："+n,
   shotFail:"存图失败：",  layerTitle:"单击开关　双击只看该层",
   /* 载入后的一行摘要 */
@@ -723,6 +830,15 @@ zh:{
       <li><b>元件</b>　板上所有位号 + 型号，按位号排。点一下 → 画面跳到那颗料，并点亮它的每一只脚。</li>
       <li><b>网络</b>　所有网络名 + 各条脚数（如 <code>GND 86 脚</code>）。点一下 → 整条线亮起来并居中。</li>
       <li><b>脚位</b>　当前点亮那条线（或那颗料）的完整脚位表：<code>U100-4　GND</code>。点某一行就跳到那只脚。</li>
+      <li><b>孔表</b>　全板要下钻头的孔，按孔径从小到大归堆：<code>Φ 32 mil　0.81 mm · 过孔 180 · 焊盘 6</code>。
+          过孔和插件脚都算进去，贴片焊盘没有孔自然不算。点一行 → 这个孔径的孔全亮，并飞到它们中间。
+          打样报价按"孔型有几种"算钱，维修问"最细的孔多少、钻头够不够"，都看这一页。
+          孔的直径按 1 mil 归组，所以不会因为 31.5 / 32 这种零点几的差冒出一堆重复行。</li>
+      <li><b>测点</b>　每条网络只挑<b>一处</b>最好下探头的点：短边最宽的那只焊盘，通孔焊盘略优先。
+          一行写清网络名、<code>R12-1</code> 这样的脚位、尺寸。点一下 → 只点亮这一处并居中，
+          表笔往哪儿搭照着抄就行。焊盘小于 20 mil（BGA 底下那种细球）时，如果这条网络有过孔，
+          就直接改推<b>这条线上最大的那颗过孔</b>（写 <code>过孔 Φ14</code>）——
+          铜环露在板面上，同样的尺寸比压在器件底下好搭得多。实在没得推的才标「小」，用最细的针。</li>
       <li>顶上筛选框可以只留想要的：输 <code>U1</code> 看全部 U1xx，输 <code>3V3</code> 看电源网络。</li>
       <li><b>复制清单</b> 直接贴进维修单；<b>导出 CSV</b> 存成表格。</li>
     </ul>
@@ -765,6 +881,17 @@ zh:{
     <p>顶栏 <code>存图</code> 把当前画面存成 PNG（含位号、型号、高亮），
        文件名带板名和时间，可以直接贴进维修单或发工作群。</p>
 
+    <h3>出一张 A4 纸</h3>
+    <p>顶栏 <code>打印</code>：先在屏幕上给你一张 A4 纸 —— 白底、板子铺满、上面一行板名和尺寸、
+       下面一行出图信息。看着满意再点 <b>打印…</b>，进打印机或者「另存为 PDF」都行；
+       板子是横的就自动横向出纸，不会在纸上留下上下两条大空白。</p>
+    <ul>
+      <li>打之前先按 <kbd>G</kbd> 打开定位网格：纸上不能点，A1~H8 的格子就是"这颗电容在哪儿"的唯一线索。</li>
+      <li>纸上画什么取决于屏幕上开着什么 —— 位号、焊盘号、高亮、标注会一起打出来，想干净就先关掉。</li>
+      <li>打印对话框里把 <b>页眉和页脚</b> 取消勾选，纸上就只剩这张图（否则会多出一条网址和日期）。</li>
+      <li>图右下角有比例尺，照着它能在纸上量长度。</li>
+    </ul>
+
     <h3>标注</h3>
     <ul>
       <li><b>位号</b>、<b>焊盘号</b> 默认开，顶栏可关。</li>
@@ -772,8 +899,17 @@ zh:{
       <li>标注字会互相避让：缩小时只留位号，放大后焊盘号才一个个出现。</li>
     </ul>
 
+    <h3>按格子说位置</h3>
+    <p>顶栏 <code>网格</code>（快捷键 <kbd>G</kbd>）把板面切成行列：
+       <b>列是数字</b>（从左往右 1、2、3…），<b>行是字母</b>（从上往下 A、B、C…），
+       于是"E5 那颗 1uF"就是一个对方照着自己屏幕也找得到的说法。
+       行列数按板子长宽比自动定，格子尽量接近正方形、长边大约 10 mm 一格
+       （30 mm 的小板子给 5×5，300 mm 的大板子给 14×14），不用手动设。
+       坐标字贴在板框外侧；板框被拖出画布时会贴到画布边上，放大钻在板子中间也知道自己在第几列。
+       网格只是辅助线，不影响点选、量距和查线。</p>
+
     <h3>快捷键</h3>
-    <p><kbd>F</kbd> 适合窗口　<kbd>H</kbd> 覆铜开/关　<kbd>K</kbd> 通不通　<kbd>D</kbd> 量距　
+    <p><kbd>F</kbd> 适合窗口　<kbd>H</kbd> 覆铜开/关　<kbd>G</kbd> 定位网格　<kbd>K</kbd> 通不通　<kbd>D</kbd> 量距　
        <kbd>Ctrl</kbd>+<kbd>F</kbd> 找元件/网络　<kbd>Esc</kbd> 取消高亮　
        <kbd>方向键</kbd> 平移　<kbd>+</kbd> <kbd>-</kbd> 缩放</p>`,
   discHtml:`
@@ -822,6 +958,10 @@ zh:{
       <li><b>同时打开多个文件</b>：一个文件一个页签，可以来回切、各自关掉；
           同一个设计库（.ddb）里的不同板也能各占一个页签，并排对照</li>
       <li><b>清单</b>：全部位号、全部网络列成表，点一下跳过去点亮；当前网络的脚位可复制、可导出 CSV</li>
+      <li><b>孔表</b>：全板的孔按孔径归堆，点一行亮出同孔径的所有孔；可复制、可导出 CSV</li>
+      <li><b>测点</b>：每条网络给出最好下探头的那一处焊盘（位号-脚号 + 尺寸），照抄就行</li>
+      <li><b>定位网格</b>：板面切成 A1~H8，说位置不用再形容"左上角那个"</li>
+      <li><b>印一张 A4</b>：先预览再打印，白底出图，横板自动横向出纸</li>
       <li><b>量距</b>：点两个点，直接给出毫米和 mil（靠到焊盘会自动吸圆心）</li>
       <li><b>板上标记</b>：右键写一句"这里烧过"，按板子存档</li>
       <li><b>板子信息</b>：外形尺寸、面积、铜层数、元件/焊盘/过孔/网络数、最细线宽、最小孔径</li>
@@ -829,7 +969,7 @@ zh:{
       <li><b>最近打开</b>：首页列出上次开过的文件，点一下直接再打开</li>
     </ul>
     <h3>版本</h3>
-    <p>v1.16　·　支持 x86 与 64 位系统　·　单文件便携版</p>
+    <p>v1.17　·　支持 x86 与 64 位系统　·　单文件便携版</p>
     <div class="sig">© 永远的兰兰　·　Lanlan Eternal</div>`
 },
 en:{
@@ -844,6 +984,7 @@ en:{
   btnDes:"Refdes", btnDesTip:"Show component designators (U3 / R12)",
   btnLabels:"Pad No.", btnLabelsTip:"Show pad numbers (1, 2, 3…)",
   btnPour:"Copper", btnPourTip:"Shortcut H — hide copper pours to see traces underneath",
+  btnGrid:"Grid", btnGridTip:"Shortcut G — divide the board into rows and columns so you can say \"the cap at E5\"",
   asideLayers:"Layers", asideView:"View",
   optDim:"Dim others on highlight", optPen:"True line width", optVal:"Show value",
   stCoord:"X,Y", stLayer:"Layer", stWidth:"Width", stZoom:"Zoom",
@@ -871,6 +1012,23 @@ en:{
   navLeft:"Pan left", navRight:"Pan right",
   btnLists:"Lists", btnListsTip:"Shortcuts C / N: jump by designator or net name",
   drwParts:"Parts", drwNets:"Nets", drwPins:"Pins", drwMarks:"Marks",
+  drwHoles:"Holes", drwHoleKind:"hole sizes", drwTp:"Probes",
+  drwTpSmall:"tiny", drwQPhTp:"Filter by net name",
+  tpVia:d=>"via Φ"+d, tpPad:"pad",
+  drwTpNote:(n,k,v)=>" "+n+" nets, each with the single easiest point to probe"+
+    (v? "; "+v+" use the net\u2019s largest via because the pads are too small":"")+
+    (k? "; the remaining "+k+" have no via either — tiny pads only, finest needle needed" : "")+".",
+  tagTp:(w,h)=>"Probe pad "+w+" × "+h+" mil",
+  tagTpVia:d=>"Probe via Φ"+d+" mil",
+  drwHoleMix:(v,p)=>"vias "+v+" · pads "+p,
+  drwHoleNote:(k,min,t)=>" "+k+" hole sizes, "+t+" holes in total; smallest "+min+" mil."+
+    " Grouped to 1 mil — vias and through-hole pins both counted.",
+  drwHoleColA:"Hole (mil)", drwHoleColB:"Hole (mm)",
+  drwHoleColC:"Vias", drwHoleColD:"Pads", drwHoleColE:"Total",
+  drwQPhHole:"Filter by hole size (mil or mm)",
+  drwTpColA:"Net", drwTpColB:"Kind", drwTpColC:"Designator / pin",
+  drwTpColD:"Size (mil)", drwTpColE:"Hole (mil)", drwTpColF:"Position (mil)",
+  tagHole:(mil,v,p)=>"Hole "+mil+" mil: "+v+" vias / "+p+" pads",
   drwQPh:"Filter designator / value / net",
   drwCopy:"Copy list", drwCsv:"Export CSV",
   drwNoBoard:"No board loaded yet. Click Open File first.",
@@ -949,6 +1107,17 @@ en:{
   noBoard:"Open a board first",
   btnProbe:"Continuity", btnProbeTip:"Click two spots to test whether they are electrically connected (K)",
   btnShot:"Save PNG", btnShotTip:"Save the current view as PNG (refdes, highlight included)",
+  btnPrint:"Print", btnPrintTip:"A4 sheet: preview first, print when happy — landscape art prints landscape",
+  prTitle:"Print preview", prGo:"Print…", prClose:"Close",
+  prGridHint:"Press G first to print with the A1~H8 grid",
+  prPaperHint:"Uncheck \u201cHeaders and footers\u201d in the print dialog to leave only the board",
+  prSize:(w,h)=>"Outline "+w+" × "+h+" mm",
+  prCu:n=>n+" copper layers",
+  prNet:n=>n+" nets",
+  prZoom:p=>"Zoom "+p+"%",
+  prTime:s=>"Plotted "+s,
+  prFootL:"PCB Viewer CopperLens",
+  prFootR:"© Lanlan Eternal　·　refdes on paper matches the real board",
   shotDone:n=>"Saved: "+n,
   shotFail:"Save failed: ",  layerTitle:"Click to toggle　double-click to show only this layer",
   fnameLine:(nm,ddb,n,polys)=>nm+(ddb?"  (extracted from library)":"")+
@@ -1088,6 +1257,20 @@ en:{
       <li><b>Parts</b> — every designator + value, sorted. Click one to jump to it and light all its pins.</li>
       <li><b>Nets</b> — every net name with its pin count (<code>GND 86 pins</code>). Click one to light the whole net and centre it.</li>
       <li><b>Pins</b> — the full pin list of whatever is lit (<code>U100-4　GND</code>). Click a row to jump to that pin.</li>
+      <li><b>Holes</b> — every hole that needs a drill bit, grouped by diameter, smallest first:
+          <code>Φ 32 mil　0.81 mm · vias 180 · pads 6</code>. Vias and through-hole pins are
+          counted; SMD pads have no hole so they never appear. Click a row to light up every
+          hole of that size and fly to them. Quotes are priced by <i>how many hole sizes</i> you
+          have, and repair work asks <i>what the smallest hole is</i> — both live here.
+          Grouped to 1 mil, so 31.5 and 32 don't become two rows.</li>
+      <li><b>Probes</b> — for every net, <b>one</b> point that is easiest to touch: the pad with
+          the widest short side, through-hole pads slightly preferred. Each row gives the net,
+          the pin (<code>R12-1</code>) and the size. Click it to light that single point and
+          centre it — that's where the meter probe goes. When the best pad is under 20 mil
+          (the BGA kind) and the net has vias, it points at the net's <b>largest via</b>
+          instead (<code>via Φ14</code>): a via ring sits on the surface, so the same size is far
+          easier to reach than a ball under a package. Only when nothing better exists is a pad
+          marked <i>tiny</i>.</li>
       <li>The filter box narrows things down: <code>U1</code> for all U1xx, <code>3V3</code> for a rail.</li>
       <li><b>Copy list</b> pastes into your repair note; <b>Export CSV</b> saves a spreadsheet.</li>
     </ul>
@@ -1134,6 +1317,20 @@ en:{
     <p><code>Save PNG</code> writes the current view (refdes, values, highlight included) as a PNG
        named after the board and the time — ready for a repair sheet or a chat group.</p>
 
+    <h3>Put it on an A4 sheet</h3>
+    <p><code>Print</code> shows an A4 sheet on screen first — white paper, board centred, one line
+       of title and size above, one line of plot info below. Happy with it, click <b>Print…</b>
+       and send it to a printer or "Save as PDF". A landscape board is printed landscape, so you
+       don't get two big empty bands on the paper.</p>
+    <ul>
+      <li>Press <kbd>G</kbd> before printing: paper can't be clicked, so the A1~H8 grid is the only
+          way to say where a part is.</li>
+      <li>What gets printed is what's on screen — refdes, pad numbers, highlights and marks all come
+          along; turn them off first if you want it clean.</li>
+      <li>Untick <b>Headers and footers</b> in the print dialog, otherwise the URL and date show up.</li>
+      <li>The scale bar sits bottom-right, so lengths can be checked on paper.</li>
+    </ul>
+
     <h3>Labels</h3>
     <ul>
       <li><b>Refdes</b> and <b>Pad No.</b> are on by default, toggled from the top bar.</li>
@@ -1142,8 +1339,18 @@ en:{
           appear as you zoom in.</li>
     </ul>
 
+    <h3>Pointing at a spot by cell</h3>
+    <p><code>Grid</code> on the toolbar (shortcut <kbd>G</kbd>) divides the board into rows and
+       columns — <b>numbers across</b> (1, 2, 3… left to right), <b>letters down</b>
+       (A, B, C… top to bottom) — so "the 1uF at E5" is something the other person can find on
+       their own screen. The count is derived from the board's aspect ratio, aiming at roughly
+       square cells about 10 mm on the long side (5×5 on a 30 mm board, 14×14 on a 300 mm one);
+       nothing to configure. Labels sit just outside the outline and stick to the canvas edge
+       once you pan past it, so you still know your column while zoomed in. The grid is
+       decoration only — picking, measuring and continuity are unaffected.</p>
+
     <h3>Shortcuts</h3>
-    <p><kbd>F</kbd> fit　<kbd>H</kbd> copper on/off　<kbd>K</kbd> continuity　<kbd>D</kbd> measure　
+    <p><kbd>F</kbd> fit　<kbd>H</kbd> copper on/off　<kbd>G</kbd> grid　<kbd>K</kbd> continuity　<kbd>D</kbd> measure　
        <kbd>Ctrl</kbd>+<kbd>F</kbd> find　<kbd>Esc</kbd> clear highlight　
        <kbd>Arrows</kbd> pan　<kbd>+</kbd> <kbd>-</kbd> zoom</p>`,
   discHtml:`
@@ -1198,6 +1405,10 @@ en:{
       <li><b>Several files open at once</b>: one tab per file, switch or close them independently;
           different boards inside one .ddb get their own tabs too</li>
       <li><b>Lists</b>: every designator and net in a clickable table; copy or export the pin list of the current net</li>
+      <li><b>Holes</b>: every drilled hole grouped by diameter — click a row to light all of that size; copy or export CSV</li>
+      <li><b>Probes</b>: for each net, the single easiest pad to touch (pin + pad size), ready to copy</li>
+      <li><b>Location grid</b>: board sliced into A1–H8 so "that cap in E5" means something</li>
+      <li><b>A4 printout</b>: preview then print, white background, landscape paper for wide boards</li>
       <li><b>Measure</b>: click two points for mm and mil (snaps to pad centres)</li>
       <li><b>Board marks</b>: right-click and type "burnt here" — stored per board</li>
       <li><b>Board info</b>: outline size, area, copper layers, part/pad/via/net counts, thinnest trace, smallest hole</li>
@@ -1205,7 +1416,7 @@ en:{
       <li><b>Recent files</b>: the home page lists what you opened last; one click reopens it</li>
     </ul>
     <h3>Version</h3>
-    <p>v1.16　·　supports x86 and 64-bit Windows　·　portable single file</p>
+    <p>v1.17　·　supports x86 and 64-bit Windows　·　portable single file</p>
     <div class="sig">© Lanlan Eternal　·　永远的兰兰</div>`
 }
 };
@@ -3854,6 +4065,82 @@ function parseLcedaLog(txt){
     return v!==undefined ? v : lcedaProLayer(id);
   };
 
+  /* ---------- 覆铜：POUR（轮廓）＋ POURED（填充）----------
+     立创专业版把一块覆铜拆成两条记录：
+       POUR     给轮廓（R 矩形，或多边形点列），坐标跟走线同一个系（板坐标 mil）
+       POURED   给真正填充的多边形，坐标却是归一化的（几百这个量级）
+     两者靠 id 配；POURED 的 id 是字符串化数组 ["POURED","e624"]，取第二段才是 POUR 的 id。
+     还原办法：拿该块自己的轮廓包围盒做仿射映射，逐块落回原位。
+     实测泰山派那块板 36 块全部配对，比例 x≈10.25 / y≈10.55 —— 两个轴不同，
+     说明不是等比归一化，所以不能用一个全局 scale，必须逐块算。
+     轮廓是 R 还是多边形都能用：反正只取包围盒。 */
+  const pourRects=new Map();      // pourId -> {layerId, netName, bb:[x,y,w,h]}
+  const pendPoured=new Map();     // POURED 先到、POUR 还没出现时暂存
+  const pourTmp=[];               // 已还原成 POUR 系、待整体落位的覆铜片段
+
+  const lcpBBox=path=>{
+    let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+    for(const pts of lcpPath(path)){
+      for(const q of pts){
+        if(q[0]<x0)x0=q[0]; if(q[0]>x1)x1=q[0];
+        if(q[1]<y0)y0=q[1]; if(q[1]>y1)y1=q[1];
+      }
+    }
+    return isFinite(x0)?[x0,y0,x1-x0,y1-y0]:null;
+  };
+
+  const emitPour=(pid,fillArr)=>{
+    const info=pourRects.get(pid);
+    if(!info || !fillArr || !fillArr.length) return;
+    const lay=layOf(info.layerId);
+    if(!lay) return;
+    const net=netNum(info.netName);
+    /* 拆成点集，顺便求填充自己的包围盒 */
+    const polys=[];
+    let fx0=Infinity,fy0=Infinity,fx1=-Infinity,fy1=-Infinity;
+    for(const item of fillArr){
+      if(!item) continue;
+      for(const pts of lcpPath(item.path)){
+        if(pts.length<3) continue;
+        polys.push(pts);
+        for(const q of pts){
+          if(q[0]<fx0)fx0=q[0]; if(q[0]>fx1)fx1=q[0];
+          if(q[1]<fy0)fy0=q[1]; if(q[1]>fy1)fy1=q[1];
+        }
+      }
+    }
+    if(!polys.length || !isFinite(fx0)) return;
+    const fw=fx1-fx0, fh=fy1-fy0, bb=info.bb;
+    if(!(fw>1e-6) || !(fh>1e-6) || !(bb[2]>1e-6) || !(bb[3]>1e-6)) return;
+    const sx=bb[2]/fw, sy=bb[3]/fh;
+    /* 抽稀：覆铜是填充区域，顶点密度远高于屏幕能分辨的程度 —— 这块板
+       13 万个顶点里九成落在同一个像素内。按 0.06 mm（2.4 mil）抽一遍，
+       形状肉眼看不出来，但重绘从 210 ms 掉到 80 ms 上下，拖起来才跟手。 */
+    const THIN=2.4;
+    const thinPts=arr=>{
+      if(arr.length<=16) return arr;
+      const out=[arr[0]];
+      for(let i=1;i<arr.length;i++){
+        const p=arr[i], q=out[out.length-1];
+        if(Math.abs(p[0]-q[0])>=THIN || Math.abs(p[1]-q[1])>=THIN) out.push(p);
+      }
+      if(out.length<3) return arr;
+      const lastP=arr[arr.length-1], lastQ=out[out.length-1];
+      if(lastP[0]!==lastQ[0] || lastP[1]!==lastQ[1]) out.push(lastP);
+      return out;
+    };
+    for(const raw of polys){
+      const src=thinPts(raw);
+      const q=new Array(src.length);
+      for(let i=0;i<src.length;i++){
+        q[i]=[bb[0]+(src[i][0]-fx0)*sx, bb[1]+(src[i][1]-fy0)*sy];
+      }
+      /* 这里只落到「POUR 系」，整批等扫描结束再套一次全局变换 —— 因为那套变换
+         要拿板框包围盒当参照，而板框是后面才读完的。 */
+      pourTmp.push({pts:q, lay:lay, net:net});
+    }
+  };
+
   /* ---- 第二遍：板子本体 ---- */
   const comps=new Map();        /* 元件号 → {x,y,angle,lid,fp,ref,com} */
   const attrs=[];
@@ -3903,11 +4190,29 @@ function parseLcedaLog(txt){
       }
       continue;
     }
-    if(t==="FILL" || t==="POLY" || t==="REGION" || t==="POUR"){
+    if(t==="POUR" || t==="POURED"){
       let o; try{ o=JSON.parse(h.body); }catch(_){ continue; }
-      /* 覆铜（POUR/POURED）内部存的是归一化坐标，跟板坐标不是一个原点，
-         硬画会整片错位，宁可不画。 */
-      if(t==="POUR") continue;
+      if(t==="POUR"){
+        const bb=lcpBBox(o.path);
+        if(bb) pourRects.set(o.id, {layerId:o.layerId, netName:o.netName, bb:bb});
+        const w=pendPoured.get(o.id);
+        if(w){ pendPoured.delete(o.id); emitPour(o.id, w); }
+      }else{
+        let pid=o.id;
+        if(typeof pid==="string" && pid.charCodeAt(0)===91){
+          try{ pid=JSON.parse(pid); }catch(_){}
+        }
+        const key=Array.isArray(pid)?pid[1]:pid;
+        const fill=o.pourFill||[];
+        if(fill.length){
+          if(pourRects.has(key)) emitPour(key, fill);
+          else pendPoured.set(key, fill);
+        }
+      }
+      continue;
+    }
+    if(t==="FILL" || t==="POLY" || t==="REGION"){
+      let o; try{ o=JSON.parse(h.body); }catch(_){ continue; }
       const lay=layOf(o.layerId);
       if(!lay) continue;
       const net=netNum(o.netName);
@@ -4056,6 +4361,68 @@ function parseLcedaLog(txt){
     throw new Error(T("errProEmpty"));
   }
 
+  /* ---------- 覆铜落位 ----------
+     这块板上有两种覆铜，坐标居然不在一套里：
+       · 28 块小块（多边形轮廓）用板坐标，直接就能用；
+       · 8 块整层铺铜（R 矩形）的 Y 却从板框上沿开始朝反方向累计 ——
+         板框 Y 2250.5~3431.6，这 8 块却在 3434.9~4665.5，整整差一个板高。
+     X 方向两者是重合的（差不到 0.3 mm），所以只有 Y 需要处理。
+     做法不猜、也不硬编码：拿板框自己的包围盒当尺子逐块试 ——
+       先原样放，落在板框内（留 3 mm 余量）就算对；
+       放不进就绕板框上沿翻一次再试；
+       还放不进就丢掉。这样换一块板、换一个软件版本也不会崩，
+     最差的结果只是内层空着，不会出现一张错位的图。 */
+  if(pourTmp.length){
+    let bx0=Infinity,by0=Infinity,bx1=-Infinity,by1=-Infinity,hasOut=false;
+    for(const p of b.polys){
+      if(p.layer!==56) continue;
+      hasOut=true;
+      for(const q of p.pts){
+        if(q[0]<bx0)bx0=q[0]; if(q[0]>bx1)bx1=q[0];
+        if(q[1]<by0)by0=q[1]; if(q[1]>by1)by1=q[1];
+      }
+    }
+    let kept=0, flipped=0, dropped=0;
+    if(hasOut && isFinite(bx0)){
+      /* 越界深度：这片覆铜离板框最远跑出去多少（mil）。0 = 完全在板内。
+         覆铜本来就允许比板框外扩一点，所以不比"在不在框内"，比"哪种放法
+         跑得少" —— 原样和绕上沿翻转各算一次，取小的。 */
+      const outside=pts=>{
+        let m=0;
+        for(let i=0;i<pts.length;i++){
+          const q=pts[i];
+          let d=0;
+          if(q[0]<bx0) d=bx0-q[0]; else if(q[0]>bx1) d=q[0]-bx1;
+          if(q[1]<by0) d=Math.max(d, by0-q[1]); else if(q[1]>by1) d=Math.max(d, q[1]-by1);
+          if(d>m) m=d;
+        }
+        return m;
+      };
+      const LIMIT=200;                    /* mil = 5 mm：再远就不是坐标问题，是数据不对 */
+      for(const p of pourTmp){
+        let pts=p.pts;
+        let d1=outside(pts);
+        if(d1>0){
+          const ny=new Array(pts.length);
+          for(let i=0;i<pts.length;i++) ny[i]=[pts[i][0], 2*by1-pts[i][1]];
+          const d2=outside(ny);
+          if(d2<d1){ pts=ny; d1=d2; flipped++; }
+        }
+        if(d1>LIMIT){ dropped++; continue; }
+        addPoly(pts, p.lay, p.net);
+        const last=b.polys[b.polys.length-1];
+        if(last) last.pour=1;
+        kept++;
+      }
+    }else{
+      dropped=pourTmp.length;
+    }
+    b.pourStat={kept:kept, flipped:flipped, dropped:dropped};
+    if(dropped)
+      b.warn.push("有 "+dropped+" 片覆铜的坐标对不上，已跳过（走线、焊盘、查线都不受影响）");
+    pourTmp.length=0;
+  }
+
   /* 跟标准版一样：立创的原点在画布左下角，坐标常在一千多毫米处，
      整块搬回原点旁边，状态栏和分享链接才读得懂。 */
   let mx=Infinity, my=Infinity;
@@ -4156,7 +4523,14 @@ let invert=false, showLabels=true, dimOthers=true, trueWidth=true;
 let showDes=true;                 // 元件位号（U3 / R12…）
 let showVal=true;                 // 元件型号（AMS1117-3.3…）—— 维修认芯片主要靠这个
 let showPour=true;                // 是否显示覆铜（接地平面铺满整板，看走线时要能关掉）
+let showGrid=false;               // 板面定位网格（A1~H8）：默认关，别一进来看板就先糊一层线
+let prNoMini=false;               // 正在抓打印图：这一张里不要缩略导航图（纸上点不了）
+let pxScale=1;                    // 画布超采样倍数：平时 1，抓打印图时按需要放大
 let mouseDown=false, moving=false, lastX=0, lastY=0, downX=0, downY=0;
+/* 上一次"画面在动"的时刻。拖动时覆铜整片重填要 80 ms 上下，跟手会烂，
+   所以动起来的那几帧先跳过覆铜，停手 140 ms 后自动补上。
+   用时间窗而不是布尔量：万一某条路径忘了复位标志，也不会让覆铜永久消失。 */
+let lastPanT=0;
 
 const LAYER_COLORS={
   1:"#e2504f", 2:"#c9622f", 3:"#b8853a", 4:"#8f9f3f", 5:"#5aa87a",
@@ -4202,7 +4576,10 @@ function isPourPart(o){
 }
 
 function resize(){
-  const dpr=window.devicePixelRatio||1;
+  /* pxScale 平时是 1；抓打印图时临时调大，让同一块画面用几倍像素画出来 ——
+     屏幕上 1 px 打成一毫米见方的东西，不超采样就是一团糊。
+     画的时候坐标仍然按 CSS 像素走（变换矩阵负责放大），所以别的代码不用改。 */
+  const dpr=(window.devicePixelRatio||1)*(pxScale||1);
   const r=stage.getBoundingClientRect();
   cv.width=Math.max(1,Math.round(r.width*dpr));
   cv.height=Math.max(1,Math.round(r.height*dpr));
@@ -4259,10 +4636,126 @@ function draw(){
   }
   drawTexts(order);
   drawLabels(order);
+  if(showGrid) drawGrid(r);   /* 定位网格压在铜和丝印之上，但要压得很淡 */
   drawScale(r);
   drawMarks();          /* 自己打的标记画在最上层，别被覆铜盖住 */
   drawMeasure();        /* 量距的线和读数压在标记之上 */
   drawMini(r);          /* 缩略导航图：放大了以后靠它知道自己在板子哪儿 */
+}
+
+/* ============================ 板面定位网格（A1~H8） ============================
+   维修时最常卡住的一句话是"在哪儿"——"U6 左下方那颗小电容"，板子转两圈就说不清了。
+   打开网格后板面按行列切块：列是数字（从左往右 1、2、3…），行是字母（从上往下 A、B、C…），
+   于是"E5 那颗 1uF"就成了一个对方能直接复现的坐标，打电话也说得清。
+
+   行列数不写死：按板子长宽比自动算，让格子尽量接近正方形，长边大约 10 mm 一格，
+   再夹到 5~14 之间 —— 30 mm 的小板子给 5×5（6 mm 一格）不至于碎成马赛克，
+   300 mm 的大板子给 14×14（21 mm 一格）也不会一格装半块板。
+
+   坐标字贴在板框外侧；板框被拖出画布时自动贴到画布边上，等于变成一把尺子，
+   放大以后钻在板子中间也不会不知道自己在第几列。 */
+let gridSpec=null, gridKey=null;
+function gridSpecFor(){
+  if(!B) return null;
+  if(gridKey===B && gridSpec) return gridSpec;
+  const bb=boardBox();
+  if(!bb) return null;
+  const w=Math.max(1,bb.x2-bb.x1), h=Math.max(1,bb.y2-bb.y1);
+  const wmm=w*0.0254, hmm=h*0.0254;
+  const longMM=Math.max(wmm,hmm), shortMM=Math.min(wmm,hmm);
+  const nLong=Math.min(14, Math.max(5, Math.round(longMM/10)));
+  const nShort=Math.min(nLong, Math.max(2, Math.round(nLong*(shortMM/longMM))));
+  gridSpec={
+    bb:bb,
+    cols: w>=h ? nLong : nShort,    /* 列跟 X 走 */
+    rows: w>=h ? nShort : nLong      /* 行跟 Y 走 */
+  };
+  gridKey=B;
+  return gridSpec;
+}
+
+const GRID_LETTERS="ABCDEFGHIJKLMNOP";
+function drawGrid(r){
+  const g=gridSpecFor();
+  if(!g || !g.cols || !g.rows) return;
+  const bb=g.bb, cols=g.cols, rows=g.rows;
+  const S=view.s, OX=view.ox, OY=view.oy;
+  const bw=bb.x2-bb.x1, bh=bb.y2-bb.y1;
+  const cw=bw/cols, ch=bh/rows;
+  const cwPx=cw*S, chPx=ch*S;
+  /* 缩到一格只有几个像素时，线比内容还密，画上去纯是脏 —— 那种倍率下整板都看得见，
+     本来就不需要网格辅助。 */
+  if(cwPx<7 || chPx<7) return;
+
+  /* 板框四边在屏幕上的位置（世界坐标 y 越大越靠上，所以板顶是 y2 那边） */
+  const x1=bb.x1*S+OX, x2=bb.x2*S+OX;
+  const yTop=-bb.y2*S+OY, yBot=-bb.y1*S+OY;
+
+  ctx.save();
+  ctx.setLineDash([4,4]);
+  ctx.lineWidth=1;
+  ctx.strokeStyle=invert?"#2f6b7d":"#3a7f96";
+  /* 放大以后一格几百像素、背景全是铜，太淡就等于没有；缩小时整板铺满，
+     太浓又变成一层纱窗。按格子像素大小给两档。反色是浅底，同样的透明度会被
+     亮背景吃掉一截，所以单独给一档更实的。 */
+  const gAlpha=(cwPx>200?0.55:0.42)*(invert?1.15:1);
+  ctx.globalAlpha=gAlpha;
+  ctx.beginPath();
+  for(let i=0;i<=cols;i++){
+    const px=x1+i*cwPx;
+    if(px<-2 || px>r.width+2) continue;
+    ctx.moveTo(px,yTop); ctx.lineTo(px,yBot);
+  }
+  for(let j=0;j<=rows;j++){
+    const py=yTop+j*chPx;              /* 世界 y 向上、屏幕 y 向下：从板顶往下加 */
+    if(py<-2 || py>r.height+2) continue;
+    ctx.moveTo(x1,py); ctx.lineTo(x2,py);
+  }
+  ctx.stroke();
+  ctx.restore();
+
+  /* 列号 / 行号：板框出画布就贴边（见上面注释），字用 10px 等宽跟标尺一致。
+     左上角那块缩略导航图正好压在"贴边"后的坐标字上 —— 这是两个功能抢同一个角。
+     处理办法：行号整体让到缩略图右边（竖排 Alphabet 不断档），
+     列号被压住的那一列干脆不画（横排数字断一个无所谓，其余还能数出自己在第几列）。 */
+  const mrc=miniRect();
+  const ly = yTop>22 ? yTop-7 : 15;
+  let lx = x1>20 ? x1-10 : 14;
+  if(mrc && lx < mrc.x+mrc.w+12) lx = mrc.x+mrc.w+12;
+  ctx.save();
+  ctx.font="10px ui-monospace,monospace";
+  ctx.textAlign="center"; ctx.textBaseline="middle";
+  /* 描边是给字加一圈"底"，保证压在花花的铜箔和丝印上也认得出来。
+     10px 的字经不起太粗的描边——2.4px 会把笔画吃掉一半，浅底上尤其明显，
+     所以反色主题用细一点、字色再压深一档。 */
+  ctx.lineWidth=invert?2.0:2.4;
+  ctx.strokeStyle=invert?"#ffffffd8":"#080a0dd8";
+  ctx.fillStyle=invert?"#0a3d4b":"#6fd0e6";
+  const put=(s,cx,cy)=>{
+    if(cx<8 || cx>r.width-8 || cy<6 || cy>r.height-6) return;
+    if(mrc && cx>mrc.x-8 && cx<mrc.x+mrc.w+8 && cy>mrc.y-8 && cy<mrc.y+mrc.h+8) return;
+    ctx.strokeText(s,cx,cy);
+    ctx.fillText(s,cx,cy);
+  };
+  if(cwPx>=22){
+    for(let i=0;i<cols;i++){
+      put(String(i+1), x1+(i+0.5)*cwPx, ly);
+    }
+  }
+  if(chPx>=16){
+    for(let j=0;j<rows;j++){
+      put(GRID_LETTERS[j]||"?", lx, yTop+(j+0.5)*chPx);
+    }
+  }
+  ctx.restore();
+}
+
+function toggleGrid(){
+  showGrid=!showGrid;
+  if(showGrid) gridSpecFor();       /* 先算好划分，免得第一帧是空的 */
+  const b=document.getElementById("grid");
+  if(b) b.classList.toggle("on",showGrid);
+  draw();
 }
 
 /* ============================ 缩略导航图（minimap） ============================
@@ -4319,6 +4812,7 @@ function miniRect(){
   return {x:14, y:14, w:MINI.w, h:MINI.h};
 }
 function drawMini(r){
+  if(prNoMini) return;
   const rc=miniRect();
   if(!rc) return;
   const bb=MINI.bb;
@@ -4402,28 +4896,49 @@ function drawLayer(ly,arr){
      ⚠ 被点中时**绝不能实心填充**：接地平面几乎铺满整板，一填就把走线、
        焊盘全盖住，满屏一个颜色什么也看不出来。只把轮廓描亮，真正的
        信息（哪些焊盘/过孔接地）交给上面的高亮。 */
-  for(let k=0;k<arr.length;k++){
-    const it=arr[k];
-    if(it.kind!=="polygon") continue;
-    if(!showPour) continue;
-    const o=it.o, pts=o.pts;
-    if(!pts || pts.length<3) continue;
-    const on = LIT ? LIT.has(o) : false;
-    if(on){
-      ctx.globalAlpha=0.045*DIM; ctx.fillStyle="#ffe066";
-    }else{
-      ctx.globalAlpha=0.085*DIM; ctx.fillStyle=col;
+  if(showPour && performance.now()-lastPanT>140){
+    /* ⚠ 这一段必须合并成整层一条 path 再一次性 fill。
+       立创专业版的覆铜动辄两千多片（六层加起来 2880 片、13 万顶点），
+       逐片 beginPath/fill/stroke 时，重绘要 220 ms —— 拖动明显一顿一顿。
+       合并之后同层只两次 fill + 两次 stroke，同样的画面 30 ms 出头。
+       用 nonzero 而不是 evenodd：覆铜的填充片本来就是"叠在一起算一片"，
+       evenodd 会把重叠处挖出洞来。 */
+    /* 坐标变换在这里内联，不走 w2s：它每次返回一个新数组，
+       13 万个顶点就是 13 万个短命数组，GC 一来就是几十毫秒的顿。 */
+    const pourPath=(wantOn)=>{
+      let any=false;
+      const S=view.s, OX=view.ox, OY=view.oy;
+      ctx.beginPath();
+      for(let k=0;k<arr.length;k++){
+        const it=arr[k];
+        if(it.kind!=="polygon") continue;
+        const o=it.o, pts=o.pts;
+        if(!pts || pts.length<3) continue;
+        const on = LIT ? LIT.has(o) : false;
+        if(!!on !== wantOn) continue;
+        for(let i=0;i<pts.length;i++){
+          const px=pts[i][0]*S+OX, py=-pts[i][1]*S+OY;
+          i?ctx.lineTo(px,py):ctx.moveTo(px,py);
+        }
+        ctx.closePath();
+        any=true;
+      }
+      return any;
+    };
+    /* 透明度要压得很低：上千片、六层叠在一起，每片哪怕只有 8%
+       累积下来也是一块实心色，走线全被埋掉。0.028 叠六层才勉强算"底纹"。 */
+    if(pourPath(false)){
+      ctx.globalAlpha=0.028*DIM; ctx.fillStyle=col;
+      ctx.fill("nonzero");
+      ctx.globalAlpha=0.16*DIM; ctx.strokeStyle=col; ctx.lineWidth=0.6;
+      ctx.stroke();
     }
-    ctx.beginPath();
-    for(let i=0;i<pts.length;i++){
-      const q=w2s(pts[i][0],pts[i][1]);
-      i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]);
+    if(pourPath(true)){
+      ctx.globalAlpha=0.020*DIM; ctx.fillStyle="#ffe066";
+      ctx.fill("nonzero");
+      ctx.globalAlpha=0.95; ctx.strokeStyle="#ffd23f"; ctx.lineWidth=1.8;
+      ctx.stroke();
     }
-    ctx.closePath(); ctx.fill();
-    ctx.globalAlpha=on?0.95:0.30*DIM;
-    ctx.strokeStyle=on?"#ffd23f":col;
-    ctx.lineWidth=on?1.8:0.7;
-    ctx.stroke();
   }
 
   // ---- 走线 / 圆弧 / 填充：描边 ----
@@ -4984,6 +5499,30 @@ function updateStatus(h){
      :(o.xs!==undefined?o.xs.toFixed(0)+"×"+o.ys.toFixed(0)+" mil"
      :(o.dia!==undefined?o.dia.toFixed(0)+" mil":"—")));
   const n=LIT?LIT.size:0;
+  /* 孔表点一行：这条状态栏只该说"哪个孔径、几个孔"，
+     套用网络那套（网络名 + 共 N 处）会出来一个空网络名，读着别扭。 */
+  if(pickMode==="hole"){
+    sn.innerHTML='<span class="chip">'+esc(T("tagHole", litHoleMil, litVias, litPads))+'</span>';
+    return;
+  }
+  /* 测点点一行：屏幕中央就这一处点，"共 1 处"是废话。
+     改成说"多大、哪只脚、哪条网"，维修的人拿表笔之前要看的就是这三样。
+     推的是过孔时没有位号，只说孔径 —— 那就够了，颜色是层色，位置在屏幕正中。 */
+  if(pickMode==="tp"){
+    const netChip = (o.net>0 && B && B.nets)
+      ? '<span class="chip">'+esc(B.nets[o.net-1]||("NET"+o.net))+'</span>' : "";
+    if(o.kind === "via"){
+      sn.innerHTML='<span class="chip">'+esc(T("tagTpVia", Math.round(o.dia||0)))+'</span>'+netChip;
+      return;
+    }
+    const tpMn=Math.round(Math.min(o.xs||0,o.ys||0)), tpMx=Math.round(Math.max(o.xs||0,o.ys||0));
+    const foot = o.compDes ? (o.compDes+(o.name? "-"+o.name : ""))
+                           : (o.name? T("padNo",o.name) : "");
+    sn.innerHTML='<span class="chip">'+esc(T("tagTp", tpMn, tpMx))+'</span>'
+      + (foot? '<span class="chip blue">'+esc(foot)+'</span>' : "")
+      + netChip;
+    return;
+  }
   let tag="", tail=" · "+T("places", n);
   if(pickMode==="net") tag=T("tagNet");
   else if(pickMode==="noncu") tag=T("tagNonCu");
@@ -5113,6 +5652,7 @@ window.addEventListener("mousemove",e=>{
   const dx=e.clientX-lastX, dy=e.clientY-lastY;
   if(Math.abs(e.clientX-downX)+Math.abs(e.clientY-downY)>4) moving=true;
   if(moving){
+    lastPanT=performance.now();
     view.ox+=dx; view.oy+=dy;
     lastX=e.clientX; lastY=e.clientY;
     draw();
@@ -5177,6 +5717,7 @@ function edgeStep(){
   edgeTimer=0;
   if(!edgeVX && !edgeVY) return;
   view.ox+=edgeVX; view.oy+=edgeVY;
+  lastPanT=performance.now();
   moving=true;        /* 画面已经动了，松手时别再当成"点了一下"去选中元件 */
   draw();
   edgeTimer=setTimeout(edgeStep, 16);
@@ -5268,6 +5809,12 @@ document.getElementById("lang").onclick=toggleLang;
 let curHit=null;    // 当前高亮的命中对象（切语言时重写状态栏要用）
 
 window.addEventListener("keydown",e=>{
+  // 打印预览打开时，只认 Esc 关闭 —— 其余键不该在看不见的画布上偷偷改状态
+  if(printOpen()){
+    if(e.key==="Escape") closePrint();
+    e.preventDefault();
+    return;
+  }
   // 弹窗打开时只认 Esc
   if(anyModalOpen()){
     if(e.key==="Escape") closeModals();
@@ -5281,6 +5828,7 @@ window.addEventListener("keydown",e=>{
   }
   if(k==="f"||k==="F"){ fit(); return; }
   if(k==="h"||k==="H"){ togglePour(); return; }
+  if(k==="g"||k==="G"){ toggleGrid(); return; }
   if(k==="k"||k==="K"){ toggleProbe(); return; }
   if(k==="d"||k==="D"){ toggleMeas(); return; }
   if(k==="Escape"){
@@ -5497,6 +6045,39 @@ function lightNet(n){
   }
   hi="n"+n;
   curHit={o:[...set][0], it:null};
+  updateStatus(curHit); draw();
+  return true;
+}
+
+/* 点亮某一孔径的所有孔 —— 孔表里点一行就走这里。
+   "32 mil 的孔一共 180 个，都在哪儿？" 全亮一遍，再飞到它们的包围盒上。 */
+let litHoleMil=0;
+function lightHole(mil){
+  if(!B || !(mil>0)) return false;
+  const set=new Set(); let nv=0, np=0;
+  for(const v of B.vias){ if(Math.round(v.hole||0)===mil){ set.add(v); nv++; } }
+  for(const p of B.pads){ if(Math.round(p.hole||0)===mil){ set.add(p); np++; } }
+  if(!set.size) return false;
+  LIT=set; litHoleMil=mil; pickMode="hole"; litPads=np; litVias=nv;
+  hi=null; litFeet=[]; litFeetAll=0;
+  curHit={o:[...set][0], it:null};
+  updateStatus(curHit); draw();
+  return true;
+}
+
+/* 点亮"这条网络的测点" —— 测点页点一行走这里。
+   只亮一处；倍率按 drwGoPoint 的老规矩"视口里装下 ±200 mil"，
+   正好能看清那一处周围的几颗料 —— 整板视角下 14 mil 的过孔就是一个像素点。 */
+function lightTp(idx){
+  if(!B) return false;
+  const r = drwTpPads()[idx];
+  if(!r || !r.pad) return false;
+  const isVia = (r.pad.kind === "via");
+  hi=null; LIT=new Set([r.pad]); pickMode="tp";
+  litPads = isVia?0:1; litVias = isVia?1:0;
+  litFeet=[]; litFeetAll=0;
+  curHit={o:r.pad, it:null};
+  drwGoPoint(r.pad.x, r.pad.y, true);
   updateStatus(curHit); draw();
   return true;
 }
@@ -5788,6 +6369,140 @@ function saveShot(){
   }
 }
 document.getElementById("shot").onclick=saveShot;
+
+/* ============================== 打印 / A4 出图 ==============================
+   维修单、报价单、"这块板哪里烧了"发群里，最后往往还是要一张纸或者 PDF。
+   直接 Ctrl+P 打界面会连着深色 UI、图层栏、搜索框一起打出来，而且板子还挤在
+   角落 —— 所以这里另做一张"纸"：白底、板子居中铺满、上面一行板名和尺寸、
+   下面一行出图信息。屏幕上预览的就是打印机出来的那一份，同一个 DOM，不是模拟。
+
+   @page 的纸张方向按当前画面的长宽比自动切（横图横着打），
+   靠给一个 <style> 换内容实现 —— CSS 里写不了条件分支，但可以后注入覆盖。 */
+const PR={wrap:null};
+function prStamp(){
+  const d=new Date(), p=n=>String(n).padStart(2,"0");
+  return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())
+        +" "+p(d.getHours())+":"+p(d.getMinutes());
+}
+function openPrint(){
+  if(!B){ toast(T("noBoard")); return; }
+  const wrap=document.getElementById("printWrap");
+  const page=document.getElementById("prPage");
+  const img=document.getElementById("prImg");
+  PR.wrap=wrap;
+
+  const bb=boardBox();
+  const wmm=(bb?bb.x2-bb.x1:0)*0.0254, hmm=(bb?bb.y2-bb.y1:0)*0.0254;
+  let cu=0;
+  for(const n of B.bucket.keys()) if(isCopper(n)) cu++;
+  const nm=String(lastName||"board").replace(/\.(pcb|ddb|kicad_pcb|epro2?)$/i,"");
+  const bits=[
+    T("prSize", wmm.toFixed(1), hmm.toFixed(1)),
+    T("prCu", cu),
+    T("prNet", B.nets?B.nets.length:0),
+    /* 和状态栏那个百分比同一个口径（view.s 是"每 mil 几个像素"），
+       纸上写 13% 与屏幕上读到的数字一致，才不会被当成两个数 */
+    T("prZoom", Math.round(view.s*100)),
+    T("prTime", prStamp())
+  ];
+  document.getElementById("prCap").innerHTML=
+    '<b>'+esc(nm)+'</b><s>'+esc(bits.join("　·　"))+'</s>';
+  document.getElementById("prFoot").innerHTML=
+    '<span>'+esc(T("prFootL"))+'</span><span>'+esc(T("prFootR"))+'</span>';
+
+  /* 顶条上这两句是给"打之前"看的，别印在纸上（纸上没法点、也没法关页眉） */
+  const hint=[];
+  if(!showGrid) hint.push(T("prGridHint"));
+  hint.push(T("prPaperHint"));
+  document.getElementById("prHint").textContent=hint.join("　/　");
+
+  /* 出图要用白底：屏幕上是深色看板，直接打出来就是一张满版黑纸 ——
+     费墨、字还糊。这里临时切到"反色"那套浅色调色抓一张，抓完立刻切回来，
+     中间不让浏览器有机会重绘，所以屏幕上看不到闪。
+     （反色主题本来就是为浅底调的色：铜红、蓝底、黑丝印，打在白纸上正合适。） */
+  const wasInvert=invert;
+  let data="";
+  let crop=null;
+  let sc=1;
+  try{
+    prNoMini=true;                  /* 打印时不要缩略导航图：纸上点不了它 */
+    invert=true;
+    crop=printCrop();               /* 先按 1:1 量出"板子那一块"在哪 */
+    /* 屏幕上这块板只占 300 多像素宽，直接打满 186 mm 等于 70 dpi，字全糊。
+       按"长边 2400 像素"倒推该放大几倍；同时压住总面积，别把画布撑爆。 */
+    if(crop){
+      const targetLong=2400;
+      const maxByMem=Math.sqrt(24e6/Math.max(1, cv.clientWidth*cv.clientHeight));
+      sc=Math.max(1, Math.min(6, Math.floor(maxByMem),
+                 Math.ceil(targetLong/Math.max(crop.w, crop.h))));
+    }
+    pxScale=sc; resize();           /* resize 里会重画一遍 */
+    data=crop? cropData(crop) : cv.toDataURL("image/png");
+  }finally{
+    pxScale=1; invert=wasInvert; prNoMini=false;
+    resize();                       /* 画布尺寸回正常，屏幕恢复原样 */
+  }
+
+  /* 纸张方向看截出来的那块长宽比：板子是竖的就竖着出纸 */
+  const ar = crop ? (crop.w/Math.max(1,crop.h)) : (cv.width/Math.max(1,cv.height));
+  const setPaper=l=>{
+    page.classList.toggle("land", !!l);
+    document.getElementById("pgStyle").textContent =
+      "@page{size:A4 "+(l?"landscape":"portrait")+";margin:0}";
+  };
+  setPaper(ar > 1.12);
+
+  img.onload=null;
+  img.src=data;
+  wrap.classList.add("on");
+  draw();                        /* 预览遮住画布时保持画面是最新的 */
+}
+
+/* 抓图的范围：板框和当前视野的交集，四周留 10 px。
+   不裁的话，一块竖板摆在横向窗口里，画布左右各有半屏空地 ——
+   打到纸上就是"图在中间一小块，四周全白"，白费半张纸。
+   裁到板框之后，看到的视野（放大到某个角落）也照样是裁出来的那块，
+   所以"所见即所得"没丢，只是把不属于板子的空白去掉了。 */
+function printCrop(){
+  const rect=stage.getBoundingClientRect();
+  const bb=boardBox();
+  if(!bb || !rect.width || !rect.height) return null;
+  const S=view.s, OX=view.ox, OY=view.oy;
+  /* 留 22 px：板框外面的丝印（"TG16-EDGE" 这种料号）常常压在框线上，
+     只裁到板框会把字切掉半行。 */
+  const pad=22;
+  let x1=bb.x1*S+OX, x2=bb.x2*S+OX;
+  let y1=-bb.y2*S+OY, y2=-bb.y1*S+OY;      /* 世界 y 向上 → 屏幕 y 向下 */
+  if(x1>x2){ const t=x1; x1=x2; x2=t; }
+  if(y1>y2){ const t=y1; y1=y2; y2=t; }
+  x1=Math.max(0, x1-pad); y1=Math.max(0, y1-pad);
+  x2=Math.min(rect.width, x2+pad); y2=Math.min(rect.height, y2+pad);
+  const w=x2-x1, h=y2-y1;
+  if(!(w>8) || !(h>8)) return null;         /* 板子整个在视野外：退回整张画布 */
+  return {x:x1, y:y1, w:w, h:h};
+}
+function cropData(r){
+  const dpr=(window.devicePixelRatio||1)*(pxScale||1);
+  const c=document.createElement("canvas");
+  c.width=Math.max(1, Math.round(r.w*dpr));
+  c.height=Math.max(1, Math.round(r.h*dpr));
+  const g=c.getContext("2d");
+  /* 底色先刷一遍：反色主题的纸色，万一裁剪框比画布大，边缘不会是透明的 */
+  g.fillStyle=invert?"#f0eee8":"#0d0f12";
+  g.fillRect(0,0,c.width,c.height);
+  g.drawImage(cv, Math.round(r.x*dpr), Math.round(r.y*dpr), c.width, c.height,
+              0, 0, c.width, c.height);
+  return c.toDataURL("image/png");
+}
+function closePrint(){
+  const wrap=document.getElementById("printWrap");
+  if(wrap) wrap.classList.remove("on");
+  document.getElementById("prImg").removeAttribute("src");
+}
+function printOpen(){ const w=document.getElementById("printWrap"); return !!(w && w.classList.contains("on")); }
+document.getElementById("prn").onclick=openPrint;
+document.getElementById("prGo").onclick=()=>{ try{ window.print(); }catch(err){ toast(err.message); } };
+document.getElementById("prClose").onclick=closePrint;
 
 /* ============================== 载入 ============================== */
 function loadBuffer(buf,name,gerSet){
@@ -6189,6 +6904,7 @@ document.getElementById("optVal").onclick=function(){
   showVal=!showVal; this.classList.toggle("on",showVal); draw();
 };
 document.getElementById("pour").onclick=togglePour;
+document.getElementById("grid").onclick=toggleGrid;
 document.getElementById("optDim").onclick=function(){
   dimOthers=!dimOthers; this.classList.toggle("on",dimOthers); draw();
 };
@@ -6283,7 +6999,7 @@ function snapshotDoc(){
     view:{s:view.s, ox:view.ox, oy:view.oy},
     show:Object.assign({},show), solo:solo,
     invert:invert, showLabels:showLabels, dimOthers:dimOthers, trueWidth:trueWidth,
-    showDes:showDes, showVal:showVal, showPour:showPour,
+    showDes:showDes, showVal:showVal, showPour:showPour, showGrid:showGrid,
     hi:hi, LIT:LIT, litFeet:litFeet, litFeetAll:litFeetAll,
     cuBig:cuBig, netTouch:netTouch, litPads:litPads, litVias:litVias,
     stNet:document.getElementById("stNet").innerHTML
@@ -6341,6 +7057,7 @@ function restoreUi(){
   showLabels=s.showLabels!==false; dimOthers=s.dimOthers!==false;
   trueWidth=s.trueWidth!==false;
   showDes=s.showDes!==false; showVal=s.showVal!==false; showPour=s.showPour!==false;
+  showGrid=!!s.showGrid;
   hi=s.hi||null; LIT=s.LIT||null;
   litFeet=s.litFeet||[]; litFeetAll=s.litFeetAll||0;
   cuBig=s.cuBig||0; netTouch=s.netTouch||0; litPads=s.litPads||0; litVias=s.litVias||0;
@@ -6348,7 +7065,7 @@ function restoreUi(){
   measReset();                        /* 换页签/换板：上一次量的两点不能留在新板上 */
   setOn("probe",false); hideProbe();
   setOn("invert",invert); setOn("des",showDes); setOn("labels",showLabels);
-  setOn("pour",showPour); setOn("optVal",showVal); setOn("optDim",dimOthers);
+  setOn("pour",showPour); setOn("grid",showGrid); setOn("optVal",showVal); setOn("optDim",dimOthers);
   setOn("optPen",trueWidth);
   document.getElementById("hint").style.display="none";
   document.getElementById("app").classList.remove("empty");
@@ -6591,6 +7308,90 @@ function drwComps(){
   out.sort((a,b)=> (a.des||"\uffff").localeCompare(b.des||"\uffff","zh",{numeric:true}));
   return out;
 }
+/* 孔表：把所有"要下钻头"的位置按孔径归堆。
+   维修和打样两张报价单上都有这一项 —— 打样是按孔径种类收费（孔型越多越贵），
+   维修是问"最细的孔多少、我这套钻头够不够"。
+   过孔和插件脚都算孔，贴片焊盘的 hole 是 0，天然被排除。
+   归组按四舍五入到 1 mil：同一个钻头在不同封装里可能写成 31.5 / 32.0，
+   不归堆会出来一堆只差 0.5 mil 的行，看着像几十种孔型。 */
+function drwHoles(){
+  const out = [];
+  if(!B) return out;
+  const m = new Map();
+  const bump = (hole, isVia)=>{
+    if(!(hole > 0)) return;
+    const k = Math.round(hole);
+    let r = m.get(k);
+    if(!r){ r = {mil:k, vias:0, pads:0}; m.set(k, r); }
+    if(isVia) r.vias++; else r.pads++;
+  };
+  for(const v of B.vias) bump(v.hole, true);
+  for(const p of B.pads) bump(p.hole, false);
+  m.forEach(r=>{ r.total = r.vias + r.pads; r.mm = r.mil * 0.0254; out.push(r); });
+  out.sort((a,b)=> a.mil - b.mil);            /* 小的在前：最细的孔才是要留意的那个 */
+  return out;
+}
+/* 测点：每条网络挑一处"最好下探头"的点。
+   为什么不是"列出所有 TP 位号"——真实板子上很少真的标 TP1/TP2（泰山派 1963 个焊盘里
+   一个 TP 都没有）。维修真正要的是另一件事：查一条线的时候，这块板上哪儿下探头最省事。
+   判据很朴素：能落探头的那一面够宽（短边优先），短边打平再比长边；通孔焊盘同分时略优先。
+   关键一条：短边不到 TP_MIN 的（BGA 底下那种细球）如果这条网络有过孔，直接改推过孔 ——
+   过孔铜环裸露在板面上，同样大小也比压在器件底下的焊盘好搭得多。
+   每条网络只留最好的那一处，于是清单长度 = 网数，不会变成几千行。 */
+const TP_MIN = 20;                    /* mil：0.5 mm 以下探头尖基本落不住 */
+function drwTpPads(){
+  const out = [];
+  if(!B) return out;
+  const bestPad = new Map();
+  for(const p of B.pads){
+    if(!(p.net > 0)) continue;
+    const mn = Math.min(p.xs||0, p.ys||0), mx = Math.max(p.xs||0, p.ys||0);
+    if(!(mn > 0)) continue;
+    const cur = bestPad.get(p.net);
+    /* 短边优先（能落探头），短边打平再比长边；通孔焊盘同分时略微优先，
+       因为它自带一个"坑"，探针不会滑 */
+    const k = mn*1000 + mx + ((p.hole||0) > 0 ? 5 : 0);
+    if(!cur || k > cur.k) bestPad.set(p.net, {o:p, k:k, mn:mn, mx:mx});
+  }
+  const bestVia = new Map();
+  for(const v of B.vias){
+    if(!(v.net > 0)) continue;
+    const d = v.dia || 0;
+    if(!(d > 0)) continue;
+    const k = d*1000 + (v.hole||0);
+    const cur = bestVia.get(v.net);
+    if(!cur || k > cur.k) bestVia.set(v.net, {o:v, k:k, mn:d, mx:d});
+  }
+  const nets = new Set([...bestPad.keys(), ...bestVia.keys()]);
+  for(const net of nets){
+    const pd = bestPad.get(net), vd = bestVia.get(net);
+    let pick = pd, type = "pad";
+    /* 焊盘太小、而这条网络上有过孔：改推过孔。过孔环至少不会比那颗球小，
+       还露在板面上，探针从旁边斜着进来就能碰到。 */
+    if(vd && (!pd || (pd.mn < TP_MIN && vd.mn >= pd.mn))){ pick = vd; type = "via"; }
+    if(!pick) continue;
+    out.push({
+      net: net,
+      name: B.nets[net-1] || ("NET"+net),
+      type: type,
+      pad: pick.o,                     /* 点亮 / 居中用的那个对象（焊盘或过孔） */
+      mn: pick.mn, mx: pick.mx,
+      des: type === "pad" ? (pick.o.compDes || "") : "",
+      pin: type === "pad" ? (pick.o.name || "") : "",
+      small: pick.mn < TP_MIN
+    });
+  }
+  out.sort((a,b)=> a.name.localeCompare(b.name,"zh",{numeric:true}));
+  return out;
+}
+/* 一行写清"去哪儿搭"：过孔写 Φ，焊盘写 位号-脚 + 尺寸 */
+function tpWhere(r){
+  const size = (r.type === "via")
+    ? T("tpVia", Math.round(r.mn))
+    : Math.round(r.mn)+"×"+Math.round(r.mx)+" mil";
+  const who = r.des ? (r.des+(r.pin? "-"+r.pin : "")) : "";
+  return (who? who+" · " : "") + size + (r.small? " · "+T("drwTpSmall") : "");
+}
 function drwNets(){
   const out = [];
   if(!B || !B.byNet) return out;
@@ -6645,6 +7446,10 @@ function renderDrawer(){
   drwEl.classList.add("on");
   const tabs = drwEl.querySelectorAll(".drw-tabs button");
   for(let i=0;i<tabs.length;i++) tabs[i].classList.toggle("on", tabs[i].dataset.dt === DRW);
+  /* 每页筛的东西不一样：元件页筛位号，孔表页筛孔径。
+     提示字放在这里统一管（输入框上不再挂 data-i18n-ph），切语言也跟着走。 */
+  const ph = T(DRW === "holes" ? "drwQPhHole" : (DRW === "tp" ? "drwQPhTp" : "drwQPh"));
+  if(drwSearch.placeholder !== ph) drwSearch.placeholder = ph;
 
   if(!B && DRW !== "marks"){
     drwTitleEl.textContent = "";
@@ -6682,6 +7487,35 @@ function renderDrawer(){
         '<b>'+esc((r.des? r.des+"-" : "")+(r.pin||""))+'</b>'+
         '<i>'+esc(showNet ? (r.net||"") : "")+'</i></div>').join("");
     if(rows.vias) html += '<div class="drw-note">'+esc(T("drwViaNote", rows.vias))+'</div>';
+  }else if(DRW === "holes"){
+    const all = drwHoles();
+    const rows = q ? all.filter(r=>hit(r.mil)||hit(r.mm.toFixed(2))) : all;
+    cnt = rows.length;
+    html = rows.map(r=>
+      '<div class="drw-row" data-k="h" data-hole="'+r.mil+'">'+
+        /* 直径符号用 Φ（希腊字母）而不是 ⌀(U+2300)：后者在不少中文字体里
+           缺字，落回一个又小又糊的替身字，读起来像 "ø"。 */
+        '<b>Φ '+r.mil+' mil</b>'+
+        '<i>'+r.mm.toFixed(2)+' mm · '+esc(T("drwHoleMix", r.vias, r.pads))+'</i></div>').join("");
+    if(all.length){
+      const tot = all.reduce((s,r)=>s+r.total, 0);
+      html += '<div class="drw-note">'+esc(T("drwHoleNote", all.length, all[0].mil, tot))+'</div>';
+    }
+  }else if(DRW === "tp"){
+    const all = drwTpPads();
+    const rows = q ? all.filter(r=>hit(r.name)||hit(r.des)) : all;
+    cnt = rows.length;
+    html = rows.map(r=>
+      '<div class="drw-row'+(r.small? ' tp-s' : '')+'" data-k="t" data-idx="'+all.indexOf(r)+'">'+
+        '<b>'+esc(r.name)+'</b>'+
+        '<i>'+esc(tpWhere(r))+'</i></div>').join("");
+    if(all.length){
+      /* 「只有细焊盘」只算仍旧推焊盘的那几处；改推过孔的那批已经算在 vias 里，
+         两句话都数一遍会重复记账，读起来像有 500 条网络。 */
+      const small = all.filter(r=>r.small && r.type === "pad").length;
+      const vias = all.filter(r=>r.type === "via").length;
+      html += '<div class="drw-note">'+esc(T("drwTpNote", all.length, small, vias))+'</div>';
+    }
   }else{
     cnt = MARKLIST.length;
     html = MARKLIST.map((m,i)=>
@@ -6748,6 +7582,22 @@ drwBody.addEventListener("click", e=>{
   }else if(k === "m"){
     const m = MARKLIST[+row.dataset.i];
     if(m) drwGoPoint(m.x, m.y, true);
+  }else if(k === "t"){
+    if(lightTp(+row.dataset.idx)){
+      const on = drwBody.querySelector(".drw-row.on");
+      if(on) on.classList.remove("on");
+      row.classList.add("on");
+    }
+  }else if(k === "h"){
+    /* 点一行孔径 = 把全板这个孔径的孔全点亮，然后飞到其中最靠左上的那颗。
+       想知道"32 mil 的孔都在哪儿、是不是都在 BGA 底下"，这一下就够了。 */
+    if(lightHole(+row.dataset.hole)){
+      const bb = bboxOfSet(LIT);
+      if(bb) focusBox(bb, 1.6);
+      const on = drwBody.querySelector(".drw-row.on");
+      if(on) on.classList.remove("on");
+      row.classList.add("on");
+    }
   }
 });
 
@@ -6772,6 +7622,22 @@ function drwText(){
     if(t) lines.push("# "+t);
     lines.push(T("drwPinCol")+"\t"+T("drwNetCol"));
     for(const r of drwPins()) lines.push(((r.des? r.des+"-" : "")+(r.pin||""))+"\t"+(r.net||""));
+  }else if(DRW === "holes"){
+    lines.push([T("drwHoleColA"),T("drwHoleColB"),T("drwHoleColC"),T("drwHoleColD"),T("drwHoleColE")].join("\t"));
+    for(const r of drwHoles()) lines.push([r.mil, r.mm.toFixed(2), r.vias, r.pads, r.total].join("\t"));
+  }else if(DRW === "tp"){
+    lines.push([T("drwTpColA"),T("drwTpColB"),T("drwTpColC"),
+                T("drwTpColD"),T("drwTpColE"),T("drwTpColF")].join("\t"));
+    for(const r of drwTpPads()){
+      const o = r.pad || {};
+      lines.push([r.name,
+                  (r.type === "via" ? T("tpVia", Math.round(r.mn)) : T("tpPad")),
+                  (r.des? r.des+(r.pin? "-"+r.pin : "") : ""),
+                  (r.type === "via" ? "Φ"+Math.round(r.mn)
+                                    : Math.round(r.mn)+"x"+Math.round(r.mx)),
+                  ((o.hole||0) > 0 ? Math.round(o.hole) : ""),
+                  Math.round(o.x)+","+Math.round(o.y)].join("\t"));
+    }
   }else{
     for(const m of MARKLIST) lines.push((m.t||"")+"\t"+Math.round(m.x)+","+Math.round(m.y));
   }
@@ -6812,6 +7678,21 @@ document.getElementById("drwCsv").onclick = ()=>{
   }else if(DRW === "pins"){
     head = ["Pin","Net"];
     for(const r of drwPins()) rows.push([(r.des? r.des+"-" : "")+(r.pin||""), r.net]);
+  }else if(DRW === "holes"){
+    head = ["Hole (mil)","Hole (mm)","Vias","Pads","Total"];
+    for(const r of drwHoles()) rows.push([r.mil, r.mm.toFixed(2), r.vias, r.pads, r.total]);
+  }else if(DRW === "tp"){
+    head = ["Net","Kind","Designator / pin","Size (mil)","Hole (mil)","Position (mil)"];
+    for(const r of drwTpPads()){
+      const o = r.pad || {};
+      rows.push([r.name,
+                 r.type,
+                 (r.des? r.des+(r.pin? "-"+r.pin : "") : ""),
+                 (r.type === "via" ? "D"+Math.round(r.mn)
+                                   : Math.round(r.mn)+"x"+Math.round(r.mx)),
+                 ((o.hole||0) > 0 ? Math.round(o.hole) : ""),
+                 Math.round(o.x)+","+Math.round(o.y)]);
+    }
   }else{
     head = ["Note","X","Y"];
     for(const m of MARKLIST) rows.push([m.t, Math.round(m.x), Math.round(m.y)]);
