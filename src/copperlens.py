@@ -37,7 +37,7 @@ from ctypes import wintypes
 from pathlib import Path
 
 APP_TITLE = "PCB 看板 CopperLens"
-VERSION = "1.15"
+VERSION = "1.16"
 
 _APPDIR = "CopperLens"
 _LOG = Path(tempfile.gettempdir()) / _APPDIR / "last-run.log"
@@ -365,10 +365,11 @@ def ask_file():
     """原生"打开文件"对话框。返回路径或 None。"""
     if _comdlg32 is None:
         msgbox(L("系统缺少文件对话框组件（comdlg32.dll）。\n"
-                 "可以改成把 .pcb / .ddb / .kicad_pcb 文件直接拖到本程序的图标上。",
+                 "可以改成把 .pcb / .ddb / .kicad_pcb / 立创 .json · .epro2 "
+                 "文件直接拖到本程序的图标上。",
                  "The file dialog component (comdlg32.dll) is missing.\n"
-                 "Workaround: drag a .pcb / .ddb / .kicad_pcb file onto this "
-                 "program's icon."))
+                 "Workaround: drag a .pcb / .ddb / .kicad_pcb / EasyEDA "
+                 ".json or .epro2 file onto this program's icon."))
         return None
     # 对话框是走 shell 的，从工作线程弹之前先把 COM 起起来（已起过会返回 S_FALSE，无害）
     try:
@@ -376,19 +377,25 @@ def ask_file():
     except Exception:
         pass
     buf = ctypes.create_unicode_buffer(32768)
-    filt = L("PCB 文件 (*.pcb;*.ddb;*.kicad_pcb;*.gbr;*.zip)"
-             "\0*.pcb;*.ddb;*.kicad_pcb;*.gbr;*.gtl;*.gbl;*.gko;*.drl;*.zip\0"
+    filt = L("所有板文件 (*.pcb;*.ddb;*.kicad_pcb;*.json;*.epro2;*.gbr;*.zip)"
+             "\0*.pcb;*.ddb;*.kicad_pcb;*.json;*.epro;*.epro2;*.gbr;*.gtl;*.gbl;"
+             "*.gko;*.drl;*.zip\0"
              "设计库 (*.ddb)\0*.ddb\0"
              "板文件 (*.pcb)\0*.pcb\0"
              "KiCad 板文件 (*.kicad_pcb)\0*.kicad_pcb\0"
+             "立创EDA 标准版 (*.json)\0*.json\0"
+             "立创EDA 专业版 (*.epro2;*.epro)\0*.epro2;*.epro\0"
              "Gerber / 钻孔 (*.gbr;*.gtl;*.gbl;*.gko;*.drl;*.xln;*.zip)"
              "\0*.gbr;*.gtl;*.gbl;*.gts;*.gbs;*.gto;*.gbo;*.gko;*.drl;*.xln;*.zip\0"
              "所有文件 (*.*)\0*.*\0\0",
-             "PCB files (*.pcb;*.ddb;*.kicad_pcb;*.gbr;*.zip)"
-             "\0*.pcb;*.ddb;*.kicad_pcb;*.gbr;*.gtl;*.gbl;*.gko;*.drl;*.zip\0"
+             "All board files (*.pcb;*.ddb;*.kicad_pcb;*.json;*.epro2;*.gbr;*.zip)"
+             "\0*.pcb;*.ddb;*.kicad_pcb;*.json;*.epro;*.epro2;*.gbr;*.gtl;*.gbl;"
+             "*.gko;*.drl;*.zip\0"
              "Design library (*.ddb)\0*.ddb\0"
              "Board file (*.pcb)\0*.pcb\0"
              "KiCad board (*.kicad_pcb)\0*.kicad_pcb\0"
+             "EasyEDA standard (*.json)\0*.json\0"
+             "EasyEDA pro (*.epro2;*.epro)\0*.epro2;*.epro\0"
              "Gerber / drill (*.gbr;*.gtl;*.gbl;*.gko;*.drl;*.xln;*.zip)"
              "\0*.gbr;*.gtl;*.gbl;*.gts;*.gbs;*.gto;*.gbo;*.gko;*.drl;*.xln;*.zip\0"
              "All files (*.*)\0*.*\0\0")
@@ -490,7 +497,12 @@ def build_view_html(boards, file_name=""):
     # 后者是 Gerber：一堆图层文件合成一块板，交给页面里的 parseGerberSet 拼。
     data = []
     for nm, raw in boards:
-        if isinstance(raw, list):
+        if isinstance(raw, dict):
+            # 已经拼好的一格（立创专业版：给的是从 .epru 里取出的日志文本）
+            item = {"n": nm}
+            item.update(raw)
+            data.append(item)
+        elif isinstance(raw, list):
             data.append({"n": nm,
                          "g": [{"n": f, "d": base64.b64encode(r).decode("ascii")}
                                for f, r in raw]})
@@ -925,6 +937,34 @@ def _gerber_auto(p):
     return out
 
 
+def _read_epru(p):
+    """立创EDA 专业版的工程包是 zip，真正的板子只有里面那份 .epru（变更日志）。
+
+    这里只负责把日志原文取出来；怎么读日志是浏览器那侧 parseLcedaLog 的事。
+    """
+    import zipfile
+    try:
+        with zipfile.ZipFile(p) as z:
+            names = z.namelist()
+            for n in names:
+                if n.lower().endswith(".epru"):
+                    return z.read(n)
+    except Exception:
+        pass
+    return None
+
+
+def _raw_deflate(raw):
+    """压成 raw deflate（没有 zlib 头尾）。
+
+    18 MB 的 .epru 日志直接 base64 内嵌是 24 MB 的字符串，塞进 view.html 太重；
+    raw deflate 之后只有 14%，页面那边用 DecompressionStream("deflate-raw") 解回来。
+    """
+    import zlib
+    co = zlib.compressobj(6, zlib.DEFLATED, -15)
+    return co.compress(raw) + co.flush()
+
+
 def _payload_for_path(p):
     """把选中的文件读成前端要的结构：{boards:[{n,d}], ddb:bool}"""
     ext = p.suffix.lower()
@@ -940,6 +980,34 @@ def _payload_for_path(p):
         return {"boards": [{"n": p.name,
                             "d": base64.b64encode(raw).decode("ascii")}],
                 "ddb": False, "file": p.name, "kicad": True}
+    if ext == ".json":
+        # 立创EDA 标准版：同样是纯文本 JSON，原样送过去，页面按内容嗅。
+        raw = p.read_bytes()
+        sniff = raw[:65536].decode("utf-8", "replace").lstrip("\ufeff \t\r\n")
+        if not (sniff[:1] == "{" and '"shape"' in sniff):
+            return {"error": L("这不是立创EDA（标准版）的板文件。\n"
+                               "标准版导出的 .json 开头应该是一份 shape 清单。",
+                               "This is not an EasyEDA (standard edition) board "
+                               "file. Its .json export starts with a list of shapes.")}
+        return {"boards": [{"n": p.name,
+                            "d": base64.b64encode(raw).decode("ascii")}],
+                "ddb": False, "file": p.name, "easyeda": True}
+    if ext in (".epro", ".epro2", ".zip"):
+        # 专业版工程包是 zip（只是后缀改过）。.zip 也先探一下，
+        # 免得有人把工程包改名成 .zip 就报"只认 Gerber"。
+        epru = _read_epru(p)
+        if epru:
+            return {"boards": [{"n": p.stem,
+                                "ptxz": base64.b64encode(
+                                    _raw_deflate(epru)).decode("ascii")}],
+                    "pro": True, "file": p.name}
+        if ext == ".zip":
+            pass                      # 不是工程包，往下按 Gerber 包处理
+        else:
+            return {"error": L("这个立创EDA 工程包里没有 .epru 设计日志，读不出板子。\n"
+                               "（专业版才有 .epru；标准版导出的是 .json。）",
+                               "This EasyEDA project contains no .epru design log.\n"
+                               "(.epru is the pro-edition log; the standard edition exports .json.)")}
     if ext == ".ddb":
         boards = extract_pcbs(p)
         if not boards:
@@ -959,8 +1027,9 @@ def _payload_for_path(p):
                                   for n, b in memb]}],
                 "gerber": True, "file": p.name}
 
-    return {"error": L("只认 .pcb / .ddb / .kicad_pcb / Gerber / .zip。",
-                       "Only .pcb, .ddb, .kicad_pcb, Gerber and .zip are supported.")}
+    return {"error": L("只认 .pcb / .ddb / .kicad_pcb / 立创 .json / .epro2 / Gerber / .zip。",
+                       "Only .pcb, .ddb, .kicad_pcb, EasyEDA .json / .epro2, "
+                       "Gerber and .zip are supported.")}
 
 
 def _payload_for_bytes(name, data):
@@ -1252,6 +1321,41 @@ def handle(path):
         _remember(str(p), {"boards": [{"n": p.name}]})
         return open_viewer(html) is not None
 
+    if ext == ".json":
+        # 立创EDA 标准版的导出文件。先在这儿粗筛一下，选错文件就给一句人话，
+        # 别把随便一个 .json 丢给页面，让它到解析器里报「可能不是 PCB」。
+        raw = p.read_bytes()
+        sniff = raw[:65536].decode("utf-8", "replace").lstrip("\ufeff \t\r\n")
+        if not (sniff[:1] == "{" and '"shape"' in sniff):
+            msgbox(L("这不是立创EDA（标准版）的板文件。\n"
+                     "标准版导出的 .json 开头应该是一份 shape 清单。\n\n"
+                     "专业版的工程包是 .epro2 / .epro，别选错。",
+                     "This is not an EasyEDA (standard edition) board file.\n"
+                     "Its .json export starts with a list of shapes.\n\n"
+                     "The pro edition uses .epro2 / .epro."))
+            return False
+        log("立创EDA 标准版：%d 字节 JSON" % len(raw))
+        html = build_view_html([(p.name, raw)], p.name)
+        _remember(str(p), {"boards": [{"n": p.name}]})
+        return open_viewer(html) is not None
+
+    if ext in (".epro", ".epro2"):
+        epru = _read_epru(p)
+        if not epru:
+            msgbox(L("这个立创EDA 工程包里没有 .epru 设计日志，读不出板子。\n"
+                     "（专业版才有 .epru；标准版导出的是 .json。）",
+                     "This EasyEDA project contains no .epru design log.\n"
+                     "(.epru is the pro-edition log; the standard edition "
+                     "exports .json.)"))
+            return False
+        log("立创专业版：.epru 日志 %d 字节 → %d 字节"
+            % (len(epru), len(_raw_deflate(epru))))
+        html = build_view_html(
+            [(p.stem, {"ptxz": base64.b64encode(_raw_deflate(epru)).decode("ascii")})],
+            p.name)
+        _remember(str(p), {"boards": [{"n": p.stem}]})
+        return open_viewer(html) is not None
+
     if ext == ".ddb":
         boards = extract_pcbs(p)
         if not boards:
@@ -1272,17 +1376,26 @@ def handle(path):
         _remember(str(p), {"boards": [{"n": label}]})
         return open_viewer(html) is not None
 
-    msgbox(L("只认 .ddb / .pcb / .kicad_pcb / Gerber / .zip。\n你选的是：",
-             "Only .ddb, .pcb, .kicad_pcb, Gerber and .zip are supported.\nYou picked: ")
+    msgbox(L("只认 .ddb / .pcb / .kicad_pcb / 立创 .json · .epro2 / Gerber / .zip。\n"
+             "你选的是：",
+             "Only .ddb, .pcb, .kicad_pcb, EasyEDA .json / .epro2, Gerber and "
+             ".zip are supported.\nYou picked: ")
            + p.name)
     return False
 
 
+def _is_board_arg(a):
+    """命令行 / 拖到图标上的参数，是不是我们认的板文件。"""
+    low = a.lower()
+    if low.endswith(GER_SUFFIX):
+        return True
+    return low.endswith((".ddb", ".pcb", ".kicad_pcb", ".json",
+                         ".epro", ".epro2", ".zip"))
+
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("-")]
-    targets = [a for a in args
-               if a.lower().endswith((".ddb", ".pcb", ".kicad_pcb", ".zip")
-                                     + GER_SUFFIX)]
+    targets = [a for a in args if _is_board_arg(a)]
     log("==== 启动 v%s  参数=%r  浏览器=%r  py=%s %d 位  zh=%s" %
         (VERSION, targets, [str(x) for x in find_browsers()],
          sys.version.split()[0], 64 if sys.maxsize > 2**32 else 32, _ZH))
@@ -1293,7 +1406,8 @@ def main():
 
     # 一堆 Gerber 一起拖到图标上：合成一块板看，而不是弹一堆窗口
     plain = [t for t in targets
-             if not t.lower().endswith((".ddb", ".pcb", ".kicad_pcb"))]
+             if not t.lower().endswith((".ddb", ".pcb", ".kicad_pcb", ".json",
+                                        ".epro", ".epro2", ".zip"))]
     if len(plain) >= 2:
         memb = []
         for t in plain:
