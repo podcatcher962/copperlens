@@ -6,6 +6,7 @@ PCB 看板 / CopperLens（桌面版 / 单 exe）
     · 打开老式 EDA 软件的设计库(.ddb)：自动把里面所有 PCB 抽出来，一次全带上，
       界面上用下拉框切换（★最新 排第一）
     · 打开单个 .pcb 板文件
+    · 打开 KiCad 的 .kicad_pcb 板文件（6~10，含 4/5 的老写法）
     · 抽出来立刻在窗口里显示，可缩放、点一下就能顺着铜皮查整条线路
 
 不需要安装任何 EDA 软件、不需要 Python，也不联网。
@@ -36,7 +37,7 @@ from ctypes import wintypes
 from pathlib import Path
 
 APP_TITLE = "PCB 看板 CopperLens"
-VERSION = "1.13"
+VERSION = "1.14"
 
 _APPDIR = "CopperLens"
 _LOG = Path(tempfile.gettempdir()) / _APPDIR / "last-run.log"
@@ -364,9 +365,10 @@ def ask_file():
     """原生"打开文件"对话框。返回路径或 None。"""
     if _comdlg32 is None:
         msgbox(L("系统缺少文件对话框组件（comdlg32.dll）。\n"
-                 "可以改成把 .pcb / .ddb 文件直接拖到本程序的图标上。",
+                 "可以改成把 .pcb / .ddb / .kicad_pcb 文件直接拖到本程序的图标上。",
                  "The file dialog component (comdlg32.dll) is missing.\n"
-                 "Workaround: drag a .pcb / .ddb file onto this program's icon."))
+                 "Workaround: drag a .pcb / .ddb / .kicad_pcb file onto this "
+                 "program's icon."))
         return None
     # 对话框是走 shell 的，从工作线程弹之前先把 COM 起起来（已起过会返回 S_FALSE，无害）
     try:
@@ -374,13 +376,15 @@ def ask_file():
     except Exception:
         pass
     buf = ctypes.create_unicode_buffer(32768)
-    filt = L("PCB 文件 (*.pcb;*.ddb)\0*.pcb;*.ddb\0"
+    filt = L("PCB 文件 (*.pcb;*.ddb;*.kicad_pcb)\0*.pcb;*.ddb;*.kicad_pcb\0"
              "设计库 (*.ddb)\0*.ddb\0"
              "板文件 (*.pcb)\0*.pcb\0"
+             "KiCad 板文件 (*.kicad_pcb)\0*.kicad_pcb\0"
              "所有文件 (*.*)\0*.*\0\0",
-             "PCB files (*.pcb;*.ddb)\0*.pcb;*.ddb\0"
+             "PCB files (*.pcb;*.ddb;*.kicad_pcb)\0*.pcb;*.ddb;*.kicad_pcb\0"
              "Design library (*.ddb)\0*.ddb\0"
              "Board file (*.pcb)\0*.pcb\0"
+             "KiCad board (*.kicad_pcb)\0*.kicad_pcb\0"
              "All files (*.*)\0*.*\0\0")
     ofn = OPENFILENAMEW()
     ofn.lStructSize = ctypes.sizeof(OPENFILENAMEW)
@@ -810,6 +814,13 @@ def _payload_for_path(p):
         return {"boards": [{"n": p.name,
                             "d": base64.b64encode(raw).decode("ascii")}],
                 "ddb": False, "file": p.name}
+    if ext == ".kicad_pcb":
+        # KiCad 从 6.0 起是纯文本 S 表达式，浏览器那侧自己解析（index.html 的
+        # parseKicad）。这里只负责原样送过去，不做任何转换。
+        raw = p.read_bytes()
+        return {"boards": [{"n": p.name,
+                            "d": base64.b64encode(raw).decode("ascii")}],
+                "ddb": False, "file": p.name, "kicad": True}
     if ext == ".ddb":
         boards = extract_pcbs(p)
         if not boards:
@@ -820,8 +831,8 @@ def _payload_for_path(p):
                             "d": base64.b64encode(b["bytes"]).decode("ascii")}
                            for b in boards],
                 "ddb": True, "file": p.name}
-    return {"error": L("只认 .pcb 和 .ddb 两种文件。",
-                       "Only .pcb and .ddb files are supported.")}
+    return {"error": L("只认 .pcb / .ddb / .kicad_pcb 三种板文件。",
+                       "Only .pcb, .ddb and .kicad_pcb files are supported.")}
 
 
 def _payload_for_bytes(name, data):
@@ -1108,7 +1119,7 @@ def handle(path):
     ext = p.suffix.lower()
     log("handle %s (%d 字节)" % (p, p.stat().st_size))
 
-    if ext == ".pcb":
+    if ext in (".pcb", ".kicad_pcb"):
         html = build_view_html([(p.name, p.read_bytes())], p.name)
         _remember(str(p), {"boards": [{"n": p.name}]})
         return open_viewer(html) is not None
@@ -1125,14 +1136,16 @@ def handle(path):
         _remember(str(p), {"boards": [{"n": b["label"]} for b in boards]})
         return open_viewer(html) is not None
 
-    msgbox(L("只认 .ddb 和 .pcb 两种文件。\n你选的是：",
-             "Only .ddb and .pcb files are supported.\nYou picked: ") + p.name)
+    msgbox(L("只认 .ddb / .pcb / .kicad_pcb 三种板文件。\n你选的是：",
+             "Only .ddb, .pcb and .kicad_pcb files are supported.\nYou picked: ")
+           + p.name)
     return False
 
 
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("-")]
-    targets = [a for a in args if a.lower().endswith((".ddb", ".pcb"))]
+    targets = [a for a in args
+               if a.lower().endswith((".ddb", ".pcb", ".kicad_pcb"))]
     log("==== 启动 v%s  参数=%r  浏览器=%r  py=%s %d 位  zh=%s" %
         (VERSION, targets, [str(x) for x in find_browsers()],
          sys.version.split()[0], 64 if sys.maxsize > 2**32 else 32, _ZH))
