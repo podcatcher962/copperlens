@@ -1,4 +1,4 @@
-# PCB 看板 / CopperLens v1.16
+# PCB 看板 / CopperLens v1.17
 
 **中文** ｜ [English](#english) ｜ [版本履历 Changelog](CHANGELOG.md)
 
@@ -48,6 +48,7 @@
 |---|---|
 | <kbd>F</kbd> | 适合窗口（整板入画） |
 | <kbd>H</kbd> | 覆铜显示 / 隐藏 |
+| <kbd>G</kbd> | 定位网格 A1~H8（打印前先开它） |
 | <kbd>K</kbd> | 两点通不通 |
 | <kbd>D</kbd> | 量距 |
 | <kbd>Ctrl</kbd>+<kbd>F</kbd> | 找元件 / 找网络 |
@@ -60,6 +61,47 @@
 鼠标：滚轮**以指针位置为锚点**缩放；**按住左键拖到画布边缘，画面自己往那个方向走**
 （越靠边越快，松手就停）；放大后**左上角缩略图**里的黄框是当前视野，点一下跳过去；
 板上**右键写一句话**就是一条标记，按板子存档。
+
+## v1.17 重点
+
+**这一版没有新增文件格式，全是"把手上这块板讲清楚"的工具。** 四样东西都不是看图的锦上
+添花，而是维修台上、打样报价单上真要交出去的。
+
+### 一、定位网格 A1~H8
+
+顶栏「网格」或 <kbd>G</kbd>：板面按行列切块，**列是数字、行是字母**，于是"E5 那颗 1uF"
+成了一句对方照着屏幕也找得到的话。
+
+行列数按长宽比自动算（长边约 10 mm 一格，夹在 5~14），不用手动设 —— 30 mm 的小板给
+5×5，69.6×30.0 mm 的泰山派核心板给 7 列 × 3 行（一格 9.9×10.0 mm）。坐标字贴在板框外侧，
+板框被拖出画布时改贴画布边。
+
+### 二、孔表：打样报价按孔型算钱
+
+「清单 → 孔表」：全板要下钻头的孔按孔径归堆（过孔 + 插件脚，贴片焊盘没有孔）。
+一行写孔径 mil / mm、过孔数、焊盘数、合计；点一行 → 这个孔径的孔全亮并飞过去。
+可复制、可导出 CSV。
+
+按 1 mil 归组是必须的：同一个钻头在不同封装里会写成 31.5 和 32.0，不归堆就冒出一堆
+只差 0.5 mil 的重复行，看着像板子有几十种孔型。
+
+### 三、A4 出图：先看纸、再打印
+
+顶栏「打印」先给一张 A4 预览（白底、板子铺满、上面一行板名和尺寸、下面一行出图信息），
+满意再点「打印…」；板子横向就自动横向出纸。图按 2400 px 长边超采样，约 330 dpi。
+纸上点不了，所以打之前先按 <kbd>G</kbd> —— A1~H8 是纸上唯一的坐标。
+
+### 四、测点：每条线在哪儿下探头
+
+「清单 → 测点」：**每条网络只给一处最好下探头的点**（短边最宽者优先，通孔焊盘同分略优先）。
+一行写清网络名、`R12-1` 这样的脚位、尺寸；点一下只点亮这一处并居中。
+
+关键一条：**焊盘短边不到 20 mil（BGA 底下那种细球）时，如果这条网络有孔，就直接改推
+这条线上最大的那颗过孔** —— 铜环裸露在板面上，同样尺寸也比压在器件底下好搭得多。
+泰山派实测 400 条网络：203 条改推过孔、96 条实在没得推标「小」、101 条是正常焊盘。
+
+（真实板子上很少有 `TP1`/`TP2` 这种位号：泰山派 1963 个焊盘里一个都没有，
+所以"列出所有测试点"这条路走不通，只能按网络倒推。）
 
 ## v1.16 重点
 
@@ -392,6 +434,7 @@ the fastest way to see fine traces.
 |---|---|
 | <kbd>F</kbd> | Fit board to window |
 | <kbd>H</kbd> | Copper pour on / off |
+| <kbd>G</kbd> | Location grid A1–H8 (switch it on before printing) |
 | <kbd>K</kbd> | Continuity between two points |
 | <kbd>D</kbd> | Measure distance |
 | <kbd>Ctrl</kbd>+<kbd>F</kbd> | Find part / net |
@@ -405,6 +448,29 @@ Mouse: the wheel zooms **anchored at the pointer**; **drag to the edge of the ca
 view keeps moving that way** (faster the closer you get, stops when you let go); once zoomed
 in, the **mini-map in the top-left** shows your viewport as a yellow box — click to jump;
 **right-click on the board writes a note**, saved per board.
+
+## What's new in v1.17
+
+**No new file formats — this release is about handing a board to somebody else.** A grid, a hole
+table, an A4 printout and a probe list: all four are things a repair bench or a fabrication quote
+actually has to show, not decoration.
+
+- **Location grid A1–H8** (<kbd>G</kbd>) — columns are numbers, rows are letters, so "that 1uF in
+  E5" means something on the other person's screen. Grid size follows the aspect ratio automatically
+  (~10 mm per cell on the long side, clamped to 5–14), so a 69.6×30.0 mm SoM gets 7 × 3 cells.
+- **Hole table** — every drilled hole grouped by diameter (vias + through-hole pins), with mil / mm,
+  via count, pad count and total. Click a row to light every hole of that size. Grouped to 1 mil,
+  because the same drill bit shows up as 31.5 in one footprint and 32.0 in another.
+- **A4 printout** — preview first (white paper, board filled to the margins, name and size on top,
+  print info below), then print. Landscape paper is chosen automatically for wide boards; the image
+  is captured at 2400 px on the long side (~330 dpi, 353 ms).
+- **Probe points** — one easiest-to-touch point per net. When the best pad is under 20 mil (the BGA
+  kind) and the net has vias, it points at the net's **largest via** instead: a via ring sits on the
+  surface, so the same size is far easier to reach than a ball under a package. On the Taishan Pi
+  SoM: 400 nets → 203 via picks, 96 tiny-only, 101 normal pads.
+
+Also fixed: the drawer tabs finally fit on one line (6 tabs in 282 px), and the "N items" counter,
+which had been in the code all along without existing in the HTML, now actually shows.
 
 ## What's new in v1.16
 
