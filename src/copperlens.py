@@ -37,7 +37,7 @@ from ctypes import wintypes
 from pathlib import Path
 
 APP_TITLE = "PCB 看板 CopperLens"
-VERSION = "1.14"
+VERSION = "1.15"
 
 _APPDIR = "CopperLens"
 _LOG = Path(tempfile.gettempdir()) / _APPDIR / "last-run.log"
@@ -376,15 +376,21 @@ def ask_file():
     except Exception:
         pass
     buf = ctypes.create_unicode_buffer(32768)
-    filt = L("PCB 文件 (*.pcb;*.ddb;*.kicad_pcb)\0*.pcb;*.ddb;*.kicad_pcb\0"
+    filt = L("PCB 文件 (*.pcb;*.ddb;*.kicad_pcb;*.gbr;*.zip)"
+             "\0*.pcb;*.ddb;*.kicad_pcb;*.gbr;*.gtl;*.gbl;*.gko;*.drl;*.zip\0"
              "设计库 (*.ddb)\0*.ddb\0"
              "板文件 (*.pcb)\0*.pcb\0"
              "KiCad 板文件 (*.kicad_pcb)\0*.kicad_pcb\0"
+             "Gerber / 钻孔 (*.gbr;*.gtl;*.gbl;*.gko;*.drl;*.xln;*.zip)"
+             "\0*.gbr;*.gtl;*.gbl;*.gts;*.gbs;*.gto;*.gbo;*.gko;*.drl;*.xln;*.zip\0"
              "所有文件 (*.*)\0*.*\0\0",
-             "PCB files (*.pcb;*.ddb;*.kicad_pcb)\0*.pcb;*.ddb;*.kicad_pcb\0"
+             "PCB files (*.pcb;*.ddb;*.kicad_pcb;*.gbr;*.zip)"
+             "\0*.pcb;*.ddb;*.kicad_pcb;*.gbr;*.gtl;*.gbl;*.gko;*.drl;*.zip\0"
              "Design library (*.ddb)\0*.ddb\0"
              "Board file (*.pcb)\0*.pcb\0"
              "KiCad board (*.kicad_pcb)\0*.kicad_pcb\0"
+             "Gerber / drill (*.gbr;*.gtl;*.gbl;*.gko;*.drl;*.xln;*.zip)"
+             "\0*.gbr;*.gtl;*.gbl;*.gts;*.gbs;*.gto;*.gbo;*.gko;*.drl;*.xln;*.zip\0"
              "All files (*.*)\0*.*\0\0")
     ofn = OPENFILENAMEW()
     ofn.lStructSize = ctypes.sizeof(OPENFILENAMEW)
@@ -480,7 +486,16 @@ def build_view_html(boards, file_name=""):
     file_name 给页签用（拖到图标上打开时，页签显示的是文件名而不是板名）。
     """
     tpl = res_path("index.html").read_text(encoding="utf-8")
-    data = [{"n": nm, "d": base64.b64encode(raw).decode("ascii")} for nm, raw in boards]
+    # boards 的每一项可以是 (名, 字节)，也可以是 (名, [(文件名, 字节), …]) ——
+    # 后者是 Gerber：一堆图层文件合成一块板，交给页面里的 parseGerberSet 拼。
+    data = []
+    for nm, raw in boards:
+        if isinstance(raw, list):
+            data.append({"n": nm,
+                         "g": [{"n": f, "d": base64.b64encode(r).decode("ascii")}
+                               for f, r in raw]})
+        else:
+            data.append({"n": nm, "d": base64.b64encode(raw).decode("ascii")})
     inject = (
         "<script>window.__BOARDS__=" +
         json.dumps(data, ensure_ascii=False, separators=(",", ":")) +
@@ -806,6 +821,110 @@ def build_home_html(token):
     return tpl.replace("</head>", inject + "</head>", 1).encode("utf-8")
 
 
+# ---------------- Gerber / Excellon ----------------
+# 各家 EDA 导出的后缀五花八门（.gbr .gtl .gbl .gko .drl .xln .pho …），
+# 这里只当作线索；真正的判据是文件内容（%FS / %MO / %ADD / M48）。
+GER_SUFFIX = (".gbr", ".gtl", ".gbl", ".gts", ".gbs", ".gto", ".gbo",
+              ".gko", ".gm1", ".gml", ".gmb", ".gpt", ".gbp", ".pho",
+              ".art", ".drl", ".xln", ".nc", ".ncd", ".exc",
+              # 钻孔文件专门有下面这两个叫法：Altium 用 .TXT、Eagle 用 .drd。
+              # 后缀宽一点没关系，真正决定收不收的是 _looks_gerber 看内容。
+              ".drd", ".txt")
+
+
+def _looks_gerber(name, head):
+    """看内容不看后缀 —— 板厂给的包里经常压根没有后缀。"""
+    if b"\x00" in head:
+        return False                      # 带 NUL 的是二进制（.pcb / .ddb）
+    if b"%FS" in head or b"%MO" in head or b"%ADD" in head or b"M48" in head:
+        return True
+    return Path(name).suffix.lower() in GER_SUFFIX
+
+
+def _gerber_members(p):
+    """把一个文件或压缩包里的 Gerber / 钻孔成员取出来：[(文件名, 字节)]"""
+    if p.suffix.lower() == ".zip":
+        import zipfile
+        try:
+            z = zipfile.ZipFile(p)
+        except Exception:
+            return []
+        out, total = [], 0
+        with z:
+            for info in z.infolist():
+                if info.is_dir() or info.file_size > 40 * 1024 * 1024:
+                    continue
+                try:
+                    data = z.read(info)
+                except Exception:
+                    continue
+                if not _looks_gerber(info.filename, data[:4096]):
+                    continue
+                total += len(data)
+                if total > 200 * 1024 * 1024:
+                    break
+                out.append((Path(info.filename).name, data))
+        return out
+    try:
+        with p.open("rb") as f:
+            head = f.read(4096)
+    except OSError:
+        return []
+    if not _looks_gerber(p.name, head):
+        return []
+    try:
+        return [(p.name, p.read_bytes())]
+    except OSError:
+        return []
+
+
+def _head(p, n=4096):
+    try:
+        with p.open("rb") as f:
+            return f.read(n)
+    except OSError:
+        return b""
+
+
+def _gerber_auto(p):
+    """只选了一层时，把同目录里同一块板的其它层一起带上。
+
+    板厂给的包通常是 board.GTL / board.GBL / board.GTO / board.GKO / board.TXT
+    平铺在一个文件夹里，维修现场只可能点中其中一个 —— 让它自己找齐，比让
+    用户按住 Ctrl 一个个点实在。
+
+    注意钻孔文件的名字千奇百怪：Altium 叫 .TXT、Eagle 叫 .drd、KiCad 叫 .drl，
+    所以不能只看后缀，得看内容里有没有 M48（Excellon 的头）。
+    """
+    if p.suffix.lower() == ".zip":
+        return _gerber_members(p)
+    memb = _gerber_members(p)
+    if not memb:
+        return []
+    group = [p]
+    try:
+        stem = p.stem.lower()
+        for q in sorted(p.parent.iterdir()):
+            if not q.is_file() or q.name == p.name:
+                continue
+            if q.stem.lower() != stem:
+                continue
+            if not _looks_gerber(q.name, _head(q)):
+                continue
+            group.append(q)
+            if len(group) >= 30:
+                break
+    except OSError:
+        pass
+    if len(group) == 1:
+        return memb
+    out = []
+    for q in group:
+        for name, data in _gerber_members(q):
+            out.append((name, data))
+    return out
+
+
 def _payload_for_path(p):
     """把选中的文件读成前端要的结构：{boards:[{n,d}], ddb:bool}"""
     ext = p.suffix.lower()
@@ -831,8 +950,17 @@ def _payload_for_path(p):
                             "d": base64.b64encode(b["bytes"]).decode("ascii")}
                            for b in boards],
                 "ddb": True, "file": p.name}
-    return {"error": L("只认 .pcb / .ddb / .kicad_pcb 三种板文件。",
-                       "Only .pcb, .ddb and .kicad_pcb files are supported.")}
+    # Gerber / Excellon：一堆文件合成一块板（浏览器那侧按层拼）
+    memb = _gerber_auto(p)
+    if memb:
+        label = p.stem if ext == ".zip" else p.name
+        return {"boards": [{"n": label,
+                            "g": [{"n": n, "d": base64.b64encode(b).decode("ascii")}
+                                  for n, b in memb]}],
+                "gerber": True, "file": p.name}
+
+    return {"error": L("只认 .pcb / .ddb / .kicad_pcb / Gerber / .zip。",
+                       "Only .pcb, .ddb, .kicad_pcb, Gerber and .zip are supported.")}
 
 
 def _payload_for_bytes(name, data):
@@ -1136,8 +1264,16 @@ def handle(path):
         _remember(str(p), {"boards": [{"n": b["label"]} for b in boards]})
         return open_viewer(html) is not None
 
-    msgbox(L("只认 .ddb / .pcb / .kicad_pcb 三种板文件。\n你选的是：",
-             "Only .ddb, .pcb and .kicad_pcb files are supported.\nYou picked: ")
+    memb = _gerber_auto(p)
+    if memb:
+        label = p.stem if ext == ".zip" else p.name
+        log("Gerber：%d 个文件合成一块板" % len(memb))
+        html = build_view_html([(label, memb)], p.name)
+        _remember(str(p), {"boards": [{"n": label}]})
+        return open_viewer(html) is not None
+
+    msgbox(L("只认 .ddb / .pcb / .kicad_pcb / Gerber / .zip。\n你选的是：",
+             "Only .ddb, .pcb, .kicad_pcb, Gerber and .zip are supported.\nYou picked: ")
            + p.name)
     return False
 
@@ -1145,7 +1281,8 @@ def handle(path):
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("-")]
     targets = [a for a in args
-               if a.lower().endswith((".ddb", ".pcb", ".kicad_pcb"))]
+               if a.lower().endswith((".ddb", ".pcb", ".kicad_pcb", ".zip")
+                                     + GER_SUFFIX)]
     log("==== 启动 v%s  参数=%r  浏览器=%r  py=%s %d 位  zh=%s" %
         (VERSION, targets, [str(x) for x in find_browsers()],
          sys.version.split()[0], 64 if sys.maxsize > 2**32 else 32, _ZH))
@@ -1153,6 +1290,20 @@ def main():
     if not targets:
         # 双击启动：进首页（海报 → 欢迎页 → 自己点"打开文件"），不再直接弹框
         return 0 if run_home() else 1
+
+    # 一堆 Gerber 一起拖到图标上：合成一块板看，而不是弹一堆窗口
+    plain = [t for t in targets
+             if not t.lower().endswith((".ddb", ".pcb", ".kicad_pcb"))]
+    if len(plain) >= 2:
+        memb = []
+        for t in plain:
+            memb += _gerber_members(Path(t))
+        if memb:
+            label = L("Gerber 板", "Gerber board") + " · %d %s" % (
+                len(memb), L("个文件", "files"))
+            log("Gerber 板：命令行 %d 个参数合成 %d 个文件" % (len(plain), len(memb)))
+            html = build_view_html([(label, memb)], "")
+            return 0 if open_viewer(html) is not None else 1
 
     ok = False
     for t in targets:
