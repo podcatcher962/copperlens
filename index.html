@@ -353,7 +353,7 @@
     <div class="hrow">
       <button class="btn primary" id="open" data-i18n="btnOpen"
               data-i18n-title="btnOpenTip">打开文件</button>
-      <input type="file" id="file" accept=".pcb,.PCB,.ddb,.DDB,.kicad_pcb,.KICAD_PCB" multiple>
+      <input type="file" id="file" accept=".pcb,.PCB,.ddb,.DDB,.kicad_pcb,.KICAD_PCB,.gbr,.GBR,.gtl,.gbl,.gts,.gbs,.gto,.gbo,.gko,.drl,.xln,.zip,.ZIP" multiple>
       <select id="boards" style="display:none"></select>
       <div class="sep"></div>
       <button class="btn" id="fit" data-i18n="btnFit" data-i18n-title="btnFitTip">适合窗口</button>
@@ -547,6 +547,16 @@ zh:{
   errNotKicad:"这个文件不是 KiCad 板文件（开头没有 kicad_pcb）。",
   errKicadEmpty:"KiCad 文件读通了，但里面既没有走线、也没有焊盘和覆铜。",
   errKicadBig:"文件超过 80 MB，本程序不敢硬读（怕是别的文件改了扩展名）。",
+  /* Gerber 制造文件 / 钻孔 */
+  errNotGerber:"这些文件里没有 Gerber（RS-274X）或钻孔内容。",
+  gbNoLayer:n=>"有个文件认不出属于哪一层，已跳过："+n,
+  gbNoAperture:n=>"有闪绘没选光圈，已跳过："+n,
+  gbMacro:"光圈宏（AM）暂不展开，个别异形焊盘会按圆形显示。",
+  gbLooseHole:n=>"有 "+n+" 个钻孔对不上铜皮（大概是安装孔），已单独画出。",
+  gbNoProfile:"没有板框层（Profile / .gko），尺寸是按铜皮外包估的。",
+  zipNeedUnzip:"这个压缩包解不开，请先解压，再把里面的文件一起拖进来。",
+  fmtGerber:"（Gerber 制造文件）",
+  gbSet:n=>"（"+n+" 个文件合成一块板）",
   fmtKicad:"（KiCad 板文件）",
   noNet:"(未分配网络)",
   padNo:n=>"焊盘 "+n,
@@ -621,7 +631,8 @@ zh:{
   hintHtml:`<div class="drop">
       <div class="big">把板文件拖到这里</div>
       <div style="margin-top:8px;color:var(--fg3)">
-        Protel 99SE：单板 <b>.pcb</b> 或设计库 <b>.ddb</b>　·　KiCad：<b>.kicad_pcb</b>
+        Protel 99SE：单板 <b>.pcb</b> 或设计库 <b>.ddb</b>　·　KiCad：<b>.kicad_pcb</b><br>
+        Gerber：一堆 <b>.gbr / .gtl / .gbl / .gko</b> 连钻孔 <b>.drl</b> 一起拖进来（或直接给 <b>.zip</b>）
       </div>
     </div>
     <div>
@@ -807,7 +818,7 @@ zh:{
       <li><b>最近打开</b>：首页列出上次开过的文件，点一下直接再打开</li>
     </ul>
     <h3>版本</h3>
-    <p>v1.14　·　支持 x86 与 64 位系统　·　单文件便携版</p>
+    <p>v1.15　·　支持 x86 与 64 位系统　·　单文件便携版</p>
     <div class="sig">© 永远的兰兰　·　Lanlan Eternal</div>`
 },
 en:{
@@ -882,6 +893,16 @@ en:{
   errKicadEmpty:"The KiCad file parsed, but it holds no tracks, pads or pours.",
   errKicadBig:"File is over 80 MB — refusing to read it in one go "+
     "(probably not a board file at all).",
+  /* Gerber / drill */
+  errNotGerber:"None of these files holds Gerber (RS-274X) or drill data.",
+  gbNoLayer:n=>"Could not tell which layer this file belongs to — skipped: "+n,
+  gbNoAperture:n=>"A flash without a selected aperture was skipped: "+n,
+  gbMacro:"Aperture macros (AM) are not expanded yet; odd-shaped pads show as circles.",
+  gbLooseHole:n=>n+" drill hits found no copper (mounting holes?) — drawn separately.",
+  gbNoProfile:"No profile layer (Profile / .gko); board size is estimated from the copper.",
+  zipNeedUnzip:"This archive could not be opened — unzip it and drag the files in together.",
+  fmtGerber:"  (Gerber fabrication data)",
+  gbSet:n=>"  ("+n+" files merged into one board)",
   fmtKicad:"  (KiCad board)",
   noNet:"(no net)",
   padNo:n=>"Pad "+n,
@@ -958,7 +979,8 @@ en:{
   hintHtml:`<div class="drop">
       <div class="big">Drop a board file here</div>
       <div style="margin-top:8px;color:var(--fg3)">
-        Protel 99SE: single board <b>.pcb</b> or design library <b>.ddb</b>　·　KiCad: <b>.kicad_pcb</b>
+        Protel 99SE: single board <b>.pcb</b> or design library <b>.ddb</b>　·　KiCad: <b>.kicad_pcb</b><br>
+        Gerber: drop the whole <b>.gbr / .gtl / .gbl / .gko</b> set plus the <b>.drl</b> drill file together (or just a <b>.zip</b>)
       </div>
     </div>
     <div>
@@ -1161,7 +1183,7 @@ en:{
       <li><b>Recent files</b>: the home page lists what you opened last; one click reopens it</li>
     </ul>
     <h3>Version</h3>
-    <p>v1.14　·　supports x86 and 64-bit Windows　·　portable single file</p>
+    <p>v1.15　·　supports x86 and 64-bit Windows　·　portable single file</p>
     <div class="sig">© Lanlan Eternal　·　永远的兰兰</div>`
 }
 };
@@ -1268,7 +1290,10 @@ function renderBoardInfo(){
   const w=bb?Math.max(0,bb.x2-bb.x1):0, h=bb?Math.max(0,bb.y2-bb.y1):0;
   const mm=v=>(v*0.0254).toFixed(1);
   let minW=Infinity, minH=Infinity;
-  for(const t of B.tracks){ const w2=t.w||0; if(w2>0 && w2<minW) minW=w2; }
+  for(const t of B.tracks){
+    /* "最细线"指铜线宽度，别把丝印描边、板框轮廓算进来 */
+    if(t.layer>=1 && t.layer<=32){ const w2=t.w||0; if(w2>0 && w2<minW) minW=w2; }
+  }
   for(const p of B.pads){ if(p.hole>0 && p.hole<minH) minH=p.hole; }
   for(const v of B.vias){ if(v.hole>0 && v.hole<minH) minH=v.hole; }
   const area=(w*0.0254)*(h*0.0254)/100;         /* mm² → cm² */
@@ -2578,6 +2603,572 @@ function looksKicad(buf){
   s=s.replace(/^\uFEFF/,"");
   const t=s.replace(/^\s+/,"");
   return t.charCodeAt(0)===40 && s.indexOf("kicad_pcb")>=0;
+}
+
+/* ==================== Gerber（RS-274X / X2）与 Excellon 钻孔 ====================
+   Gerber 是"制造文件"，不是设计文件：它只描述铜皮、阻焊、丝印的几何形状，
+   并不知道哪根线叫 GND —— 除非导出时勾了 X2 属性（%TO.N,GND*% / %TO.C,R1*%）。
+
+   本程序的处理原则：
+     · 一个文件 = 一个图层；板上那 8~12 个 .gbr 一起拖进来，合成一块板
+     · D01 画线 → 走线　　D03 闪绘 → 焊盘　　G36/G37 区域 → 覆铜面
+     · 光圈的直径就是线宽 / 焊盘尺寸，不用另算
+     · X2 带网络名就按名发号；带位号就建"元件"，清单照样能定位
+     · 钻孔（Excellon）按坐标套到已有焊盘上填孔径，套不上的单独记（安装孔）
+     · 没有 Profile 层，就按全体图元的外包矩形补一圈板框
+
+   坐标系与 Gerber 一致（Y 朝上），只有单位要从 mm / inch 换成 mil。
+   逐层的固有限制：通孔在上下面各画一个圆焊盘，几何上不在同一层，所以
+   一条线走到过孔就停 —— 这是 Gerber 格式本身的边界，不是解析漏了。
+*/
+const GB_MIL = 39.37007874015748;          /* 1 mm = 39.37 mil */
+
+/* 是不是 Gerber：看文件头有没有 FS / MO / ADD 这类扩展命令 */
+function gbLooks(buf){
+  try{
+    const u8=new Uint8Array(buf, 0, Math.min((buf&&(buf.byteLength||buf.length))||0, 4096));
+    let s="";
+    for(let i=0;i<u8.length;i++) s+=String.fromCharCode(u8[i]);
+    if(s.indexOf("\u0000")>=0) return false;              /* 带 NUL 的是二进制，不是 */
+    return /%FS[LTD]?[AI]?X\d+Y\d+\*%/.test(s)
+        || /%MO(MM|IN)\*%/.test(s)
+        || /%ADD\d+/.test(s)
+        || /%TF\./.test(s)
+        || /^M48/m.test(s);                               /* Excellon 头 */
+  }catch(_){ return false; }
+}
+
+/* Excellon 钻孔文件单独认一下：它没有 FS/MO，但一定有 M48 头和刀具表 */
+function gbIsDrill(txt){
+  const h=gbDrillHead(txt);
+  return /M48/.test(h) && /(M71|M72|METRIC|INCH)/.test(h);
+}
+
+/* 切成一条条命令。%...% 是扩展命令（内部还可能含 *），其余以 * 结尾。 */
+function gbTokens(txt){
+  const out=[], n=txt.length;
+  let i=0;
+  while(i<n){
+    const c=txt.charCodeAt(i);
+    if(c===37){                                   /* % */
+      const j=txt.indexOf("%", i+1);
+      out.push({x:1, b:txt.slice(i+1, j<0?n:j)});
+      i = j<0 ? n : j+1;
+    }else if(c===42||c===10||c===13||c===32||c===9||c===0){
+      i++;
+    }else{
+      const j=txt.indexOf("*", i);
+      out.push({x:0, b:txt.slice(i, j<0?n:j)});
+      i = j<0 ? n : j+1;
+    }
+  }
+  return out;
+}
+
+/* 坐标串 → 用户单位数值。带小数点就直接读，否则按 FS 的小数位数除。 */
+function gbVal(s, dec){
+  if(s===undefined || s===null || s==="") return null;
+  if(s.indexOf(".")>=0) return parseFloat(s);
+  let neg=false;
+  if(s.charAt(0)==="-"){ neg=true; s=s.slice(1); }
+  else if(s.charAt(0)==="+"){ s=s.slice(1); }
+  const v=parseInt(s,10)/Math.pow(10, dec|0);
+  return neg ? -v : v;
+}
+
+/* FileFunction → 本程序层号（沿用 Protel 编号，显示时用 Gerber 的说法） */
+function gbLayerOf(fn, fname){
+  if(fn){
+    const p=fn.split(",");
+    const t=(p[0]||"").toLowerCase();
+    const bot=/bot/i.test(fn), top=/top/i.test(fn);
+    if(t==="copper"){
+      const m=/L(\d+)/i.exec(p[1]||"");
+      const ln=m?+m[1]:1;
+      if(bot) return 32;
+      if(ln<=1) return 1;
+      return ln>31?31:ln;                       /* L2 → 2 … L31 → 31 */
+    }
+    if(t==="soldermask") return bot?38:37;
+    if(t==="legend")     return bot?34:33;
+    if(t==="paste")      return bot?36:35;
+    if(t==="profile"||t==="outline") return 56;
+    if(t==="mechanical") return 62;
+  }
+  /* 没写 X2 的：按老扩展名兜底（Protel / Altium / 各家都这么叫） */
+  const e=(fname||"").toLowerCase().replace(/^.*\./,"");
+  if(/^(gtl|cmp|top)$/.test(e)) return 1;
+  if(/^(gbl|sol|bot)$/.test(e)) return 32;
+  if(/^(gts|stc|smt)$/.test(e)) return 37;
+  if(/^(gbs|sts|smb)$/.test(e)) return 38;
+  if(/^(gto|sst|slt)$/.test(e)) return 33;
+  if(/^(gbo|ssb|slb)$/.test(e)) return 34;
+  if(/^(gko|gm1|gml|gmb|outline)$/.test(e)) return 56;
+  if(/^(gpt|gtp)$/.test(e)) return 35;
+  if(/^(gpb|gbp)$/.test(e)) return 36;
+  /* .gbr / .pho 这类通用名：看文件名里的关键词 */
+  const b=(fname||"").toLowerCase();
+  if(/bot.*(copper|cu)|(copper|cu).*bot|b_?cu/.test(b)) return 32;
+  if(/top.*(copper|cu)|(copper|cu).*top|f_?cu/.test(b)) return 1;
+  if(/silk.*top|top.*silk|f_?silk/.test(b)) return 33;
+  if(/silk.*bot|bot.*silk|b_?silk/.test(b)) return 34;
+  if(/edge|outline|profile|board/.test(b)) return 56;
+  return 0;
+}
+
+/* 单块 Gerber 解析：返回图元数组（已换算成 mil，层号已定好） */
+function gbParseOne(txt, fname){
+  const toks=gbTokens(txt);
+  let fnv="";
+  /* 先扫一遍找文件属性：层号要它来定，而它总在文件最前面 */
+  for(let i=0;i<toks.length;i++){
+    const t=toks[i];
+    if(t.x && t.b.indexOf("TF.FileFunction,")===0){ fnv=t.b.slice(16).replace(/\*+$/,""); break; }
+    if(!t.x && /^(X|D0?[1-3])/.test(t.b) && t.b.length>1) break;   /* 已到绘图命令 */
+  }
+  const layer=gbLayerOf(fnv, fname);
+  const lname=(()=>{
+    if(!fnv) return "";
+    const p=fnv.split(",");
+    if(/^copper/i.test(p[0])) return (p[2]||"")+" "+p[1];
+    return p[1]||p[0];
+  })();
+
+  let dec=6, unit="mm", moSeen=false;
+  const ap=new Map();
+  const out={layer:layer, name:lname, items:[], poly:[], drill:[], warn:[]};
+
+  const k=()=> unit==="mm" ? GB_MIL : 1000;      /* 用户单位 → mil */
+  let x=0, y=0, interp=1, region=false, contour=null;
+  let curAp=null, curNet=0, curComp=-1, dark=true, sr=null;
+
+  const emitNet=n=>curNet=n;
+  const addLine=(x1,y1,x2,y2,w)=>{
+    if(!isFinite(x1)||!isFinite(x2)) return;
+    /* 零直径光圈（ADD10C,0.0000）只是"笔尖抬起来挪位置"，不能落笔 ——
+       真样本里 Altium / Eagle 都这么写，当成 0 宽的线会凭空多出几千条假线。
+       板框层是例外：Altium 的机械层就是拿 0 宽光圈画轮廓的，不给它一个
+       最小宽度，板子就没有边框，尺寸也只能靠铜皮外包去猜。 */
+    if(!(w>0.01)){
+      if(layer!==56) return;
+      w=2;
+    }
+    out.items.push({kind:"track",layer:layer,net:curNet,comp:curComp,
+                    x1:x1,y1:y1,x2:x2,y2:y2,w:w});
+  };
+  const addArcSeg=(x0,y0,x1,y1,cx,cy,ccw,w)=>{
+    const r=Math.hypot(x0-cx, y0-cy);
+    if(!(r>0)){ addLine(x0,y0,x1,y1,w); return; }
+    let a1=Math.atan2(y0-cy,x0-cx)*180/Math.PI;
+    let a2=Math.atan2(y1-cy,x1-cx)*180/Math.PI;
+    if(ccw){ while(a2<=a1) a2+=360; }            /* 逆时针：a2 涨上去 */
+    else   { while(a2>=a1) a2-=360; }            /* 顺时针：a2 落下来 */
+    if(ccw) out.items.push({kind:"arc",x:cx,y:cy,radius:r,a1:a1,a2:a2,
+                            w:w>0?w:6,layer:layer,net:curNet,comp:curComp});
+    else    out.items.push({kind:"arc",x:cx,y:cy,radius:r,a1:a2,a2:a1,
+                            w:w>0?w:6,layer:layer,net:curNet,comp:curComp});
+  };
+  const addFlash=(px,py)=>{
+    const a=curAp;
+    if(!a){
+      const w=T("gbNoAperture", fname);
+      if(out.warn.indexOf(w)<0) out.warn.push(w);
+      return;
+    }
+    let XS=0, YS=0, shape=1;
+    if(a.t==="C"){ XS=YS=a.w; }
+    else if(a.t==="R"){ XS=a.w; YS=a.h||a.w; shape=2; }
+    else if(a.t==="O"){ XS=a.w; YS=a.h||a.w; }
+    else if(a.t==="P"){ XS=YS=(a.w||0); }
+    else { XS=YS=a.w||0; }
+    if(!(XS>0)) return;
+    out.items.push({kind:"pad",layer:layer,net:curNet,comp:curComp,
+                    x:px,y:py,xs:XS,ys:YS,xm:XS,ym:YS,xb:XS,yb:YS,stack:false,
+                    hole:(a.hole||0),shape:shape,name:"",
+                    rot:0,plated:true});
+  };
+
+  for(let ti=0;ti<toks.length;ti++){
+    const t=toks[ti];
+    let s=t.b.replace(/\*+$/,"");
+    if(!s) continue;
+
+    if(t.x){                                     /* ---- 扩展命令 %...% ---- */
+      if(s.indexOf("FS")===0){
+        const m=/^FS([LTD]?)([AI]?)X(\d)(\d)Y(\d)(\d)/.exec(s);
+        if(m){ dec=+m[4]||6; }
+      }else if(s.indexOf("MO")===0){
+        unit = s.indexOf("IN")>=0 ? "inch" : "mm";
+      }else if(s.indexOf("AD")===0){
+        /* ADD10C,0.1000   ADD11R,1.5X1.0   ADD12C,0.1X0.05（带孔）
+           ADD20OC8,0.1000（宏光圈，名字里带数字 —— 不能只认字母，
+           否则 OC8 会被切错，0.1 英寸的八角盘变成 8000 mil 的巨盘） */
+        const m=/^ADD(\d+)([A-Za-z][A-Za-z0-9_]*),?(.*)$/.exec(s);
+        if(m){
+          const code=+m[1], tt=m[2].toUpperCase();
+          const nums=(m[3]||"").split("X").map(v=>parseFloat(v));
+          const u=k();
+          const o={t:tt};
+          if(tt==="C"){
+            o.w=(nums[0]||0)*u;
+            if(nums.length>1 && nums[1]>0) o.hole=nums[1]*u;
+          }else if(tt==="R"||tt==="O"){
+            o.w=(nums[0]||0)*u; o.h=(nums[1]||nums[0]||0)*u;
+          }else if(tt==="P"){
+            o.w=(nums[0]||0)*u;
+            if(nums.length>2 && nums[2]>0) o.hole=nums[2]*u;
+          }else{
+            o.w=(nums[0]||0)*u;                  /* 宏光圈：先当圆处理 */
+          }
+          ap.set(code,o);
+        }
+      }else if(s.indexOf("TF.")===0){
+        /* 文件属性：层已经定过了，这里只收 Part 之类，暂不用 */
+      }else if(s.indexOf("TO.")===0){
+        /* 对象属性：TO.N,网络名  TO.C,位号 —— X2 才有 */
+        const m=/^TO\.([NC]),(.*)$/i.exec(s);
+        if(m){
+          const v=m[2].trim();
+          if(m[1].toUpperCase()==="N"){
+            if(v) emitNet(gbNetId(v)); else curNet=0;
+          }else{
+            curComp = v ? gbCompId(v, layer) : -1;
+          }
+        }
+      }else if(s.indexOf("TD")===0){
+        curNet=0; curComp=-1;
+      }else if(s.indexOf("LP")===0){
+        dark = s.indexOf("C")<0;
+      }else if(s.indexOf("SR")===0){
+        /* 步进重复（拼板）：SRX2Y3I10J20 */
+        const m=/^SRX(\d+)Y(\d+)I([\d.-]+)J([\d.-]+)/.exec(s);
+        sr = m ? {nx:+m[1], ny:+m[2], dx:parseFloat(m[3]), dy:parseFloat(m[4])} : null;
+      }else if(s.indexOf("AM")===0){
+        /* 光圈宏：形状由多个基元拼成，这里不展开（记一次，别刷屏） */
+        if(!out.warn.some(w=>w.indexOf(T("gbMacro"))===0)) out.warn.push(T("gbMacro"));
+      }
+      continue;
+    }
+
+    /* ---- 普通命令 ---- */
+    if(s.charAt(0)==="G"){
+      const m=/^G0*(\d+)/.exec(s);
+      if(m){
+        const g=+m[1];
+        if(g===1) interp=1;
+        else if(g===2) interp=2;
+        else if(g===3) interp=3;
+        else if(g===36){ region=true; contour=[[x,y]]; }
+        else if(g===37){
+          if(contour && contour.length>=3 && dark && out.poly.length<400){
+            out.poly.push({kind:"polygon",layer:layer,net:curNet,pid:out.poly.length+1,
+                           pts:contour.slice(),closed:true});
+          }
+          region=false; contour=null;
+        }
+        else if(g===70) unit="inch";
+        else if(g===71) unit="mm";
+        else if(g===90) ;                        /* 绝对（默认） */
+        else if(g===91) ;                        /* 增量：极少见，忽略 */
+        else if(g===4 || g===54 || g===55 || g===74 || g===75) ;  /* 注释 / 换刀 / 象限 */
+      }
+      s=s.replace(/^G0*\d+/,"");
+      if(!s) continue;
+    }
+
+    if(s.charAt(0)==="M"){                       /* M02 结束 */
+      if(s.indexOf("M02")===0) break;
+      continue;
+    }
+
+    let D=0;
+    const md=/D0*(\d+)/.exec(s);
+    if(md){
+      D=+md[1];
+      if(D>=10){                                  /* 选光圈 */
+        curAp = ap.get(D) || {t:"C",w:6};
+        continue;
+      }
+      s=s.slice(0, md.index) + s.slice(md.index+md[0].length);
+    }
+
+    let nx=null, ny=null, ii=null, jj=null;
+    let m2;
+    if((m2=/X([+-]?[\d.]+)/.exec(s))) { nx=gbVal(m2[1], dec); s=s.replace(m2[0],""); }
+    if((m2=/Y([+-]?[\d.]+)/.exec(s))) { ny=gbVal(m2[1], dec); s=s.replace(m2[0],""); }
+    if((m2=/I([+-]?[\d.]+)/.exec(s))) { ii=gbVal(m2[1], dec); s=s.replace(m2[0],""); }
+    if((m2=/J([+-]?[\d.]+)/.exec(s))) { jj=gbVal(m2[1], dec); s=s.replace(m2[0],""); }
+
+    const u=k();
+    const X = nx===null ? x : nx*u;
+    const Y = ny===null ? y : ny*u;
+
+    if(D===2 || D===0){                            /* 移动 / 只给坐标也是移动 */
+      if(region && contour && D===2 && contour.length>=3){
+        out.poly.push({kind:"polygon",layer:layer,net:curNet,pid:out.poly.length+1,
+                       pts:contour.slice(),closed:true});
+        contour=[[X,Y]];
+      }
+      x=X; y=Y;
+      if(region && contour) contour.push([x,y]);
+      continue;
+    }
+
+    if(D===1){                                     /* 画线 */
+      const w = curAp ? (curAp.t==="R"||curAp.t==="O"
+                          ? Math.min(curAp.w||0, curAp.h||curAp.w||0)
+                          : (curAp.w||0)) : 6;
+      if(interp===2 || interp===3){
+        const cx = x + (ii||0)*u, cy = y + (jj||0)*u;
+        addArcSeg(x,y,X,Y,cx,cy, interp===3, w);
+      }else{
+        if(!region) addLine(x,y,X,Y,w);
+      }
+      if(region && contour) contour.push([X,Y]);
+      else if(region){ contour=[[x,y],[X,Y]]; }
+      x=X; y=Y;
+      continue;
+    }
+
+    if(D===3){                                     /* 闪绘 → 焊盘 */
+      addFlash(X,Y);
+      x=X; y=Y;
+      continue;
+    }
+
+    x=X; y=Y;
+  }
+  return out;
+}
+
+/* 网络名 → 编号（跨文件共用一个表，同名的就是同一个网络） */
+let GB_NETMAP=null, GB_COMPMAP=null;
+function gbNetId(name){
+  if(!GB_NETMAP) GB_NETMAP=new Map();
+  let v=GB_NETMAP.get(name);
+  if(!v){ v=GB_NETMAP.size+1; GB_NETMAP.set(name, v); }
+  return v;
+}
+function gbCompId(ref, layer){
+  if(!GB_COMPMAP) GB_COMPMAP=new Map();
+  let e=GB_COMPMAP.get(ref);
+  if(!e){ e={id:GB_COMPMAP.size+1, layer:layer}; GB_COMPMAP.set(ref, e); }
+  return e.id;
+}
+
+/* Excellon 钻孔：只用钻头表和 XY，槽孔按短线处理。
+   hintDec = 同批 Gerber 的小数位数（最准的参照，见下）。 */
+function gbDrillHead(txt){
+  /* 只在前 4 KB 里找 —— 钻头表一定在头部，没必要为一个大文件拆全文 */
+  const cut=txt.lastIndexOf("\n", Math.min(txt.length, 4000));
+  const ls=txt.slice(0, cut>0?cut:txt.length).split(/\r?\n/);
+  let st=0;
+  if(/^\s*%\s*$/.test(ls[0]||"")) st=1;
+  for(let i=st;i<ls.length;i++){
+    if(/^\s*%\s*$/.test(ls[i]) || /^M95/.test(ls[i])) return ls.slice(st,i).join("\n");
+  }
+  return ls.slice(st).join("\n");
+}
+function gbParseDrill(txt, hintDec){
+  const holes=[];
+  const headTxt=gbDrillHead(txt);
+
+  /* 单位：M71 = 公制、M72 = 英制；没写就看 METRIC / INCH 字样。
+     只认 METRIC/INCH 不够 —— 真样本里 Altium、Eagle 都只给一个 M72。 */
+  let unit="mm";
+  if(/M72/.test(headTxt) || /INCH/i.test(headTxt)) unit="inch";
+  else if(/M71/.test(headTxt) || /METRIC/i.test(headTxt)) unit="mm";
+
+  /* 小数位：跟着同批 Gerber 的 FS 走最准 ——
+       RPI CAN Hat 的 Gerber 是 FSLAX25，钻孔 X174291 就是 1.74291 in（5 位）；
+       DCF77 的 Gerber 是 FSLAX24，同样的 X26114 就是 2.6114 in（4 位）。
+     拿不到参照时才退回行业惯例：英制 2:4、公制 3:3。 */
+  const dec = (hintDec>0) ? hintDec : (unit==="inch" ? 4 : 3);
+  const um = unit==="inch" ? 1000 : GB_MIL;
+
+  const tools=new Map();
+  let re=/T(\d+)[^\n]*?C([\d.]+)/g, m;
+  while((m=re.exec(headTxt))) tools.set(+m[1], parseFloat(m[2])*um);
+
+  let cur=0, x=0, y=0;
+  const lines=txt.split(/[\r\n;]+/);
+  let inHead=false;
+  for(const raw of lines){
+    const s=raw.replace(/\s+/g,"");
+    if(!s) continue;
+    if(s.charAt(0)==="%"){ inHead=!inHead; continue; }
+    if(inHead) continue;                                  /* 头部指令不是坐标 */
+    if(s.charAt(0)==="T"){
+      const mt=/^T(\d+)/.exec(s);
+      if(mt) cur=+mt[1];
+      continue;
+    }
+    if(/^(M48|M30|M00|M95|M47)/.test(s)) continue;
+    if(/^(G90|G91|G05|G81|G82|G83|M71|M72|FMAT|METRIC|INCH|IC|TCST)/.test(s)) continue;
+    const mxy=/^X([+-]?[\d.]+)?Y?([+-]?[\d.]+)?/.exec(s);
+    if(mxy && (mxy[1]!==undefined || mxy[2]!==undefined)){
+      if(mxy[1]!==undefined) x=gbVal(mxy[1],dec)*um;
+      if(mxy[2]!==undefined) y=gbVal(mxy[2],dec)*um;
+      const d=tools.get(cur)||0;
+      if(d>0 && isFinite(x) && isFinite(y)) holes.push({x:x,y:y,d:d});
+    }
+  }
+  return holes;
+}
+
+/* 一包文件 → 一块板 */
+function parseGerberSet(files){
+  const b={
+    layers:{}, copper:[], nets:[], tracks:[], pads:[], vias:[], arcs:[],
+    fills:[], texts:[], comps:[], polys:[], sections:[], warn:[],
+    fmt:"gerber", fromDdb:false, boardCount:1, layerNames:{}
+  };
+  GB_NETMAP=new Map(); GB_COMPMAP=new Map();
+
+  const holes=[];
+  let nGer=0;
+
+  /* 先把文本都取出来：钻孔文件的小数位要参照 Gerber 的 FS，得先看一遍 */
+  const texts=[];
+  for(const f of files){
+    let txt="";
+    try{
+      txt = typeof f.txt==="string" ? f.txt
+          : new TextDecoder("utf-8").decode(new Uint8Array(f.buf));
+    }catch(_){ txt=""; }
+    if(txt) texts.push({name:f.name||"", txt:txt});
+  }
+  let hintDec=0;
+  for(const it of texts){
+    if(gbIsDrill(it.txt)) continue;
+    const m=/%FS[LTD]?[AI]?X(\d)(\d)Y(\d)(\d)\*%/.exec(it.txt);
+    if(m && +m[2]>0){ hintDec=+m[2]; break; }
+  }
+
+  for(const it of texts){
+    const txt=it.txt;
+    if(gbIsDrill(txt)){
+      for(const h of gbParseDrill(txt, hintDec)) holes.push(h);
+      continue;
+    }
+    /* 既不是 Gerber 也不是钻孔（比如 Altium 另外附的刀具清单 .DRL）→ 静静跳过 */
+    if(!/%FS|%MO|%ADD/.test(txt.slice(0,6000))) continue;
+
+    const one=gbParseOne(txt, it.name);
+    if(!one.layer){
+      b.warn.push(T("gbNoLayer", it.name));
+      continue;
+    }
+    nGer++;
+    if(one.name) b.layerNames[one.layer]=one.name;
+    for(const it of one.items){
+      if(it.kind==="track") b.tracks.push(it);
+      else if(it.kind==="pad") b.pads.push(it);
+      else if(it.kind==="arc") b.arcs.push(it);
+    }
+    /* 覆铜编号跨文件必须唯一：每个文件内部都从 1 开始，直接拼会串台 */
+    for(const p of one.poly){ p.pid=b.polys.length+1; b.polys.push(p); }
+    for(const w of one.warn) if(b.warn.indexOf(w)<0) b.warn.push(w);
+  }
+  if(!nGer && !holes.length){ throw new Error(T("errNotGerber")); }
+
+  /* 网络名表 */
+  if(GB_NETMAP){
+    GB_NETMAP.forEach((id,name)=>{ b.nets[id-1]=name; });
+  }
+
+  /* X2 位号 → 虚拟元件 + 一条位号文字（这样清单能列、能定位） */
+  if(GB_COMPMAP && GB_COMPMAP.size){
+    const box=new Map();
+    const note=(o)=>{
+      if(!(o.comp>0)) return;
+      const r=Math.max(o.xs||0,o.ys||0)/2 || (o.w||0)/2 || 4;
+      const x1=(o.kind==="track")?Math.min(o.x1,o.x2):o.x;
+      const x2=(o.kind==="track")?Math.max(o.x1,o.x2):o.x;
+      const y1=(o.kind==="track")?Math.min(o.y1,o.y2):o.y;
+      const y2=(o.kind==="track")?Math.max(o.y1,o.y2):o.y;
+      let e=box.get(o.comp);
+      if(!e) box.set(o.comp, e={x1:x1-r,x2:x2+r,y1:y1-r,y2:y2+r});
+      else{
+        e.x1=Math.min(e.x1,x1-r); e.x2=Math.max(e.x2,x2+r);
+        e.y1=Math.min(e.y1,y1-r); e.y2=Math.max(e.y2,y2+r);
+      }
+    };
+    b.tracks.forEach(note); b.pads.forEach(note); b.arcs.forEach(note);
+
+    GB_COMPMAP.forEach((info,ref)=>{
+      const id=info.id;
+      const e=box.get(id) || {x1:0,x2:0,y1:0,y2:0};
+      b.comps.push({id:id, layer:info.layer||1,
+                    x:(e.x1+e.x2)/2, y:(e.y1+e.y2)/2, rot:0, lib:""});
+      b.texts.push({kind:"text",layer:info.layer||1,comp:id,
+                    x:(e.x1+e.x2)/2, y:(e.y1+e.y2)/2, h:40, rot:0,
+                    text:ref, isDes:true, isCom:false});
+    });
+  }
+
+  /* 钻孔：先往已有焊盘上套（填孔径），套不上的当一个通孔焊盘 */
+  if(holes.length){
+    const G=200;
+    const grid=new Map();
+    const cells=(o)=>{
+      const r=Math.max(o.xs||0,o.ys||0)/2+8;
+      const gx1=Math.floor((o.x-r)/G), gx2=Math.floor((o.x+r)/G);
+      const gy1=Math.floor((o.y-r)/G), gy2=Math.floor((o.y+r)/G);
+      for(let gx=gx1;gx<=gx2;gx++)
+        for(let gy=gy1;gy<=gy2;gy++){
+          const k2=gx+"_"+gy;
+          let a=grid.get(k2); if(!a) grid.set(k2,a=[]);
+          a.push(o);
+        }
+    };
+    b.pads.forEach(cells);
+    let matched=0, loose=0;
+    for(const h of holes){
+      const k2=Math.floor(h.x/G)+"_"+Math.floor(h.y/G);
+      const cand=grid.get(k2)||[];
+      let best=null, bd=Infinity;
+      for(const p of cand){
+        const d=Math.hypot(p.x-h.x, p.y-h.y);
+        const lim=Math.max(p.xs||0,p.ys||0)/2+2;
+        if(d<=lim && d<bd){ bd=d; best=p; }
+      }
+      if(best && !(best.hole>0)){ best.hole=h.d; matched++; }
+      else if(!best){
+        b.pads.push({kind:"pad",layer:74,net:0,comp:-1,x:h.x,y:h.y,
+                     xs:h.d,ys:h.d,xm:h.d,ym:h.d,xb:h.d,yb:h.d,stack:false,
+                     hole:h.d,shape:1,name:"",rot:0,plated:true});
+        loose++;
+      }
+    }
+    if(loose) b.warn.push(T("gbLooseHole", loose));
+  }
+
+  /* 没有 Profile 层：按全体图元补一圈板框，否则"板子尺寸"是空的 */
+  const hasProfile=b.arcs.concat(b.tracks).some(o=>o.layer===56);
+  if(!hasProfile){
+    let x1=Infinity,y1=Infinity,x2=-Infinity,y2=-Infinity;
+    for(const o of b.tracks.concat(b.pads,b.arcs)){
+      if(!(o.layer>=1 && o.layer<=32)) continue;
+      const r=Math.max(o.xs||0,o.ys||0)/2 || (o.w||0)/2;
+      const ax=(o.kind==="track")?o.x1:o.x, ay=(o.kind==="track")?o.y1:o.y,
+            bx=(o.kind==="track")?o.x2:o.x, by=(o.kind==="track")?o.y2:o.y;
+      x1=Math.min(x1,ax-r,bx-r); x2=Math.max(x2,ax+r,bx+r);
+      y1=Math.min(y1,ay-r,by-r); y2=Math.max(y2,ay+r,by+r);
+    }
+    if(x2>x1 && y2>y1){
+      const P=[[x1,y1],[x2,y1],[x2,y2],[x1,y2]];
+      for(let i=0;i<4;i++){
+        const a=P[i], c=P[(i+1)%4];
+        b.tracks.push({kind:"track",layer:56,net:0,comp:-1,
+                       x1:a[0],y1:a[1],x2:c[0],y2:c[1],w:4});
+      }
+      b.warn.push(T("gbNoProfile"));
+    }
+  }
+
+  finish(b);
+  return b;
 }
 
 function parseAny(buf,name){
@@ -4284,11 +4875,11 @@ function saveShot(){
 document.getElementById("shot").onclick=saveShot;
 
 /* ============================== 载入 ============================== */
-function loadBuffer(buf,name){
+function loadBuffer(buf,name,gerSet){
   toast("");
   try{
     const t0=performance.now();
-    B=parseAny(buf);
+    B=gerSet ? parseGerberSet(gerSet) : parseAny(buf);
     const dt=Math.round(performance.now()-t0);
     lastName=name; lastMs=dt;
     show={}; solo=null; hi=null; LIT=null; pickMode="";
@@ -4397,7 +4988,7 @@ function apiUrl(path, extra){
 function applyBoards(list, file){
   if(!list || !list.length){ toast(T("errNoSec", /\.ddb$/i.test(file||""))); return; }
   /* 不再冲掉当前这份 —— 每个文件开一个页签 */
-  openDoc(list.map(b=>({n:b.n, d:b.d, buf:null})), file||"");
+  openDoc(list.map(b=>({n:b.n, d:b.d, buf:null, g:b.g||null})), file||"");
 }
 function handleOpenResult(j){
   if(!j) return;
@@ -4497,14 +5088,135 @@ const hint=document.getElementById("hint");
 ["dragleave","drop"].forEach(ev=>stage.addEventListener(ev,e=>{
   e.preventDefault(); hint.classList.remove("over");
 }));
-/* 一次拖进来好几个文件就依次各开一个页签（.ddb 那种一次出多块板的仍算一个页签）。
-   顺次等待，是为了让"新文档"的创建不打架 —— 同一个时刻只能有一份在解析。 */
-function openFiles(list){
-  const arr=[...list].filter(f=>/\.(pcb|ddb|kicad_pcb)$/i.test(f.name||""));
+/* 一次拖进来好几个文件：
+     · .pcb / .ddb / .kicad_pcb → 各开一个页签（.ddb 一次出多块板的仍算一个页签）
+     · Gerber / 钻孔            → 归成一组，合成一块板（一个页签）
+     · .zip                     → 解开后按上面两条走
+   顺次等待，是为了让"新文档"的创建不打架 —— 同一时刻只能有一份在解析。
+   Gerber 的后缀各家各样，认不出来的就读文件头嗅探（板厂给的包常常压根没后缀）。 */
+const GER_EXT=/\.(gbr|gbl|gtl|gbs|gts|gbo|gto|gko|gm1|gml|gmb|gpt|gbp|pho|art|gbx|g\d+|gl\d|gp\d|gg\d|drl|xln|nc|ncd|exc)$/i;
+
+function readHeadOf(f, n){
+  return new Promise(res=>{
+    try{
+      const fr=new FileReader();
+      fr.onload=()=>res(fr.result);
+      fr.onerror=()=>res(null);
+      fr.readAsArrayBuffer(f.slice(0, Math.min(f.size||0, n)));
+    }catch(_){ res(null); }
+  });
+}
+function readAllOf(f){
+  return new Promise(res=>{
+    try{
+      const fr=new FileReader();
+      fr.onload=()=>res(fr.result);
+      fr.onerror=()=>res(null);
+      fr.readAsArrayBuffer(f);
+    }catch(_){ res(null); }
+  });
+}
+
+/* 一包 Gerber 合成一块板：先全部读进内存，再一次解析 */
+async function openGerberPack(files){
+  const pack=[];
+  for(const f of files){
+    const buf=await readAllOf(f);
+    if(buf && buf.byteLength) pack.push({n:f.name||"", buf:buf});
+  }
+  if(!pack.length){ toast(T("readFail")); return; }
+  const base=(pack[0].n||"").replace(/\.[^.]+$/,"");
+  const nm = pack.length>1 ? base+" +"+(pack.length-1) : (pack[0].n||base);
+  openDoc([{n:nm, d:null, buf:null, g:pack}], nm);
+}
+
+/* ---- 最小 zip 解包：只为了把板厂给的压缩包打开，不追求完整规范支持 ---- */
+async function unzipAll(buf){
+  const u8=new Uint8Array(buf), dv=new DataView(buf);
+  let eocd=-1;
+  const stop=Math.max(0, u8.length-70000);
+  for(let i=u8.length-22;i>=stop;i--){
+    if(dv.getUint32(i,true)===0x06054b50){ eocd=i; break; }
+  }
+  if(eocd<0) throw new Error("no zip end");
+  const cnt=dv.getUint16(eocd+10,true);
+  let off=dv.getUint32(eocd+16,true);
+  const out=[];
+  for(let i=0;i<cnt;i++){
+    if(off+46>u8.length || dv.getUint32(off,true)!==0x02014b50) break;
+    const method=dv.getUint16(off+10,true);
+    const csize=dv.getUint32(off+20,true);
+    const nl=dv.getUint16(off+28,true);
+    const el=dv.getUint16(off+30,true);
+    const cl=dv.getUint16(off+32,true);
+    const lho=dv.getUint32(off+42,true);
+    const name=new TextDecoder("utf-8").decode(u8.subarray(off+46, off+46+nl));
+    const lnl=dv.getUint16(lho+26,true), lel=dv.getUint16(lho+28,true);
+    const d0=lho+30+lnl+lel;
+    out.push({name:name, method:method, data:u8.subarray(d0, d0+csize)});
+    off += 46+nl+el+cl;
+  }
+  return out;
+}
+async function inflateRaw(data){
+  if(typeof DecompressionStream==="undefined") return null;
+  try{
+    const ds=new DecompressionStream("deflate-raw");
+    const st=new Blob([data]).stream().pipeThrough(ds);
+    return await new Response(st).arrayBuffer();
+  }catch(_){ return null; }
+}
+
+async function openFiles(list){
+  const arr=[...list];
   if(!arr.length){ toast(T("noPcb")); return Promise.resolve(); }
-  return arr.reduce(
-    (p,f)=>p.then(()=>openLocalFile(f)).then(()=>new Promise(r=>setTimeout(r,300))),
-    Promise.resolve());
+  return (async()=>{
+    const solo=[], ger=[], zips=[];
+    for(const f of arr){
+      const n=f.name||"";
+      if(/\.(pcb|ddb|kicad_pcb)$/i.test(n)){ solo.push(f); continue; }
+      if(/\.zip$/i.test(n)){ zips.push(f); continue; }
+      if(GER_EXT.test(n)){ ger.push(f); continue; }
+      const head=await readHeadOf(f, 4096);
+      if(head && gbLooks(head)) ger.push(f);
+    }
+    for(const f of solo){ await openLocalFile(f); await new Promise(r=>setTimeout(r,300)); }
+
+    if(zips.length){
+      for(const zf of zips){
+        const buf=await readAllOf(zf);
+        let ents=null;
+        try{ ents=await unzipAll(buf); }catch(_){ ents=null; }
+        if(!ents){ toast(T("zipNeedUnzip")); continue; }
+        const inner=[];
+        for(const e of ents){
+          if(/\/$/.test(e.name)) continue;
+          const base=e.name.split(/[\\/]/).pop();
+          if(!GER_EXT.test(base) && !/\.(pcb|ddb|kicad_pcb)$/i.test(base)) continue;
+          let ab;
+          if(e.method===0){
+            ab=e.data.buffer.slice(e.data.byteOffset, e.data.byteOffset+e.data.byteLength);
+          }else{
+            ab=await inflateRaw(e.data);
+          }
+          if(!ab){ toast(T("zipNeedUnzip")); break; }
+          inner.push({n:base, buf:ab});
+        }
+        const g2=inner.filter(x=>!/\.(pcb|ddb|kicad_pcb)$/i.test(x.n));
+        const s2=inner.filter(x=>/\.(pcb|ddb|kicad_pcb)$/i.test(x.n));
+        for(const x of s2){
+          openDoc([{n:x.n, d:null, buf:x.buf}], x.n);
+          await new Promise(r=>setTimeout(r,300));
+        }
+        if(g2.length){
+          const base=zf.name.replace(/\.[^.]+$/,"");
+          openDoc([{n:base, d:null, buf:null, g:g2}], base);
+        }
+      }
+    }
+    if(ger.length) await openGerberPack(ger);
+    if(!solo.length && !ger.length && !zips.length) toast(T("noPcb"));
+  })();
 }
 stage.addEventListener("drop",e=>{
   openFiles(e.dataTransfer.files);
@@ -4711,11 +5423,20 @@ function activate(i){
     loadMarks();
   }else{
     const bd=BOARDS[curBoard]||BOARDS[0];
-    let buf=bd && bd.buf;
-    if(!buf && bd && bd.d){ buf=b64ToBuf(bd.d); bd.d=null; bd.buf=buf; }
-    if(!buf){ toast(T("readFail")); return; }
-    syncBoardSelect();
-    loadBuffer(buf, bd.n||d.name);
+    if(bd && bd.g){
+      syncBoardSelect();
+      /* 拖进来的是现成的 ArrayBuffer；从 exe 传来的那份是 base64，要现解 */
+      loadBuffer(null, bd.n||d.name, bd.g.map(x=>({
+        name:x.n,
+        buf: x.buf || (x.d ? b64ToBuf(x.d) : null)
+      })));
+    }else{
+      let buf=bd && bd.buf;
+      if(!buf && bd && bd.d){ buf=b64ToBuf(bd.d); bd.d=null; bd.buf=buf; }
+      if(!buf){ toast(T("readFail")); return; }
+      syncBoardSelect();
+      loadBuffer(buf, bd.n||d.name);
+    }
   }
   renderTabs();
   draw();
@@ -4728,7 +5449,11 @@ function openDoc(items, file, bi){
   if(!items || !items.length) return;
   file=file||"";
   bi=Math.max(0, bi||0);
-  const keyBase=file+"|"+items.length+"|"+String((items[0].d||"").length);
+  /* Gerber 是一堆文件合成一块板：key 里得带上这份"是不是一组、组里几个、共多少字节"，
+     否则同样的文件名会被当成"已经开着"直接切过去。 */
+  const g0=items[0].g;
+  const keyBase=file+"|"+items.length+"|"+String((items[0].d||"").length)
+              +(g0 ? "|g"+g0.length+"|"+(g0[0].n||"")+(g0[0].buf?g0[0].buf.byteLength:0) : "");
   const key=keyBase+"|"+bi;
   const old=DOCS.findIndex(d=>d.key===key);
   snapshotDoc();                       // 先把当前这份存好，再动全局
@@ -4740,7 +5465,7 @@ function openDoc(items, file, bi){
   if(DOCS.length>=12){ toast(T("tabLimit")); return; }
   DOCS.push({key:key, keyBase:keyBase, bid:bi, id:++docSeq,
              name:file||items[0].n||"board",
-             boards:items.map(b=>({n:b.n, d:b.d||null, buf:b.buf||null})),
+             boards:items.map(b=>({n:b.n, d:b.d||null, buf:b.buf||null, g:b.g||null})),
              cur:bi, B:null, ms:0, st:null});
   curDoc=-1;                           // 新页签：让 activate 走「第一次载入」
   activate(DOCS.length-1);
@@ -4784,7 +5509,7 @@ function showHome(){
 (async()=>{
   try{
     if(window.__BOARDS__ && window.__BOARDS__.length){
-      openDoc(window.__BOARDS__.map(x=>({n:x.n, d:x.d, buf:null})),
+      openDoc(window.__BOARDS__.map(x=>({n:x.n, d:x.d, buf:null, g:x.g||null})),
               window.__FILE__||"");
       return;
     }
