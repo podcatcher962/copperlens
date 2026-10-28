@@ -1,4 +1,4 @@
-# PCB 看板 / CopperLens v1.13
+# PCB 看板 / CopperLens v1.14
 
 **中文** ｜ [English](#english) ｜ [版本履历 Changelog](CHANGELOG.md)
 
@@ -25,6 +25,7 @@
 |---|---|
 | `.pcb`（`PCB 4.0 Binary`） | 单块板，1998–2000 年前后那一代设计文件 |
 | `.ddb`（设计库） | 一次抽出库里所有板子，**每块板各占一个页签**，能并排对照 |
+| `.kicad_pcb`（KiCad） | KiCad 6 / 7 / 8 / 9 / 10 的板文件（纯文本）；4、5 版的老格式也认。见「v1.14 重点」 |
 
 明确**不做**：原理图（`.sch`）、`PCB 3.0`（更早的 16 位版本，部分兼容、未逐一验证）。
 宁可明确报错，也不给一张假图 —— 照假图查线是要出事的。
@@ -32,7 +33,7 @@
 ## 用法
 
 双击 exe → 先过一段**海报**（几秒，点一下可跳过）→ 进**首页**；
-首页点「打开文件」选 `.ddb` 或 `.pcb`（两种文件同一个对话框），
+首页点「打开文件」选 `.ddb` / `.pcb` / `.kicad_pcb`（三种文件同一个对话框），
 也可以把文件拖到 exe 图标上，或拖进窗口。**手上没文件也能打开程序看界面**。
 
 点一下走线或焊盘 → 与之电气相连的整条铜亮黄，状态栏写出具体脚位。
@@ -56,6 +57,23 @@
 鼠标：滚轮**以指针位置为锚点**缩放；**按住左键拖到画布边缘，画面自己往那个方向走**
 （越靠边越快，松手就停）；放大后**左上角缩略图**里的黄框是当前视野，点一下跳过去；
 板上**右键写一句话**就是一条标记，按板子存档。
+
+## v1.14 重点
+
+**现在也读 KiCad 的板子了。** 自己画的新板子（KiCad 6–10）不用再转成别的格式，直接拖进来。
+
+| 之前 | 现在 |
+|---|---|
+| 只认 Protel / Altium 那一代的老文件，**自己画的 KiCad 板反而打不开** | `.kicad_pcb` 直接读：KiCad 6 / 7 / 8 / 9 / 10，连 4、5 版的老格式也认 |
+| — | 走线、焊盘、过孔、覆铜、板框、丝印、位号、型号全部读出来；**查线、量距、清单定位、板子尺寸**一样能用 |
+| — | 层名按 KiCad 的叫法显示（`F.Cu` / `B.Cu` / `Edge.Cuts`），不用记编号 |
+| — | 板子外形量的是 `Edge.Cuts`，和 KiCad 里看到的一致 |
+
+要过三道坎：KiCad 存**毫米**（本程序内部用 mil）、**Y 轴朝下**（本程序朝上）、
+网络在 KiCad 10 里只存**名字**、6–9 存**编号**。三条都按文件版本分开处理。
+
+验证用的是三块真实板子（KiCad 4 / 5 / 10）加一块最小 KiCad 8 板做板框精度校验：
+22 项断言全过，同时把 Protel 那条老路径完整回归了一遍（14 项）。
 
 ## v1.13 重点
 
@@ -128,6 +146,10 @@
 - **DDB 内部结构直接读不做**：Jet 数据库的大字段跨 2KB 页存，页头会插进记录流，
   段一大就整段错位。宁可明确报错，也不给假图。
 - 只支持 `PCB 4.0 Binary`；`PCB 3.0`（16 位版）部分兼容，未逐一验证。
+- **KiCad 的自定义焊盘 / 梯形焊盘按矩形画**：外形接近，但不是逐点还原；
+  圆弧按折线离散（每 8° 一段），放大到极限能看出棱角。
+- **KiCad 的规则区（rule area）、3D 模型、尺寸标注不显示** —— 这些不影响查线。
+- KiCad 4 / 5 的老文件里位号常常还是 `REF**`（没编号），那种板子的清单里就没有位号可找。
 - 无代码签名，SmartScreen 可能提示"未知发布者"。
 
 ## 重新打包
@@ -219,7 +241,7 @@ CERN-OHL v1.2，全文见仓库根目录。第三方组件的完整清单与授�
 
 # English
 
-**English** ｜ [中文](#pcb-看板--copperlens-v113) ｜ [Changelog](CHANGELOG.md)
+**English** ｜ [中文](#pcb-看板--copperlens-v114) ｜ [Changelog](CHANGELOG.md)
 
 A **read-only** PCB viewer for repair work. Click a trace or a pad and the whole net lights
 up in yellow, with the actual pin names right there in the status bar — `U100-4 / C102-1`,
@@ -246,6 +268,7 @@ double-click and go.
 |---|---|
 | `.pcb` (`PCB 4.0 Binary`) | A single board; the 1998–2000 era of design files |
 | `.ddb` (design database) | Every board inside is extracted; **each board gets its own tab** so you can compare them side by side |
+| `.kicad_pcb` (KiCad) | KiCad 6 / 7 / 8 / 9 / 10 board files (plain text); the older 4 and 5 formats work too. See "What's new in v1.14" |
 
 Explicitly **not supported**: schematics (`.sch`), and `PCB 3.0` (the earlier 16-bit
 format) is only partially compatible and not verified case by case. A clear error beats a
@@ -254,8 +277,8 @@ wrong picture — tracing a fault off a wrong rendering is how people scrap boar
 ## Usage
 
 Double-click the exe → a short **poster** (a few seconds, click to skip) → **home**.
-Click **Open file** and pick a `.ddb` or `.pcb` (one dialog for both), or drag a file onto
-the exe icon or into the window. **You can open the program with no file at all** and just
+Click **Open file** and pick a `.ddb`, `.pcb` or `.kicad_pcb` (one dialog for all three), or
+drag a file onto the exe icon or into the window. **You can open the program with no file at all** and just
 look around.
 
 Click a trace or pad → the whole electrically connected net lights up yellow and the status
@@ -281,6 +304,25 @@ Mouse: the wheel zooms **anchored at the pointer**; **drag to the edge of the ca
 view keeps moving that way** (faster the closer you get, stops when you let go); once zoomed
 in, the **mini-map in the top-left** shows your viewport as a yellow box — click to jump;
 **right-click on the board writes a note**, saved per board.
+
+## What's new in v1.14
+
+**It reads KiCad boards now.** Boards you draw yourself (KiCad 6–10) go straight in — no
+conversion step, no third-party tool.
+
+| Before | Now |
+|---|---|
+| Only the 1998–2000 Protel/Altium generation — **the boards you drew yourself would not open** | `.kicad_pcb` directly: KiCad 6 / 7 / 8 / 9 / 10, plus the older 4 and 5 formats |
+| — | Tracks, pads, vias, pours, board outline, silkscreen, refdes and values all come through; net tracing, measuring, list-locate and board stats work unchanged |
+| — | Layers are named the KiCad way (`F.Cu` / `B.Cu` / `Edge.Cuts`) instead of numbers |
+| — | Board size is measured off `Edge.Cuts`, matching what KiCad reports |
+
+Three gaps had to be bridged: KiCad stores **millimetres** (this program works in mil),
+**Y grows downwards** here it grows up, and **KiCad 10 dropped numeric net codes** in
+favour of net names (6–9 still store numbers). Each case is handled per file version.
+
+Verified against three real boards (KiCad 4 / 5 / 10) plus a minimal KiCad 8 board for
+outline accuracy: 22 assertions pass, with the whole Protel path regressed alongside (14).
 
 ## What's new in v1.13
 
@@ -359,6 +401,12 @@ Design decisions worth knowing (details in the [CHANGELOG](CHANGELOG.md)):
   headers get interleaved into the record stream, so big segments come out shifted. An
   explicit error is preferable to a plausible-looking wrong picture.
 - `PCB 4.0 Binary` only; `PCB 3.0` (16-bit) is partially compatible, not verified.
+- **KiCad custom and trapezoidal pads are drawn as rectangles** — close in shape, not
+  point-for-point; arcs are flattened every 8°, so extreme zoom shows facets.
+- **KiCad rule areas, 3D models and dimension annotations are not shown** — none of them
+  matter for tracing a fault.
+- In older KiCad 4 / 5 files, refdes are often still `REF**` (unannotated); those boards
+  have nothing to search for in the parts list.
 - Not code-signed, so SmartScreen may warn about an unknown publisher.
 
 ## Building from source
