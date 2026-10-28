@@ -353,7 +353,7 @@
     <div class="hrow">
       <button class="btn primary" id="open" data-i18n="btnOpen"
               data-i18n-title="btnOpenTip">打开文件</button>
-      <input type="file" id="file" accept=".pcb,.PCB,.ddb,.DDB" multiple>
+      <input type="file" id="file" accept=".pcb,.PCB,.ddb,.DDB,.kicad_pcb,.KICAD_PCB" multiple>
       <select id="boards" style="display:none"></select>
       <div class="sep"></div>
       <button class="btn" id="fit" data-i18n="btnFit" data-i18n-title="btnFitTip">适合窗口</button>
@@ -543,6 +543,11 @@ zh:{
   errBadFmt:"文件里没有可读的 PCB 数据段，可能不是 PCB 4.0 Binary 格式。",
   errPaged:n=>"这个设计库里的 PCB 是跨页存储的，直接读会错位"+
     "（走线散落在 "+n+" 个层上，正常板子只有几个）。\n请先把它导出成 .pcb 再拖进来查看。",
+  /* KiCad 板文件 */
+  errNotKicad:"这个文件不是 KiCad 板文件（开头没有 kicad_pcb）。",
+  errKicadEmpty:"KiCad 文件读通了，但里面既没有走线、也没有焊盘和覆铜。",
+  errKicadBig:"文件超过 80 MB，本程序不敢硬读（怕是别的文件改了扩展名）。",
+  fmtKicad:"（KiCad 板文件）",
   noNet:"(未分配网络)",
   padNo:n=>"焊盘 "+n,
   feetTitle:"这次点亮的全部元件脚",
@@ -595,7 +600,7 @@ zh:{
     +"　解析 "+o.ms+"ms",
   objs:n=>n+" 个对象",
   pourN:n=>"　覆铜 "+n+" 块",
-  noPcb:"不是 .pcb / .ddb 文件。选错了？",
+  noPcb:"不是 .pcb / .ddb / .kicad_pcb 文件。选错了？",
   badFile:"这个文件读不出来：",
   multiBoard:"这个文件里有多块板，按修改时间从新到旧排：",
   latest:"★最新",
@@ -604,7 +609,7 @@ zh:{
       <div class="sub">点一下走线，就知道这根线通到哪儿、两头是哪颗元件的哪只脚</div>
       <button class="hbtn" id="hintOpen">打开文件</button>
       <div class="tip2">
-        也可以把 <b>.pcb</b> / <b>.ddb</b> 文件直接拖到这里<br>
+        也可以把 <b>.pcb</b> / <b>.ddb</b> / <b>.kicad_pcb</b> 文件直接拖到这里<br>
         只读，不会修改你的任何文件　·　不联网
       </div>
       <div class="feats">
@@ -614,9 +619,9 @@ zh:{
     </div>`,
   reading:"读取中…",
   hintHtml:`<div class="drop">
-      <div class="big">把 .pcb 文件拖到这里</div>
+      <div class="big">把板文件拖到这里</div>
       <div style="margin-top:8px;color:var(--fg3)">
-        支持老式 EDA 软件导出的 PCB 4.0 Binary 格式（单板 .pcb，或设计库 .ddb）
+        Protel 99SE：单板 <b>.pcb</b> 或设计库 <b>.ddb</b>　·　KiCad：<b>.kicad_pcb</b>
       </div>
     </div>
     <div>
@@ -629,9 +634,9 @@ zh:{
     </div>`,
   /* 在线版（网页打开）专用引导：不能读设计库，所以文案要分开说 */
   hintWeb:`<div class="drop">
-      <div class="big">把 .pcb 板文件拖到这里</div>
+      <div class="big">把板文件拖到这里</div>
       <div style="margin-top:8px;color:var(--fg3)">
-        也可以点左上角「打开文件」选择　·　支持 PCB 4.0 Binary 格式的<b>单板文件</b>
+        也可以点左上角「打开文件」选择　·　支持 <b>.pcb</b> 单板与 <b>.kicad_pcb</b>
       </div>
       <div class="privacy">文件只在你自己的浏览器里读取，<b>不会上传到任何服务器</b></div>
       <div style="margin-top:6px;color:var(--fg3);font-size:12px">
@@ -652,16 +657,21 @@ zh:{
     <h3>打开文件</h3>
     <p>双击程序图标，先看到一段<b>海报</b>（几秒后自动进首页），然后是<b>首页</b>——
        没带文件也能先把程序打开看界面：<b>点「打开文件」挑文件</b>，
-       或者把 <code>.pcb</code> / <code>.ddb</code> 直接拖进窗口。</p>
-    <p>"设计库（.ddb）"和"单板文件（.pcb）"在同一个对话框里，
-       直接挑就行。也可以把文件拖到窗口里。</p>
+       或者把 <code>.pcb</code> / <code>.ddb</code> / <code>.kicad_pcb</code> 直接拖进窗口。</p>
+    <p>三种文件在同一个对话框里，直接挑就行，也可以拖到窗口里：</p>
+    <p style="color:var(--fg3)">
+      · <b>.pcb</b> —— Protel / Altium 的老式二进制单板<br>
+      · <b>.ddb</b> —— 老式设计库，里面可能有好几块板，一次全带出来<br>
+      · <b>.kicad_pcb</b> —— KiCad 6 / 7 / 8 / 9 / 10 的板文件（纯文本 S 表达式），
+        4、5 版的老格式也认</p>
 
     <h3>同时看几块板</h3>
     <p>每打开一个文件就多一个<b>页签</b>：可以一边看这块板、一边翻另一块，像 Protel 那样
        来回切，也能各自关掉（页签右边的 <b>×</b>，或者用鼠标中键点页签）。</p>
     <p>切回来的时候，缩放位置、图层开关、点亮的网络都还在 —— 不用重新找。
        关掉最后一个页签就回到首页。</p>
-    <p>一个 .ddb 里有多块板时，顶栏的下拉框是在<b>同一个页签内</b>换板，页签不动。</p>
+    <p>顶栏的下拉框选另一块板 = <b>新开一个页签</b>，原来那块原样留着，可以左右对着看；
+       已经开过的板再选回来就直接切过去，不会重复解析。</p>
     <p>一个 .ddb 里常常有好几块板。打开后顶部会出现下拉框，按修改时间从新到旧排，
        最新那块标★，选一个就切过去。</p>
 
@@ -781,7 +791,7 @@ zh:{
     <p class="dim">已在 Windows 10 x86 与 Windows 11 64 位上实测通过。</p>
     <h3>能做什么</h3>
     <ul>
-      <li>打开 .pcb 单板文件，或 .ddb 设计库（自动列出里面所有板）</li>
+      <li>打开 .pcb 单板、.ddb 设计库（自动列出里面所有板），或 KiCad 的 .kicad_pcb</li>
       <li>点一下走线/焊盘，亮出整条铜箔，并写出 U100-4 这样的具体脚位</li>
       <li>显示元件位号、型号、焊盘编号；大面积铺铜可一键隐藏</li>
       <li><b>两点通不通</b>：点两个位置，直接判定电气上通不通（没网表的老板子也行）</li>
@@ -797,7 +807,7 @@ zh:{
       <li><b>最近打开</b>：首页列出上次开过的文件，点一下直接再打开</li>
     </ul>
     <h3>版本</h3>
-    <p>v1.13　·　支持 x86 与 64 位系统　·　单文件便携版</p>
+    <p>v1.14　·　支持 x86 与 64 位系统　·　单文件便携版</p>
     <div class="sig">© 永远的兰兰　·　Lanlan Eternal</div>`
 },
 en:{
@@ -867,6 +877,12 @@ en:{
   errPaged:n=>"The PCB inside this design library is stored across pages, so reading it "+
     "directly misaligns the data (tracks scattered over "+n+" layers; a normal board "+
     "uses only a few).\nExport it to a .pcb file first, then drag that in.",
+  /* KiCad boards */
+  errNotKicad:"This is not a KiCad board file (no kicad_pcb header).",
+  errKicadEmpty:"The KiCad file parsed, but it holds no tracks, pads or pours.",
+  errKicadBig:"File is over 80 MB — refusing to read it in one go "+
+    "(probably not a board file at all).",
+  fmtKicad:"  (KiCad board)",
   noNet:"(no net)",
   padNo:n=>"Pad "+n,
   feetTitle:"Every pin lit by this click",
@@ -921,7 +937,7 @@ en:{
     +"　parsed in "+o.ms+"ms",
   objs:n=>n+" objects",
   pourN:n=>"　"+n+" pours",
-  noPcb:"Not a .pcb / .ddb file.",
+  noPcb:"Not a .pcb / .ddb / .kicad_pcb file.",
   badFile:"Cannot read this file: ",
   multiBoard:"Several boards in this file, newest first:",
   latest:"★latest",
@@ -930,7 +946,7 @@ en:{
       <div class="sub">Click a trace and see where it goes — and which pins it lands on.</div>
       <button class="hbtn" id="hintOpen">Open File</button>
       <div class="tip2">
-        You can also drop a <b>.pcb</b> / <b>.ddb</b> file right here<br>
+        You can also drop a <b>.pcb</b> / <b>.ddb</b> / <b>.kicad_pcb</b> file right here<br>
         Read-only, never modifies your files · no network access
       </div>
       <div class="feats">
@@ -940,9 +956,9 @@ en:{
     </div>`,
   reading:"Reading…",
   hintHtml:`<div class="drop">
-      <div class="big">Drop a .pcb file here</div>
+      <div class="big">Drop a board file here</div>
       <div style="margin-top:8px;color:var(--fg3)">
-        Reads PCB 4.0 Binary files — single boards (.pcb) or design libraries (.ddb)
+        Protel 99SE: single board <b>.pcb</b> or design library <b>.ddb</b>　·　KiCad: <b>.kicad_pcb</b>
       </div>
     </div>
     <div>
@@ -955,9 +971,9 @@ en:{
     </div>`,
   /* Web build: no design-library support, so say so plainly */
   hintWeb:`<div class="drop">
-      <div class="big">Drop a .pcb board file here</div>
+      <div class="big">Drop a board file here</div>
       <div style="margin-top:8px;color:var(--fg3)">
-        Or use <b>Open File</b> at the top left　·　single-board PCB 4.0 Binary files
+        Or use <b>Open File</b> at the top left　·　<b>.pcb</b> single boards and <b>.kicad_pcb</b>
       </div>
       <div class="privacy">The file is read in your own browser and <b>never uploaded to any server</b></div>
       <div style="margin-top:6px;color:var(--fg3);font-size:12px">
@@ -978,9 +994,13 @@ en:{
     <h3>Opening a file</h3>
     <p>Double-click the exe: a short <b>splash</b> appears for a few seconds, then the <b>home page</b>.
        You can open the program without a board — click <b>Open File</b>, or drag a
-       <code>.pcb</code> / <code>.ddb</code> into the window.</p>
-    <p>Design libraries (.ddb) and single boards (.pcb)
-       share one dialog — no second button needed. You can also drag a file into the window.</p>
+       <code>.pcb</code> / <code>.ddb</code> / <code>.kicad_pcb</code> into the window.</p>
+    <p>All three formats share one dialog — no second button needed. You can also drag a file in:</p>
+    <p style="color:var(--fg3)">
+      · <b>.pcb</b> — legacy Protel / Altium binary single board<br>
+      · <b>.ddb</b> — legacy design library; all boards inside come along at once<br>
+      · <b>.kicad_pcb</b> — KiCad 6 / 7 / 8 / 9 / 10 boards (plain-text S-expressions);
+        the older 4 and 5 formats work too</p>
 
     <h3>Several boards at once</h3>
     <p>Every file you open gets its own <b>tab</b> — keep one board open while you look at
@@ -988,8 +1008,9 @@ en:{
        (the <b>×</b> on the tab, or middle-click the tab).</p>
     <p>Switching back restores your zoom, layer toggles and the net you had lit up.
        Close the last tab and you are back at the home screen.</p>
-    <p>When a .ddb holds several boards, the drop-down in the toolbar switches boards
-       <b>inside the same tab</b>.</p>
+    <p>Picking another board in the toolbar drop-down opens it in a <b>new tab</b> — the
+       board you were on stays exactly where it was, so you can compare side by side.
+       A board you already opened is switched to, not parsed twice.</p>
     <p>A .ddb usually holds several boards. A drop-down appears at the top, sorted newest first
        with the newest marked ★.</p>
 
@@ -1123,7 +1144,7 @@ en:{
     <p class="dim">Verified on Windows 10 x86 and Windows 11 64-bit.</p>
     <h3>What it does</h3>
     <ul>
-      <li>Opens .pcb files, or .ddb design libraries (lists every board inside)</li>
+      <li>Opens .pcb files, .ddb design libraries (lists every board inside), and KiCad .kicad_pcb</li>
       <li>Click a trace or pad to light the whole net and name the exact pins (U100-4 …)</li>
       <li>Shows component designators, values and pad numbers; copper pours hide with one key</li>
       <li><b>Two-point continuity</b>: click two spots and get a straight yes/no
@@ -1140,7 +1161,7 @@ en:{
       <li><b>Recent files</b>: the home page lists what you opened last; one click reopens it</li>
     </ul>
     <h3>Version</h3>
-    <p>v1.13　·　supports x86 and 64-bit Windows　·　portable single file</p>
+    <p>v1.14　·　supports x86 and 64-bit Windows　·　portable single file</p>
     <div class="sig">© Lanlan Eternal　·　永远的兰兰</div>`
 }
 };
@@ -1207,7 +1228,8 @@ function refreshFileLine(){
   if(!B) return;
   const n=B.tracks.length+B.pads.length+B.vias.length+B.fills.length;
   document.getElementById("fname").textContent =
-    T("fnameLine", lastName, B.fromDdb, n, B.polys.length);
+    T("fnameLine", lastName, B.fromDdb, n, B.polys.length) +
+    (B.fmt==="kicad" ? T("fmtKicad") : "");
   document.getElementById("stStats").textContent = T("stats", {
     t:B.tracks.length, p:B.pads.length, v:B.vias.length,
     f:B.fills.length, po:B.polys.length, n:B.nets.length,
@@ -1288,6 +1310,8 @@ const LAYER_NAMES = {
   75:"ConnectLayer", 76:"BackGroundLayer", 77:"DRCErrorLayer", 78:"HighlightLayer"
 };
 function stdLayerName(n){
+  /* KiCad 板上直接用它的层名（F.Cu / Edge.Cuts 比"层 56"好认得多） */
+  try{ if(B && B.layerNames && B.layerNames[n]) return B.layerNames[n]; }catch(_){}
   if(LAYER_NAMES[n]) return LAYER_NAMES[n];
   if(n>=2 && n<=31) return "MidLayer"+(n-1);
   if(n>=39 && n<=54) return "InternalPlane"+(n-38);
@@ -2127,6 +2151,443 @@ function finish(b){
   b.compInfo.forEach(c=>{ if(c.des) b.desCount++; if(c.com) b.valCount++; });
 }
 
+/* ==================== KiCad 板文件（.kicad_pcb） ====================
+   KiCad 6 以后板子存成纯文本 S 表达式，和 Protel 的二进制记录是两套东西。
+   这里把它读成同一套中间模型（tracks / pads / vias / polys / texts），
+   后面的渲染、查线、量距、清单、板框统计一行都不用改。
+
+   三个必须处理的差异：
+     · 单位  KiCad 存毫米，本程序内部一律用 mil（1 mil = 0.0254 mm）
+     · 坐标  KiCad 的 Y 轴朝下，本程序朝上 → Y 取反，角度跟着取反
+     · 网络  KiCad 6~9 存网络号 (net 12 "GND")，KiCad 10 直接存名字 (net "GND")
+             两种都认：带号用号，只有名字就按名字发号
+*/
+const KICAD_MM = 39.37007874015748;        /* 1 mm = 39.37 mil */
+
+/* KiCad 层名 → 本程序沿用的 Protel 层号。显示时仍用 KiCad 原名（更好认）。 */
+const KICAD_LAYERS = {
+  "F.Cu":1, "B.Cu":32, "F.SilkS":33, "B.SilkS":34,
+  "F.Paste":35, "B.Paste":36, "F.Mask":37, "B.Mask":38,
+  "Edge.Cuts":56, "Margin":57, "F.CrtYd":58, "B.CrtYd":59,
+  "F.Fab":60, "B.Fab":61, "Cmts.User":62, "Dwgs.User":63,
+  "Eco1.User":64, "Eco2.User":65
+};
+
+/* ---- 极简 S 表达式解析：只做分词 + 嵌套，不做语义 ----
+   一块板动辄上兆，逐字符走一遍比反复正则快，也不会因为某个括号里
+   换行、缩进不一样就失配。 */
+function sxParse(txt){
+  const n=txt.length, root=[], stack=[root];
+  let i=0;
+  while(i<n){
+    const c=txt.charCodeAt(i);
+    if(c===40){                        /* ( */
+      const a=[]; stack[stack.length-1].push(a); stack.push(a); i++;
+    }else if(c===41){                  /* ) */
+      if(stack.length>1) stack.pop();
+      i++;
+    }else if(c===34){                  /* "字符串" */
+      let j=i+1, buf="";
+      while(j<n){
+        const d=txt.charCodeAt(j);
+        if(d===92){                    /* 反斜杠转义 */
+          const e=txt.charCodeAt(j+1);
+          buf += (e===110)?"\n":(e===116)?"\t":txt[j+1];
+          j+=2; continue;
+        }
+        if(d===34) break;
+        buf += txt[j]; j++;
+      }
+      stack[stack.length-1].push(buf);
+      i=j+1;
+    }else if(c<=32){ i++; }
+    else{
+      let j=i;
+      while(j<n){
+        const d=txt.charCodeAt(j);
+        if(d<=32||d===40||d===41||d===34) break;
+        j++;
+      }
+      stack[stack.length-1].push(txt.slice(i,j));
+      i=j;
+    }
+  }
+  return root.length ? root[0] : null;
+}
+
+function sxKids(node,key){
+  const out=[];
+  if(!node) return out;
+  for(let i=1;i<node.length;i++){
+    const x=node[i];
+    if(Array.isArray(x) && x[0]===key) out.push(x);
+  }
+  return out;
+}
+function sxKid(node,key){ return sxKids(node,key)[0]||null; }
+function sxN(v,def){ const x=+v; return isFinite(x)?x:def; }
+
+/* 三点定圆的圆心、半径、起止角（全部已经在本程序的坐标系里算） */
+function arcCenter(A,B,C){
+  if(!A||!C) return null;
+  const ax=A[0], ay=A[1], cx=C[0], cy=C[1];
+  const bx=B?B[0]:NaN, by=B?B[1]:NaN;
+  if(!isFinite(bx)||!isFinite(by)){
+    /* 没有中间点：按半圆处理（KiCad 8 之前偶尔这样写） */
+    return null;
+  }
+  const d=2*(ax*(by-cy)+bx*(cy-ay)+cx*(ay-by));
+  if(Math.abs(d)<1e-6) return null;
+  const a2=ax*ax+ay*ay, b2=bx*bx+by*by, c2=cx*cx+cy*cy;
+  const ux=(a2*(by-cy)+b2*(cy-ay)+c2*(ay-by))/d;
+  const uy=(a2*(cx-bx)+b2*(ax-cx)+c2*(bx-ax))/d;
+  const r=Math.hypot(ax-ux, ay-uy);
+  if(!(r>0) || r>1e6) return null;
+  const norm=v=>{ v%=360; return v<0?v+360:v; };
+  let a1=norm(Math.atan2(ay-uy, ax-ux)*180/Math.PI);
+  let e1=norm(Math.atan2(cy-uy, cx-ux)*180/Math.PI);
+  const am=norm(Math.atan2(by-uy, bx-ux)*180/Math.PI);
+  /* arcSegs 只会从 a1 逆时针扫到 a2；中间点不在这一段上就换一头 */
+  if(norm(am-a1) > norm(e1-a1)){ const t=a1; a1=e1; e1=t; }
+  return {x:ux, y:uy, r:r, a1:a1, a2:e1};
+}
+
+function parseKicad(txt){
+  if(txt.length > 80e6) throw new Error(T("errKicadBig"));
+  const root=sxParse(txt);
+  if(!root || root[0]!=="kicad_pcb") throw new Error(T("errNotKicad"));
+
+  const b={
+    layers:{}, copper:[], nets:[], tracks:[], pads:[], vias:[], arcs:[],
+    fills:[], texts:[], comps:[], polys:[], sections:[], warn:[],
+    fmt:"kicad", fromDdb:false, boardCount:1, layerNames:{}
+  };
+  const toTop=(x,y)=>[x*KICAD_MM, -y*KICAD_MM];
+
+  const layerId=nm=>{
+    if(nm===undefined||nm===null) return 0;
+    nm=String(nm);
+    if(KICAD_LAYERS[nm]){
+      const id=KICAD_LAYERS[nm];
+      b.layerNames[id]=nm;
+      return id;
+    }
+    const m=/^In(\d+)\.Cu$/.exec(nm);
+    if(m){
+      const k=+m[1];
+      if(k>=1&&k<=30){ const id=1+k; b.layerNames[id]=nm; return id; }
+    }
+    return 0;
+  };
+  const layerOf=node=>{ const l=sxKid(node,"layer"); return l?layerId(l[1]):0; };
+  const strokeW=node=>{
+    const w=sxKid(node,"width");                 /* KiCad 5 及更早写在图元上 */
+    if(w) return sxN(w[1],0);
+    const st=sxKid(node,"stroke");               /* KiCad 6 起挪进 stroke 里 */
+    if(st){ const w2=sxKid(st,"width"); if(w2) return sxN(w2[1],0); }
+    return 0;
+  };
+
+  /* 网络：既认号也认名字 */
+  const netIds=new Map();
+  const netNum=v=>{
+    if(v===undefined||v===null) return 0;
+    const s=String(v);
+    if(/^-?\d+$/.test(s)){ const k=+s; return k>0?k:0; }
+    let id=netIds.get(s);
+    if(!id){ id=b.nets.length+1; netIds.set(s,id); b.nets[id-1]=s; }
+    return id;
+  };
+  const netOf=node=>{ const x=sxKid(node,"net"); return x?netNum(x[1]):0; };
+
+  let polySeq=0;
+  const addTrack=(x1,y1,x2,y2,w,layer,net,comp)=>{
+    if(!(layer>0)) return;
+    if(!isFinite(x1)||!isFinite(y1)||!isFinite(x2)||!isFinite(y2)) return;
+    b.tracks.push({kind:"track",layer:layer,net:net||0,
+                   comp:(comp===undefined?-1:comp),
+                   x1:x1,y1:y1,x2:x2,y2:y2,w:w>0?w:0.15*KICAD_MM});
+  };
+  const addPoly=(pts,layer,net)=>{
+    if(!(layer>0) || !pts || pts.length<3) return;
+    b.polys.push({kind:"polygon",layer:layer,net:net||0,pid:++polySeq,
+                  pts:pts,closed:true});
+  };
+  const addArc=(node,layer,net,comp,to)=>{
+    if(!(layer>0)) return;
+    const s=sxKid(node,"start"), m=sxKid(node,"mid"), e=sxKid(node,"end");
+    if(!s||!e) return;
+    const w=(strokeW(node)||0)*KICAD_MM;
+    const A=to(sxN(s[1],0),sxN(s[2],0));
+    const B=m?to(sxN(m[1],0),sxN(m[2],0)):null;
+    const C=to(sxN(e[1],0),sxN(e[2],0));
+    const c=arcCenter(A,B,C);
+    if(!c){ addTrack(A[0],A[1],C[0],C[1],w,layer,net,comp); return; }
+    b.arcs.push({kind:"arc",x:c.x,y:c.y,radius:c.r,a1:c.a1,a2:c.a2,
+                 w:w||0.15*KICAD_MM,layer:layer,net:net||0,
+                 comp:(comp===undefined?-1:comp)});
+  };
+
+  /* 图形（板框 / 丝印）：板框走 Edge.Cuts，被本程序当成层 56，
+     左侧「板子」的外形尺寸就是拿它量的。 */
+  const graph=(node,comp,to)=>{
+    const k=node[0], lay=layerOf(node), w=(strokeW(node)||0)*KICAD_MM;
+    const P=q=>to(sxN(q[1],0), sxN(q[2],0));
+    if(k==="gr_line"||k==="fp_line"){
+      const s=sxKid(node,"start"), e=sxKid(node,"end");
+      if(!s||!e) return;
+      const A=P(s), C=P(e);
+      addTrack(A[0],A[1],C[0],C[1],w,lay,0,comp);
+    }else if(k==="gr_rect"||k==="fp_rect"){
+      const s=sxKid(node,"start"), e=sxKid(node,"end");
+      if(!s||!e) return;
+      const A=P(s), C=P(e);
+      const q=[[A[0],A[1]],[C[0],A[1]],[C[0],C[1]],[A[0],C[1]]];
+      for(let i=0;i<4;i++){
+        const p1=q[i], p2=q[(i+1)%4];
+        addTrack(p1[0],p1[1],p2[0],p2[1],w,lay,0,comp);
+      }
+    }else if(k==="gr_circle"||k==="fp_circle"){
+      const c=sxKid(node,"center"), e=sxKid(node,"end");
+      if(!c||!e) return;
+      const C=P(c), E=P(e);
+      const r=Math.hypot(E[0]-C[0], E[1]-C[1]);
+      if(!(r>0)) return;
+      const fill=sxKid(node,"fill");
+      if(fill && String(fill[1])==="yes"){
+        const arr=[];
+        for(let i=0;i<24;i++){
+          const t=i*Math.PI/12;
+          arr.push([C[0]+r*Math.cos(t), C[1]+r*Math.sin(t)]);
+        }
+        addPoly(arr,lay,0);
+      }else{
+        b.arcs.push({kind:"arc",x:C[0],y:C[1],radius:r,a1:0,a2:360,
+                     w:w||0.15*KICAD_MM,layer:lay,net:0,
+                     comp:(comp===undefined?-1:comp)});
+      }
+    }else if(k==="gr_arc"||k==="fp_arc"){
+      addArc(node,lay,0,comp,to);
+    }else if(k==="gr_poly"||k==="fp_poly"){
+      const pts=sxKid(node,"pts");
+      if(!pts) return;
+      const arr=[];
+      for(const q of pts) if(Array.isArray(q)&&q[0]==="xy") arr.push(P(q));
+      addPoly(arr,lay,0);
+    }else if(k==="gr_text"){
+      const at=sxKid(node,"at");
+      if(!at) return;
+      const p=P(at);
+      const eff=sxKid(node,"effects");
+      const fnt=eff?sxKid(eff,"font"):null;
+      const sz=fnt?sxKid(fnt,"size"):null;
+      const h=sz?sxN(sz[1],1):1;
+      const s=String(node[1]||"");
+      if(!s) return;
+      b.texts.push({kind:"text",layer:lay,comp:-1,x:p[0],y:p[1],
+                    h:h*KICAD_MM,rot:0,text:s,isDes:false,isCom:false});
+    }
+  };
+
+  /* ---- 焊盘 ---- */
+  const addPad=(node,comp,fx,fy,frot,fpl)=>{
+    const at=sxKid(node,"at")||["at","0","0"];
+    const px=sxN(at[1],0), py=sxN(at[2],0), prot=sxN(at[3],0);
+    const rad=frot*Math.PI/180;
+    const kx=fx + px*Math.cos(rad) - py*Math.sin(rad);
+    const ky=fy + px*Math.sin(rad) + py*Math.cos(rad);
+    const X=kx*KICAD_MM, Y=-ky*KICAD_MM;
+
+    const sz=sxKid(node,"size")||[];
+    let w=sxN(sz[1],0), h=sxN(sz[2],w);
+    if(!(w>0)) return;
+    if(!(h>0)) h=w;
+
+    const type=String(node[2]||"");
+    const shape=String(node[3]||"");
+    const sh=(shape==="circle"||shape==="oval")?1:2;   /* 1 圆/椭圆  2 方 */
+
+    const ls=sxKid(node,"layers");
+    let allCu=false, lay=0;
+    if(ls){
+      for(let i=1;i<ls.length;i++){
+        if(String(ls[i]).indexOf("*.Cu")>=0){ allCu=true; break; }
+      }
+      if(!allCu && ls.length>1) lay=layerId(ls[1]);
+    }
+    if(type.indexOf("thru_hole")>=0 || allCu) lay=74;   /* 多层的通孔焊盘 */
+    if(!lay) lay=fpl||1;
+
+    let hole=0;
+    const dr=sxKid(node,"drill");
+    if(dr){
+      for(let i=1;i<dr.length;i++){
+        const v=+dr[i];
+        if(isFinite(v)&&v>0){ hole=v*KICAD_MM; break; }
+      }
+    }
+
+    b.pads.push({
+      kind:"pad", layer:lay, net:netOf(node), comp:comp,
+      x:X, y:Y, xs:w*KICAD_MM, ys:h*KICAD_MM,
+      xm:w*KICAD_MM, ym:h*KICAD_MM, xb:w*KICAD_MM, yb:h*KICAD_MM, stack:false,
+      hole:hole, shape:sh, name:String(node[1]||""),
+      rot:-(prot+frot), plated:type!=="np_thru_hole"
+    });
+  };
+
+  /* ---- 封装（元件）：位号 / 型号 / 焊盘 / 丝印 ---- */
+  let compSeq=0;
+  const addFootprint=node=>{
+    const at=sxKid(node,"at")||["at","0","0"];
+    const fx=sxN(at[1],0), fy=sxN(at[2],0), frot=sxN(at[3],0);
+    const lyr=sxKid(node,"layer");
+    const back=!!(lyr && String(lyr[1])==="B.Cu");
+    const fpl=back?32:1;
+    const rad=frot*Math.PI/180;
+    const to=(x,y)=>{
+      const kx=fx + x*Math.cos(rad) - y*Math.sin(rad);
+      const ky=fy + x*Math.sin(rad) + y*Math.cos(rad);
+      return [kx*KICAD_MM, -ky*KICAD_MM];
+    };
+
+    const id=++compSeq;
+    b.comps.push({id:id, layer:fpl, x:fx*KICAD_MM, y:-fy*KICAD_MM,
+                  rot:-frot, lib:String(node[1]||"")});
+    let ref="", val="";
+    for(const p of sxKids(node,"property")){       /* KiCad 6+ */
+      const nm=String(p[1]||"");
+      if(nm==="Reference" && !ref) ref=String(p[2]||"");
+      else if(nm==="Value" && !val) val=String(p[2]||"");
+    }
+    for(const ft of sxKids(node,"fp_text")){       /* KiCad 5 及更早 */
+      const nm=String(ft[1]||"");
+      if(nm==="reference" && !ref) ref=String(ft[2]||"");
+      else if(nm==="value" && !val) val=String(ft[2]||"");
+    }
+    if(ref.indexOf("**")>=0) ref="";               /* REF** = 还没编号 */
+
+    for(const g of node){
+      if(!Array.isArray(g)) continue;
+      const gk=g[0];
+      if(gk==="fp_line"||gk==="fp_rect"||gk==="fp_circle"||gk==="fp_arc"||gk==="fp_poly")
+        graph(g,id,to);
+    }
+    for(const p of sxKids(node,"pad")) addPad(p,id,fx,fy,frot,fpl);
+    for(const f of sxKids(node,"footprint")) addFootprint(f);  /* 嵌套封装，罕见 */
+
+    const P0=to(0,0);
+    if(ref)
+      b.texts.push({kind:"text",layer:back?34:33,comp:id,x:P0[0],y:P0[1],
+                    h:1.0*KICAD_MM,rot:0,text:ref,isDes:true,isCom:false});
+    if(val)
+      b.texts.push({kind:"text",layer:back?61:60,comp:id,x:P0[0],
+                    y:P0[1]-1.6*KICAD_MM,h:0.9*KICAD_MM,rot:0,
+                    text:val,isDes:false,isCom:true});
+  };
+
+  /* ---- 顶层遍历 ---- */
+  for(const node of root){
+    if(!Array.isArray(node)) continue;
+    const k=node[0];
+    if(k==="net"){                                  /* (net 3 "GND") / (net "GND") */
+      const v=node[1];
+      if(v!==undefined){
+        const id=netNum(v);
+        if(id && node[2]!==undefined && !b.nets[id-1]) b.nets[id-1]=String(node[2]);
+      }
+      continue;
+    }
+    if(k==="segment"){
+      const s=sxKid(node,"start"), e=sxKid(node,"end");
+      if(!s||!e) continue;
+      const w=(sxN((sxKid(node,"width")||[])[1],0) || strokeW(node))*KICAD_MM;
+      const A=toTop(sxN(s[1],0),sxN(s[2],0));
+      const C=toTop(sxN(e[1],0),sxN(e[2],0));
+      addTrack(A[0],A[1],C[0],C[1],w,layerOf(node),netOf(node),-1);
+      continue;
+    }
+    if(k==="via"){
+      const at=sxKid(node,"at"), sz=sxKid(node,"size"), dr=sxKid(node,"drill");
+      if(!at) continue;
+      const ls=sxKid(node,"layers");
+      let l1=1, l2=32;
+      if(ls && ls.length>2){
+        l1=layerId(ls[1])||1;
+        l2=layerId(ls[2])||32;
+      }
+      b.vias.push({kind:"via",layer:74,net:netOf(node),
+                   x:sxN(at[1],0)*KICAD_MM, y:-sxN(at[2],0)*KICAD_MM,
+                   dia:(sz?sxN(sz[1],0):0)*KICAD_MM,
+                   hole:(dr?sxN(dr[1],0):0)*KICAD_MM,
+                   start:l1, end:l2});
+      continue;
+    }
+    if(k==="arc"){
+      addArc(node,layerOf(node),netOf(node),-1,toTop);
+      continue;
+    }
+    if(k==="zone"){
+      let net=netOf(node);
+      if(!net){
+        const nn=sxKid(node,"net_name");
+        if(nn) net=netNum(nn[1]);
+      }
+      const zl=layerOf(node);
+      const fills_=sxKids(node,"filled_polygon");
+      const src=fills_.length?fills_:[node];
+      for(const f of src){
+        const fl=layerId((sxKid(f,"layer")||[])[1]) || zl;
+        let pts=sxKid(f,"pts");
+        if(!pts){
+          const pg=sxKid(f,"polygon");
+          if(pg) pts=sxKid(pg,"pts");
+        }
+        if(!pts) continue;
+        const arr=[];
+        for(const q of pts) if(Array.isArray(q)&&q[0]==="xy") arr.push(toTop(sxN(q[1],0),sxN(q[2],0)));
+        addPoly(arr,fl,net);
+      }
+      continue;
+    }
+    if(k==="footprint"||k==="module"){ addFootprint(node); continue; }
+    if(k==="gr_line"||k==="gr_rect"||k==="gr_circle"||k==="gr_arc"||
+       k==="gr_poly"||k==="gr_text"){
+      graph(node,-1,toTop);
+      continue;
+    }
+    if(k==="dimension"){
+      /* 标注只是给人看的，不当铜皮，也不当板框 */
+      continue;
+    }
+  }
+
+  if(!b.tracks.length && !b.pads.length && !b.polys.length)
+    throw new Error(T("errKicadEmpty"));
+
+  finish(b);
+  return b;
+}
+
+/* 文本嗅探：不以 "(" 开头的一律当 Protel 二进制，省得白解码几兆 */
+function looksKicad(buf){
+  const u8=new Uint8Array(buf);
+  const n=Math.min(u8.length, 2048);
+  let s="";
+  for(let i=0;i<n;i++) s+=String.fromCharCode(u8[i]);
+  s=s.replace(/^\uFEFF/,"");
+  const t=s.replace(/^\s+/,"");
+  return t.charCodeAt(0)===40 && s.indexOf("kicad_pcb")>=0;
+}
+
+function parseAny(buf,name){
+  if(looksKicad(buf)){
+    const txt=new TextDecoder("utf-8").decode(new Uint8Array(buf));
+    return parseKicad(txt);
+  }
+  return parseBoard(buf);
+}
+
 function buildIndex(all){
   const G=50, map=new Map();
   let skipped=0;
@@ -2269,8 +2730,12 @@ function visible(n){
 
 function draw(){
   const r=stage.getBoundingClientRect();
+  /* 按画布真实缓冲清屏（不是容器尺寸）：两者偶尔会差几像素
+     （打开板子后状态栏出现、抽屉开合都会让容器变矮），
+     只清容器那部分的话，多出来的那条会留着上一帧的旧画面。 */
+  const cw=cv.width/(window.devicePixelRatio||1), ch=cv.height/(window.devicePixelRatio||1);
   ctx.fillStyle=invert?"#f0eee8":"#0d0f12";
-  ctx.fillRect(0,0,r.width,r.height);
+  ctx.fillRect(0,0,Math.max(r.width,cw),Math.max(r.height,ch));
   if(!B) return;
 
   const layers=[...B.bucket.keys()];
@@ -3823,7 +4288,7 @@ function loadBuffer(buf,name){
   toast("");
   try{
     const t0=performance.now();
-    B=parseBoard(buf);
+    B=parseAny(buf);
     const dt=Math.round(performance.now()-t0);
     lastName=name; lastMs=dt;
     show={}; solo=null; hi=null; LIT=null; pickMode="";
@@ -3955,7 +4420,7 @@ async function openViaServer(){
 }
 async function uploadToServer(f){
   const nm=f.name||"board.pcb";
-  if(!/\.(pcb|ddb)$/i.test(nm)){ toast(T("noPcb")); return; }
+  if(!/\.(pcb|ddb|kicad_pcb)$/i.test(nm)){ toast(T("noPcb")); return; }
   toast(T("reading"));
   try{
     const buf=await f.arrayBuffer();
@@ -4035,7 +4500,7 @@ const hint=document.getElementById("hint");
 /* 一次拖进来好几个文件就依次各开一个页签（.ddb 那种一次出多块板的仍算一个页签）。
    顺次等待，是为了让"新文档"的创建不打架 —— 同一个时刻只能有一份在解析。 */
 function openFiles(list){
-  const arr=[...list].filter(f=>/\.(pcb|ddb)$/i.test(f.name||""));
+  const arr=[...list].filter(f=>/\.(pcb|ddb|kicad_pcb)$/i.test(f.name||""));
   if(!arr.length){ toast(T("noPcb")); return Promise.resolve(); }
   return arr.reduce(
     (p,f)=>p.then(()=>openLocalFile(f)).then(()=>new Promise(r=>setTimeout(r,300))),
@@ -4070,6 +4535,18 @@ document.getElementById("optPen").classList.add("on");
 document.getElementById("optVal").classList.add("on");
 
 window.addEventListener("resize",resize);
+/* window 的 resize 只在窗口尺寸变化时来。打开板子后状态栏多一行、抽屉开合，
+   容器会变矮，但 window 不认为"尺寸变了" —— 画布就比容器高出几十像素，
+   多出来的那条一直画在容器外面。这里直接盯住 stage 自己的尺寸。 */
+if(window.ResizeObserver){
+  let lw=0, lh=0;
+  new ResizeObserver(()=>{
+    const r=stage.getBoundingClientRect();
+    if(Math.abs(r.width-lw)<0.5 && Math.abs(r.height-lh)<0.5) return;
+    lw=r.width; lh=r.height;
+    resize();
+  }).observe(stage);
+}
 resize();
 
 /* 语言：优先用上次选过的；没选过就跟系统语言走（非中文系统默认英文）。
