@@ -38,7 +38,7 @@ from ctypes import wintypes
 from pathlib import Path
 
 APP_TITLE = "PCB 看板 CopperLens"
-VERSION = "1.20"
+VERSION = "1.21"
 
 _APPDIR = "CopperLens"
 _LOG = Path(tempfile.gettempdir()) / _APPDIR / "last-run.log"
@@ -366,11 +366,11 @@ def ask_file():
     """原生"打开文件"对话框。返回路径或 None。"""
     if _comdlg32 is None:
         msgbox(L("系统缺少文件对话框组件（comdlg32.dll）。\n"
-                 "可以改成把 .pcb / .ddb / .kicad_pcb / 立创 .json · .epro2 "
+                 "可以改成把 .pcb / .ddb / .kicad_pcb / 立创 .json · .epro2 / PADS .asc "
                  "文件直接拖到本程序的图标上。",
                  "The file dialog component (comdlg32.dll) is missing.\n"
                  "Workaround: drag a .pcb / .ddb / .kicad_pcb / EasyEDA "
-                 ".json or .epro2 file onto this program's icon."))
+                 ".json, .epro2 or PADS .asc file onto this program's icon."))
         return None
     # 对话框是走 shell 的，从工作线程弹之前先把 COM 起起来（已起过会返回 S_FALSE，无害）
     try:
@@ -378,12 +378,13 @@ def ask_file():
     except Exception:
         pass
     buf = ctypes.create_unicode_buffer(32768)
-    filt = L("所有板文件 (*.pcb;*.ddb;*.kicad_pcb;*.brd;*.bvr;*.bv;*.bdv;*.cad;*.json;*.gbr;*.zip)"
+    filt = L("所有板文件 (*.pcb;*.ddb;*.kicad_pcb;*.brd;*.bvr;*.bv;*.bdv;*.cad;*.json;*.gbr;*.asc;*.zip)"
              "\0*.pcb;*.ddb;*.kicad_pcb;*.brd;*.bvr;*.bv;*.bdv;*.cad;*.json;*.epro;*.epro2;"
-             "*.gbr;*.gtl;*.gbl;*.gko;*.drl;*.zip\0"
+             "*.gbr;*.gtl;*.gbl;*.gko;*.drl;*.asc;*.zip\0"
              "设计库 (*.ddb)\0*.ddb\0"
              "板文件 (*.pcb)\0*.pcb\0"
              "KiCad 板文件 (*.kicad_pcb)\0*.kicad_pcb\0"
+             "PADS 板文件 (*.asc)\0*.asc\0"
              "Eagle / 点位图 (*.brd)\0*.brd\0"
              "维修点位图 (*.bvr;*.bv;*.bdv;*.cad)\0*.bvr;*.bv;*.bdv;*.cad\0"
              "立创EDA 标准版 (*.json)\0*.json\0"
@@ -392,12 +393,13 @@ def ask_file():
              "\0*.gbr;*.gtl;*.gbl;*.gts;*.gbs;*.gto;*.gbo;*.gko;*.drl;*.xln;*.zip\0"
              "ODB++ 制造数据 (*.zip;*.tgz;*.tar)\0*.zip;*.tgz;*.tar\0"
              "所有文件 (*.*)\0*.*\0\0",
-             "All board files (*.pcb;*.ddb;*.kicad_pcb;*.brd;*.bvr;*.bv;*.bdv;*.cad;*.json;*.gbr;*.zip)"
+             "All board files (*.pcb;*.ddb;*.kicad_pcb;*.brd;*.bvr;*.bv;*.bdv;*.cad;*.json;*.gbr;*.asc;*.zip)"
              "\0*.pcb;*.ddb;*.kicad_pcb;*.brd;*.bvr;*.bv;*.bdv;*.cad;*.json;*.epro;*.epro2;"
-             "*.gbr;*.gtl;*.gbl;*.gko;*.drl;*.zip\0"
+             "*.gbr;*.gtl;*.gbl;*.gko;*.drl;*.asc;*.zip\0"
              "Design library (*.ddb)\0*.ddb\0"
              "Board file (*.pcb)\0*.pcb\0"
              "KiCad board (*.kicad_pcb)\0*.kicad_pcb\0"
+             "PADS board (*.asc)\0*.asc\0"
              "EAGLE / boardview (*.brd)\0*.brd\0"
              "Repair boardview (*.bvr;*.bv;*.bdv;*.cad)\0*.bvr;*.bv;*.bdv;*.cad\0"
              "EasyEDA standard (*.json)\0*.json\0"
@@ -1084,6 +1086,46 @@ def _looks_bv(raw):
     return any(m in head for m in BV_MARKS)
 
 
+# ---------------------------------------------------------------------------
+# PADS ASCII
+# ---------------------------------------------------------------------------
+# .asc 也是个三家抢的扩展名：PADS（Layout / PowerPCB）的 ASCII 板文件、
+# PADS 自己的网络表与原理图，还有别的 EDA 的 ASCII 导出。区分全靠第一行：
+#
+#     !PADS-<产品>-V<版本>-<单位>!      板文件（也可能带 -<模式>）
+#     *PADS-PCB*                        网络表（只有连接关系，没有图形）
+#     *PADS-LOGIC* / *PADS-POWERLOGIC*  原理图
+#
+# 单位有 MILS / INCH / MM / BASIC 四种，BASIC 是 1/38100 英寸 —— 这些交给
+# 页面那侧去算，这里只负责回答"是不是 PADS、是哪种 PADS"。
+PADS_HEAD = re.compile(rb"(\xef\xbb\xbf)?\s*(!:?PADS-|[*]PADS-(?:PCB|POWERPCB|LOGIC|POWERLOGIC|LAYOUT))",
+                       re.IGNORECASE)
+
+
+def _pads_kind(raw):
+    """"pcb" / "net" / "sch" / ""（不是 PADS）。"""
+    head = raw[:512]
+    if not PADS_HEAD.match(head):
+        return ""
+    # 只解第一行就够，后面的中文注释可能是 GBK，解坏了也不影响判断
+    line = head.decode("latin-1", "replace").lstrip("\xef\xbb\xbf \t\r\n")
+    line = line.split("\n")[0].strip()
+    if re.match(r"^\*PADS-(PCB|POWERPCB)\b", line, re.I):
+        return "net"
+    if re.match(r"^\*PADS-(POWER)?LOGIC\b", line, re.I):
+        return "sch"
+    if re.match(r"^!PADS-", line, re.I):
+        if re.search(r"-(POWER)?LOGIC-", line, re.I):
+            return "sch"
+        # 板文件的导出一定带几何段；只有 *PART* + *CONNECTION* + *SIGNAL* 的，
+        # 是"导出时只勾了网络表"，跟纯网络表一样画不出板子。这条判定要和
+        # index.html 里的 padsKind 保持一致，否则两边给出的话对不上。
+        if re.search(rb"\*(ROUTE|LINES|POUR|BOARD|PARTDECAL|VIA|TEXT)\*", raw, re.I):
+            return "pcb"
+        return "net"
+    return ""
+
+
 def _payload_for_path(p):
     """把选中的文件读成前端要的结构：{boards:[{n,d}], ddb:bool}"""
     ext = p.suffix.lower()
@@ -1193,7 +1235,77 @@ def _payload_for_path(p):
                            "This archive holds neither ODB++ nor Gerber.\n"
                            "An ODB++ package has matrix/matrix and steps/<board>/layers/.")}
 
+    if ext in (".asc", ".txt"):
+        # PADS 的 ASCII 导出。.txt 是有人手工改过后缀，认得出就收。
+        # 网络表和原理图也用 .asc 的皮，但不能当板子画 —— 那样出来的图是空的，
+        # 用户只会以为程序坏了。
+        raw = p.read_bytes()
+        kind = _pads_kind(raw)
+        if kind == "net":
+            return {"error": L("这是 PADS 的网络表（*PADS-PCB*），只有连接关系，没有铜箔和器件。\n\n"
+                               "要画板子，请在 PADS Layout 里 File → Export 导出 ASCII 板文件，"
+                               "文件头会是 !PADS-LAYOUT-V…-MILS! 这种样子。",
+                               "This is a PADS netlist (*PADS-PCB*) — connections only, no copper "
+                               "or parts.\n\nExport the board itself from PADS Layout "
+                               "(File > Export, ASCII), which starts with !PADS-LAYOUT-V...-MILS!.")}
+        if kind == "sch":
+            return {"error": L("这是 PADS 的原理图（*PADS-LOGIC* / *PADS-POWERLOGIC*），不是板文件。\n\n"
+                               "原理图里没有焊盘、走线和层，画不出板子。请导出 ASCII 板文件。",
+                               "This is a PADS schematic (*PADS-LOGIC* / *PADS-POWERLOGIC*), "
+                               "not a board.\n\nA schematic has no pads, traces or layers, so "
+                               "there is nothing to draw. Export the ASCII board instead.")}
+        if kind == "pcb":
+            log("PADS：%s，%d 字节" % (p.name, len(raw)))
+            return {"boards": [{"n": p.name,
+                                "d": base64.b64encode(raw).decode("ascii")}],
+                    "ddb": False, "file": p.name, "pads": True}
+        if ext == ".asc":
+            return {"error": L("这个 .asc 不是 PADS 的板文件。\n\n"
+                               "PADS 导出的 ASCII 板文件第一行是 !PADS-<产品>-V<版本>-<单位>!，"
+                               "例如 !PADS-POWERPCB-V9.0-MILS!。\n"
+                               "Allegro、OrCAD、Zuken 等也会导出 .asc，那些格式本程序还读不了。",
+                               "This .asc is not a PADS board.\n\n"
+                               "A PADS ASCII board starts with !PADS-<product>-V<version>-<unit>!, "
+                               "for example !PADS-POWERPCB-V9.0-MILS!.\n"
+                               "Allegro, OrCAD and Zuken also export .asc; those are not supported yet.")}
+        # .txt 又不像 PADS → 落到下面按 Gerber 再试一次
+
     # Gerber / Excellon：一堆文件合成一块板（浏览器那侧按层拼）
+    # PADS ASCII：纯文本、分段式。可能是板文件，也可能是网络表或原理图 ——
+    # 三者同一个后缀，认清楚再决定，别把网络表当板子画出个空的。
+    if ext in (".asc", ".txt"):
+        raw = p.read_bytes()
+        kind = _pads_kind(raw)
+        if kind == "net":
+            msgbox(L("这是 PADS 的网络表，只有连接关系，没有铜箔和器件。\n\n"
+                     "要画板子，请在 PADS Layout 里 File → Export 导出 ASCII 板文件，"
+                     "文件头会是 !PADS-LAYOUT-V…-MILS! 这种样子。",
+                     "This is a PADS netlist — connections only, no copper or parts.\n\n"
+                     "Export the ASCII board from PADS Layout (File > Export); it starts "
+                     "with !PADS-LAYOUT-V...-MILS!."))
+            return False
+        if kind == "sch":
+            msgbox(L("这是 PADS 的原理图（*PADS-LOGIC* / *PADS-POWERLOGIC*），不是板文件。\n\n"
+                     "原理图里没有焊盘、走线和层，画不出板子。请导出 ASCII 板文件。",
+                     "This is a PADS schematic (*PADS-LOGIC* / *PADS-POWERLOGIC*), not a board.\n\n"
+                     "Export the ASCII board instead."))
+            return False
+        if kind == "pcb":
+            log("PADS：%s，%d 字节" % (p.name, len(raw)))
+            html = build_view_html([(p.name, raw)], p.name)
+            _remember(str(p), {"boards": [{"n": p.name}]})
+            return open_viewer(html) is not None
+        if ext == ".asc":
+            msgbox(L("这个 .asc 不是 PADS 的板文件。\n\n"
+                     "PADS 导出的 ASCII 板文件第一行是 !PADS-<产品>-V<版本>-<单位>!，"
+                     "例如 !PADS-POWERPCB-V9.0-MILS!。\n"
+                     "Allegro、OrCAD、Zuken 等也会导出 .asc，那些格式本程序还读不了。",
+                     "This .asc is not a PADS board.\n\n"
+                     "A PADS ASCII board starts with !PADS-<product>-V<version>-<unit>!, "
+                     "for example !PADS-POWERPCB-V9.0-MILS!.\n"
+                     "Allegro, OrCAD and Zuken also export .asc; those are not supported yet."))
+            return False
+
     memb = _gerber_auto(p)
     if memb:
         label = p.stem if ext == ".zip" else p.name
@@ -1203,10 +1315,10 @@ def _payload_for_path(p):
                 "gerber": True, "file": p.name}
 
     return {"error": L("只认 .pcb / .ddb / .kicad_pcb / Eagle .brd / 维修点位图 (.bvr .bv .bdv .cad) / "
-                       "立创 .json / .epro2 / Gerber / ODB++ / .zip。",
+                       "立创 .json / .epro2 / PADS .asc / Gerber / ODB++ / .zip。",
                        "Only .pcb, .ddb, .kicad_pcb, EAGLE .brd, boardview "
-                       "(.bvr .bv .bdv .cad), EasyEDA .json / .epro2, Gerber, ODB++ and "
-                       ".zip are supported.")}
+                       "(.bvr .bv .bdv .cad), EasyEDA .json / .epro2, PADS .asc, Gerber, "
+                       "ODB++ and .zip are supported.")}
 
 
 def _payload_for_bytes(name, data):
@@ -1607,6 +1719,42 @@ def handle(path):
         _remember(str(p), {"boards": [{"n": label}]})
         return open_viewer(html) is not None
 
+    # PADS ASCII：纯文本、分段式。可能是板文件，也可能是网络表或原理图 ——
+    # 三者同一个后缀，认清楚再决定，别把网络表当板子画出个空的。
+    if ext in (".asc", ".txt"):
+        raw = p.read_bytes()
+        kind = _pads_kind(raw)
+        if kind == "net":
+            msgbox(L("这是 PADS 的网络表，只有连接关系，没有铜箔和器件。\n\n"
+                     "要画板子，请在 PADS Layout 里 File → Export 导出 ASCII 板文件，"
+                     "文件头会是 !PADS-LAYOUT-V…-MILS! 这种样子。",
+                     "This is a PADS netlist — connections only, no copper or parts.\n\n"
+                     "Export the ASCII board from PADS Layout (File > Export); it starts "
+                     "with !PADS-LAYOUT-V...-MILS!."))
+            return False
+        if kind == "sch":
+            msgbox(L("这是 PADS 的原理图（*PADS-LOGIC* / *PADS-POWERLOGIC*），不是板文件。\n\n"
+                     "原理图里没有焊盘、走线和层，画不出板子。请导出 ASCII 板文件。",
+                     "This is a PADS schematic (*PADS-LOGIC* / *PADS-POWERLOGIC*), not a board.\n\n"
+                     "Export the ASCII board instead."))
+            return False
+        if kind == "pcb":
+            log("PADS：%s，%d 字节" % (p.name, len(raw)))
+            html = build_view_html([(p.name, raw)], p.name)
+            _remember(str(p), {"boards": [{"n": p.name}]})
+            return open_viewer(html) is not None
+        if ext == ".asc":
+            msgbox(L("这个 .asc 不是 PADS 的板文件。\n\n"
+                     "PADS 导出的 ASCII 板文件第一行是 !PADS-<产品>-V<版本>-<单位>!，"
+                     "例如 !PADS-POWERPCB-V9.0-MILS!。\n"
+                     "Allegro、OrCAD、Zuken 等也会导出 .asc，那些格式本程序还读不了。",
+                     "This .asc is not a PADS board.\n\n"
+                     "A PADS ASCII board starts with !PADS-<product>-V<version>-<unit>!, "
+                     "for example !PADS-POWERPCB-V9.0-MILS!.\n"
+                     "Allegro, OrCAD and Zuken also export .asc; those are not supported yet."))
+            return False
+        # .txt 又不像 PADS → 落到下面按 Gerber 再试一次
+
     memb = _gerber_auto(p)
     if memb:
         label = p.stem if ext == ".zip" else p.name
@@ -1625,9 +1773,9 @@ def handle(path):
         return False
 
     msgbox(L("只认 .ddb / .pcb / .kicad_pcb / Eagle .brd / 维修点位图 (.bvr .bv .bdv .cad) / "
-             "立创 .json · .epro2 / Gerber / ODB++ (.zip .tgz)。\n你选的是：",
+             "立创 .json · .epro2 / PADS .asc / Gerber / ODB++ (.zip .tgz)。\n你选的是：",
              "Only .ddb, .pcb, .kicad_pcb, EAGLE .brd, boardview (.bvr .bv .bdv .cad), "
-             "EasyEDA .json / .epro2, Gerber and ODB++ (.zip .tgz) are supported.\nYou picked: ")
+             "EasyEDA .json / .epro2, PADS .asc, Gerber and ODB++ (.zip .tgz) are supported.\nYou picked: ")
            + p.name)
     return False
 
@@ -1646,7 +1794,7 @@ def _is_board_arg(a):
         return True
     return low.endswith((".ddb", ".pcb", ".kicad_pcb", ".brd", ".json",
                          ".epro", ".epro2", ".zip", ".tgz", ".tar", ".tar.gz",
-                         ".bvr", ".bv", ".bdv", ".cad"))
+                         ".bvr", ".bv", ".bdv", ".cad", ".asc"))
 
 
 def main():
@@ -1665,7 +1813,7 @@ def main():
              if not t.lower().endswith((".ddb", ".pcb", ".kicad_pcb", ".brd",
                                         ".json", ".epro", ".epro2", ".zip",
                                         ".tgz", ".tar", ".tar.gz",
-                                        ".bvr", ".bv", ".bdv", ".cad"))]
+                                        ".bvr", ".bv", ".bdv", ".cad", ".asc"))]
     if len(plain) >= 2:
         memb = []
         for t in plain:
