@@ -404,7 +404,7 @@
     <div class="hrow">
       <button class="btn primary" id="open" data-i18n="btnOpen"
               data-i18n-title="btnOpenTip">打开文件</button>
-      <input type="file" id="file" accept=".pcb,.PCB,.ddb,.DDB,.kicad_pcb,.KICAD_PCB,.brd,.BRD,.gbr,.GBR,.gtl,.gbl,.gts,.gbs,.gto,.gbo,.gko,.drl,.xln,.zip,.ZIP,.json,.JSON,.epro,.EPRO,.epro2,.EPRO2" multiple>
+      <input type="file" id="file" accept=".pcb,.PCB,.ddb,.DDB,.kicad_pcb,.KICAD_PCB,.brd,.BRD,.bvr,.BVR,.bv,.BV,.bdv,.BDV,.cad,.CAD,.gbr,.GBR,.gtl,.gbl,.gts,.gbs,.gto,.gbo,.gko,.drl,.xln,.zip,.ZIP,.json,.JSON,.epro,.EPRO,.epro2,.EPRO2" multiple>
       <select id="boards" style="display:none"></select>
       <div class="sep"></div>
       <button class="btn" id="fit" data-i18n="btnFit" data-i18n-title="btnFitTip">适合窗口</button>
@@ -672,6 +672,12 @@ zh:{
     +"这些元件只画了位置，没有焊盘。",
   eagleEmpty:"这块板里没有走线也没有焊盘 —— 可能只存了板框，或者封装库是外部引用的。",
   fmtEagle:"（Eagle 板文件）",
+  /* 点位图（.bvr / .bv / .bdv / .cad / 维修界的 .brd）*/
+  errBvEmpty:"这个点位图里没有读到焊盘也没有板框。\n"
+    +"可能是版本更新过、字段顺序变了，或者文件本身是加密的。",
+  fmtBv:"（维修点位图）",
+  bvNoShape:"点位图只存位号和网络，不存铜箔图形 —— 所以这块板只画焊盘和板框，"
+    +"没有走线。查线、找脚、量距照样能用。",
   noNet:"(未分配网络)",
   padNo:n=>"焊盘 "+n,
   feetTitle:"这次点亮的全部元件脚",
@@ -735,7 +741,7 @@ zh:{
     +"　解析 "+o.ms+"ms",
   objs:n=>n+" 个对象",
   pourN:n=>"　覆铜 "+n+" 块",
-  noPcb:"认不出这个文件。支持 .pcb / .ddb / .kicad_pcb / Eagle .brd / 立创 .json / .epro2，或 Gerber 一包。",
+  noPcb:"认不出这个文件。支持 .pcb / .ddb / .kicad_pcb / Eagle .brd / 维修点位图 (.bvr .bv .bdv .cad) / 立创 .json / .epro2，或 Gerber 一包。",
   badFile:"这个文件读不出来：",
   multiBoard:"这个文件里有多块板，按修改时间从新到旧排：",
   latest:"★最新",
@@ -744,7 +750,7 @@ zh:{
       <div class="sub">点一下走线，就知道这根线通到哪儿、两头是哪颗元件的哪只脚</div>
       <button class="hbtn" id="hintOpen">打开文件</button>
       <div class="tip2">
-        也可以把 <b>.pcb</b> / <b>.ddb</b> / <b>.kicad_pcb</b> / Eagle <b>.brd</b> / 立创 <b>.json</b> / <b>.epro2</b> 直接拖到这里<br>
+        也可以把 <b>.pcb</b> / <b>.ddb</b> / <b>.kicad_pcb</b> / Eagle <b>.brd</b> / 点位图 <b>.bvr</b> / 立创 <b>.json</b> / <b>.epro2</b> 直接拖到这里<br>
         只读，不会修改你的任何文件　·　不联网
       </div>
       <div class="feats">
@@ -759,6 +765,7 @@ zh:{
         Protel 99SE：单板 <b>.pcb</b> 或设计库 <b>.ddb</b>　·　KiCad：<b>.kicad_pcb</b><br>
         Eagle：<b>.brd</b>（Autodesk EAGLE / Fusion 360 的 XML）<br>
         立创EDA：标准版 <b>.json</b>　·　专业版 <b>.epro2</b> / <b>.epro</b>（整个工程包直接拖）<br>
+        维修点位图：<b>.bvr</b> / <b>.bv</b> / <b>.bdv</b> / <b>.cad</b>（手机、笔记本维修用的就是这一族）<br>
         Gerber：一堆 <b>.gbr / .gtl / .gbl / .gko</b> 连钻孔 <b>.drl</b> 一起拖进来（或直接给 <b>.zip</b>）
       </div>
     </div>
@@ -804,6 +811,10 @@ zh:{
         4、5 版的老格式也认<br>
       · <b>.brd</b> —— Eagle（Autodesk EAGLE / Fusion 360）的板文件，纯文本 XML；
         内层、覆铜、底面镜像元件都按原样解析<br>
+      · <b>.bvr / .bv / .bdv / .cad</b> —— <b>维修点位图</b>（手机、笔记本主板维修用的那种）；
+        只有位号、焊盘和网络，没有铜箔图形，所以只画焊盘和板框<br>
+      · 维修界的 <b>.brd</b> —— 和 Eagle 同名不同物（Landrex / TestLink 的点位图），
+        按内容自动分开，不用你操心
       · <b>.json</b> —— 立创EDA <b>标准版</b>的板文件（纯文本 JSON，导出的就是它）<br>
       · <b>.epro2 / .epro</b> —— 立创EDA <b>专业版</b>的工程包，整个文件直接拖进来，
         里面的 .epru 设计日志会自己解开</p>
@@ -984,7 +995,7 @@ zh:{
       <li><b>最近打开</b>：首页列出上次开过的文件，点一下直接再打开</li>
     </ul>
     <h3>版本</h3>
-    <p>v1.18　·　支持 x86 与 64 位系统　·　单文件便携版</p>
+    <p>v1.19　·　支持 x86 与 64 位系统　·　单文件便携版</p>
     <div class="sig">© 永远的兰兰　·　Lanlan Eternal</div>`
 },
 en:{
@@ -1107,6 +1118,12 @@ en:{
   eagleEmpty:"No tracks and no pads found — maybe only the outline was saved, "
     +"or the packages live in an external library.",
   fmtEagle:"  (EAGLE board)",
+  errBvEmpty:"No pads and no outline could be read from this boardview file.\n"
+    +"The version may have changed the field order, or the file is encrypted.",
+  fmtBv:"  (boardview)",
+  bvNoShape:"A boardview file stores only refdes, pads and nets — no copper shapes. "
+    +"So this board shows pads and outline without traces. Net tracing, pin lookup "
+    +"and measuring all still work.",
   noNet:"(no net)",
   padNo:n=>"Pad "+n,
   feetTitle:"Every pin lit by this click",
@@ -1172,7 +1189,7 @@ en:{
     +"　parsed in "+o.ms+"ms",
   objs:n=>n+" objects",
   pourN:n=>"　"+n+" pours",
-  noPcb:"Unrecognised file. Supports .pcb / .ddb / .kicad_pcb / EAGLE .brd / EasyEDA .json / .epro2, or a Gerber set.",
+  noPcb:"Unrecognised file. Supports .pcb / .ddb / .kicad_pcb / EAGLE .brd / repair boardview (.bvr .bv .bdv .cad) / EasyEDA .json / .epro2, or a Gerber set.",
   badFile:"Cannot read this file: ",
   multiBoard:"Several boards in this file, newest first:",
   latest:"★latest",
@@ -1181,7 +1198,7 @@ en:{
       <div class="sub">Click a trace and see where it goes — and which pins it lands on.</div>
       <button class="hbtn" id="hintOpen">Open File</button>
       <div class="tip2">
-        You can also drop a <b>.pcb</b> / <b>.ddb</b> / <b>.kicad_pcb</b> / <b>.brd</b> file right here<br>
+        You can also drop a <b>.pcb</b> / <b>.ddb</b> / <b>.kicad_pcb</b> / <b>.brd</b> / boardview <b>.bvr</b> file right here<br>
         Read-only, never modifies your files · no network access
       </div>
       <div class="feats">
@@ -1194,7 +1211,7 @@ en:{
       <div class="big">Drop a board file here</div>
       <div style="margin-top:8px;color:var(--fg3)">
         Protel 99SE: single board <b>.pcb</b> or design library <b>.ddb</b>　·　KiCad: <b>.kicad_pcb</b><br>
-        EAGLE: <b>.brd</b> (Autodesk EAGLE / Fusion 360 XML)<br>        EasyEDA: standard <b>.json</b>　·　pro <b>.epro2</b> / <b>.epro</b> (drop the whole project file)<br>
+        EAGLE: <b>.brd</b> (Autodesk EAGLE / Fusion 360 XML)<br>        Boardview: <b>.bvr</b> / <b>.bv</b> / <b>.bdv</b> / <b>.cad</b> — what phone and laptop repair uses<br>        EasyEDA: standard <b>.json</b>　·　pro <b>.epro2</b> / <b>.epro</b> (drop the whole project file)<br>
         Gerber: drop the whole <b>.gbr / .gtl / .gbl / .gko</b> set plus the <b>.drl</b> drill file together (or just a <b>.zip</b>)
       </div>
     </div>
@@ -1240,6 +1257,11 @@ en:{
         the older 4 and 5 formats work too<br>
       · <b>.brd</b> — EAGLE (Autodesk EAGLE / Fusion 360) boards, plain-text XML; inner
         layers, copper pours and bottom-side mirrored parts are all read as-is<br>
+      · <b>.bvr / .bv / .bdv / .cad</b> — <b>repair boardview</b> files (the ones phone and
+        laptop motherboard work uses); they hold refdes, pads and nets only, no copper
+        shapes, so only pads and the outline are drawn<br>
+      · a repair-world <b>.brd</b> — same extension as EAGLE but a different thing
+        (Landrex / TestLink boardview); told apart by content, no need to care<br>
       · <b>.json</b> — EasyEDA (LCEDA) <b>standard</b> board file, the plain-text JSON it exports<br>
       · <b>.epro2 / .epro</b> — EasyEDA (LCEDA) <b>pro</b> project file; drop it as-is and the
         .epru design log inside is unpacked for you</p>
@@ -1445,7 +1467,7 @@ en:{
       <li><b>Recent files</b>: the home page lists what you opened last; one click reopens it</li>
     </ul>
     <h3>Version</h3>
-    <p>v1.18　·　supports x86 and 64-bit Windows　·　portable single file</p>
+    <p>v1.19　·　supports x86 and 64-bit Windows　·　portable single file</p>
     <div class="sig">© Lanlan Eternal　·　永远的兰兰</div>`
 }
 };
@@ -1514,7 +1536,8 @@ function refreshFileLine(){
   document.getElementById("fname").textContent =
     T("fnameLine", lastName, B.fromDdb, n, B.polys.length) +
     (B.fmt==="kicad" ? T("fmtKicad")
-                       : (B.fmt==="eagle" ? T("fmtEagle") : ""));
+                       : (B.fmt==="eagle" ? T("fmtEagle")
+                       : (B.fmt==="bv" ? T("fmtBv") : "")));
   document.getElementById("stStats").textContent = T("stats", {
     t:B.tracks.length, p:B.pads.length, v:B.vias.length,
     f:B.fills.length, po:B.polys.length, n:B.nets.length,
@@ -4915,6 +4938,469 @@ function parseEagle(txt){
   return b;
 }
 
+/* ================= BoardView 族（维修点位图） =================
+   .bvr / .bv / .bdv / .cad 这几样不是设计文件，是维修用的"点位图"：
+   只存元件位号、焊盘坐标、网络名和板框，没有铜箔图形。
+   手机、笔记本主板维修的日常文件，就是这一族。
+
+   五种来源，全部是文本（其中两种被异或混淆过，解开就是普通文本）：
+     BVRAW_FORMAT_3   KEY VALUE 一行一项
+     BVRAW_FORMAT_1   制表符分隔，<<Layout>> / <<Pin>> / <<Nail>> 三段
+     BDV              <<format.asc>> / <<pins.asc>> / <<nails.asc>> 三段
+     BRD (Landrex)    str_length: / var_data: / Format: / Parts: / Pins: / Nails: 六段
+     CAD              COMP / C_PIN / NET / N_VIA 四段
+
+   坐标单位各家不同：BVR / BRD 直接是 mil，BDV / CAD 是英寸。
+   OBV 内部统一用 mil，所以英寸的一律 ×1000。 */
+
+const BV_PAD   = 30;    /* 点位图不存焊盘尺寸，统一画 30 mil 的圆点 */
+const BV_NAIL  = 34;    /* 测试点 / 过孔 */
+const BV_DES_H = 26;    /* 位号字高（mil） */
+const BV_OUT_W = 4;     /* 板框线宽（mil） */
+
+function bvBoard(fmt){
+  return {layers:{}, copper:[], nets:[], tracks:[], pads:[], vias:[], arcs:[], fills:[],
+          texts:[], comps:[], polys:[], sections:[], warn:[], fmt:fmt, fromDdb:false,
+          boardCount:1, layerNames:{}};
+}
+function bvNum(s,d){
+  const v=parseFloat(s);
+  return isFinite(v)? v : (d===undefined?0:d);
+}
+function bvTok(s,i){
+  const a=String(s||"").split(/[\s\t]+/).filter(x=>x!=="");
+  return a[i]===undefined? "" : a[i];
+}
+/* 测试点那一行的列序各家不一（前面常多一个探针号或标记字符）。
+   坐标在点位图里几乎总是带小数点（0.400），探针号是纯整数 —— 就用这个特征挑。 */
+function bvXY(cl){
+  let fallback=null;
+  for(let i=0;i+1<cl.length;i++){
+    const a=bvNum(cl[i],NaN), c=bvNum(cl[i+1],NaN);
+    if(!isFinite(a) || !isFinite(c)) continue;
+    if(cl[i].indexOf(".")>=0 && cl[i+1].indexOf(".")>=0) return [a,c];
+    if(!fallback) fallback=[a,c];
+  }
+  return fallback;
+}
+/* 网络名 → 1 基编号（0 = 无网络），和 Protel / Eagle 那边同一个约定 */
+function bvNet(b, ids, name){
+  let s=String(name==null? "":name).trim();
+  if(!s) return 0;
+  const up=s.toUpperCase();
+  if(up==="UNCONNECTED"||up==="N/C"||up==="NC"||up==="-"||up==="???") return 0;
+  let id=ids.get(s);
+  if(!id){ id=b.nets.length+1; ids.set(s,id); b.nets[id-1]=s; }
+  return id;
+}
+function bvPart(b, name, side, x, y){
+  const id=b.comps.length+1;
+  const bot=(side===2);
+  b.comps.push({id:id, layer:(bot?32:1), x:x, y:y, rot:0, lib:""});
+  const nm=String(name||"").trim();
+  if(nm) b.texts.push({kind:"text", layer:(bot?34:33), comp:id, x:x, y:y,
+                       h:BV_DES_H, rot:0, text:nm, isDes:true, isCom:false});
+  return id;
+}
+function bvPin(b, ids, id, x, y, net, nm, side, dia){
+  if(!isFinite(x) || !isFinite(y)) return;
+  const d=dia>0? dia : BV_PAD;
+  b.pads.push({kind:"pad", layer:(side===2?32:1), net:bvNet(b,ids,net), comp:id,
+               x:x, y:y, xs:d, ys:d, xm:d, ym:d, xb:d, yb:d, stack:false,
+               hole:0, shape:1, name:String(nm==null? "":nm).trim(), rot:0, plated:false});
+}
+function bvNail(b, ids, x, y, net, side){
+  if(!isFinite(x) || !isFinite(y)) return;
+  b.vias.push({kind:"via", layer:74, net:bvNet(b,ids,net), x:x, y:y,
+               dia:BV_NAIL, hole:BV_NAIL*0.55, start:1, end:32});
+}
+function bvSeg(b, x1,y1,x2,y2){
+  if(![x1,y1,x2,y2].every(isFinite)) return;
+  b.tracks.push({kind:"track", layer:56, net:0, comp:-1,
+                 x1:x1, y1:y1, x2:x2, y2:y2, w:BV_OUT_W, poly:-1});
+}
+function bvRing(b, pts){
+  for(let i=0;i<pts.length-1;i++) bvSeg(b, pts[i][0],pts[i][1], pts[i+1][0],pts[i+1][1]);
+  if(pts.length>2){
+    const a=pts[pts.length-1], z=pts[0];
+    if(a[0]!==z[0] || a[1]!==z[1]) bvSeg(b, a[0],a[1], z[0],z[1]);
+  }
+}
+/* 有的点位图干脆不给板框，就按焊盘外扩 100 mil 兜一个，否则没法建立坐标系 */
+function bvBox(b){
+  if(b.tracks.length) return;
+  let x1=Infinity,y1=Infinity,x2=-Infinity,y2=-Infinity;
+  for(const p of b.pads.concat(b.vias)){
+    if(p.x<x1)x1=p.x; if(p.y<y1)y1=p.y;
+    if(p.x>x2)x2=p.x; if(p.y>y2)y2=p.y;
+  }
+  if(!(x2>=x1)) return;
+  bvRing(b, [[x1-100,y1-100],[x2+100,y1-100],[x2+100,y2+100],[x1-100,y2+100]]);
+}
+function bvDone(b){
+  bvBox(b);
+  b.desCount=b.comps.length;
+  b.valCount=0;
+  finish(b);
+  b.__isBoard=true;
+  return b;
+}
+
+/* ---- BVRAW_FORMAT_3 ---- */
+function parseBvr3(txt){
+  const b=bvBoard("bv"), ids=new Map();
+  let part=null, pin=null, segs=0;
+  const pts=[];
+  for(const raw of txt.split(/\r?\n/)){
+    const line=String(raw).replace(/^\s+/,"");
+    if(!line) continue;
+    const sp=line.indexOf(" ");
+    const key=sp<0? line : line.slice(0,sp);
+    const rest=sp<0? "" : line.slice(sp+1).replace(/^\s+/,"");
+    if(key==="PART_NAME"){ part={name:bvTok(rest,0), side:1, x:0, y:0, id:0}; }
+    else if(key==="PART_SIDE"){ if(part) part.side = /^B/i.test(bvTok(rest,0))? 2 : 1; }
+    else if(key==="PART_ORIGIN"){ if(part){ part.x=Math.trunc(bvNum(bvTok(rest,0)));
+                                            part.y=Math.trunc(bvNum(bvTok(rest,1))); } }
+    else if(key==="PIN_NUMBER"){ pin={num:bvTok(rest,0), x:0, y:0, r:0, net:""}; }
+    else if(key==="PIN_ORIGIN"){ if(pin){ pin.x=Math.trunc(bvNum(bvTok(rest,0)));
+                                          pin.y=Math.trunc(bvNum(bvTok(rest,1))); } }
+    else if(key==="PIN_RADIUS"){ if(pin) pin.r=bvNum(bvTok(rest,0)); }
+    else if(key==="PIN_NET"){ if(pin) pin.net=bvTok(rest,0); }
+    else if(key==="PIN_END"){
+      if(pin && part){
+        if(!part.id) part.id=bvPart(b, part.name, part.side, part.x, part.y);
+        bvPin(b, ids, part.id, part.x+pin.x, part.y+pin.y, pin.net, pin.num,
+              part.side, pin.r>0? pin.r*2 : BV_PAD);
+      }
+      pin=null;
+    }
+    else if(key==="PART_END"){
+      if(part && !part.id) bvPart(b, part.name, part.side, part.x, part.y);
+      part=null;
+    }
+    else if(key==="OUTLINE_POINTS"){
+      const a=String(rest).split(/[\s,]+/).filter(x=>x!=="");
+      for(let i=0;i+1<a.length;i+=2) pts.push([bvNum(a[i]), bvNum(a[i+1])]);
+    }
+    else if(key==="OUTLINE_SEGMENTED"){
+      const a=String(rest).split(/[\s,]+/).filter(x=>x!=="");
+      for(let i=0;i+3<a.length;i+=4){
+        bvSeg(b, bvNum(a[i]),bvNum(a[i+1]), bvNum(a[i+2]),bvNum(a[i+3]));
+        segs++;
+      }
+    }
+  }
+  if(!segs) bvRing(b, pts);
+  if(!b.pads.length && !b.tracks.length) throw new Error(T("errBvEmpty"));
+  return bvDone(b);
+}
+
+/* ---- BVRAW_FORMAT_1（制表符分隔） ---- */
+function parseBvr1(txt){
+  const b=bvBoard("bv"), ids=new Map();
+  let blk=0, skip=0, last=null;
+  const pts=[];
+  for(const raw of txt.split(/\r?\n/)){
+    const t=String(raw).trim();
+    if(!t) continue;
+    if(t==="<<Layout>>"){ blk=1; skip=1; continue; }
+    if(t==="<<Pin>>"){ blk=2; skip=1; last=null; continue; }
+    if(t==="<<Nail>>"){ blk=3; skip=1; continue; }
+    if(skip){ skip--; continue; }
+
+    if(blk===1){
+      const a=t.split(/[\s,]+/).filter(x=>x!=="");
+      if(a.length>=2) pts.push([bvNum(a[0])*1000, bvNum(a[1])*1000]);
+      continue;
+    }
+    const f=String(raw).split(/\t/);
+    const cl=(f.length>=3? f : String(raw).split(/\s+/)).map(s=>String(s).trim());
+    if(blk===2){
+      /* 元件名 (T)/(B)  id  脚名  x  y  layer  net */
+      const nm=cl[0]||"";
+      if(!nm) continue;
+      if(!last || last.name!==nm){
+        const bot=/^\(B\)/i.test(cl[1]||"");
+        const x=bvNum(cl[4])*1000, y=bvNum(cl[5])*1000;
+        last={name:nm, side:(bot?2:1), x:x, y:y,
+              id:bvPart(b, nm, (bot?2:1), x, y)};
+      }
+      bvPin(b, ids, last.id, bvNum(cl[4])*1000, bvNum(cl[5])*1000,
+            cl[7]||"", cl[3]||"", last.side, BV_PAD);
+    }else if(blk===3){
+      const xy=bvXY(cl);
+      if(!xy) continue;
+      bvNail(b, ids, xy[0]*1000, xy[1]*1000, cl[cl.length-1]||"",
+             /\(T\)/i.test(t)? 1 : 2);
+    }
+  }
+  bvRing(b, pts);
+  if(!b.pads.length && !b.tracks.length) throw new Error(T("errBvEmpty"));
+  return bvDone(b);
+}
+
+/* ---- BDV：每一行用滚动密钥异或过 ---- */
+function bdvDecode(u8){
+  const out=new Uint8Array(u8.length);
+  let count=0xa0;
+  for(let i=0;i<u8.length;i++){
+    if(u8[i]===13 && u8[i+1]===10) count++;
+    let x=u8[i];
+    if(!(x===13 || x===10 || x===0)) x=(count-x)&0xff;
+    if(count>285) count=159;
+    out[i]=x;
+  }
+  return out;
+}
+function parseBdv(u8){
+  /* 有的是编码过的一团乱码，有的就是明文（同一族的两支）。
+     先看开头有没有明文标记，有就别再解一遍 —— 解了反而全毁。 */
+  let head="";
+  for(let i=0;i<Math.min(u8.length,4096);i++) head+=String.fromCharCode(u8[i]);
+  const isPlain=head.indexOf("<<format.asc>>")>=0 || head.indexOf("<<pins.asc>>")>=0;
+  const raw=isPlain? u8 : bdvDecode(u8);
+  let s="";
+  for(let i=0;i<raw.length;i++) s+=String.fromCharCode(raw[i]);
+  const lines=s.split(/\r?\n/);
+  const b=bvBoard("bv"), ids=new Map();
+  let blk=0, skip=0, last=null;
+  const pts=[];
+  for(const raw2 of lines){
+    const t=String(raw2).trim();
+    if(!t) continue;
+    if(t.indexOf("<<format.asc>>")===0){ blk=1; skip=8; continue; }
+    if(t.indexOf("<<pins.asc>>")===0){ blk=2; skip=8; last=null; continue; }
+    if(t.indexOf("<<nails.asc>>")===0){ blk=3; skip=7; continue; }
+    if(skip){ skip--; continue; }
+    const cl=(t.indexOf("\t")>=0? t.split(/\t/) : t.split(/\s+/)).map(x=>x.trim());
+    if(blk===1){
+      const a=t.split(/[\s,]+/).filter(x=>x!=="");
+      if(a.length>=2) pts.push([bvNum(a[0])*1000, bvNum(a[1])*1000]);
+      continue;
+    }
+    if(blk===2){
+      if(t.indexOf("Part")===0){
+        const a=t.slice(4).split(/[\s\t]+/).map(x=>x.trim()).filter(x=>x!=="");
+        const nm=a[0]||"";
+        const bot=/^\(B\)/i.test(a[1]||"");
+        last={name:nm, side:(bot?2:1), id:bvPart(b, nm, (bot?2:1), 0, 0)};
+      }else if(last){
+        /* id 脚名 x y layer net probe */
+        const x=bvNum(cl[2])*1000, y=bvNum(cl[3])*1000;
+        if(!last.moved){ last.moved=1; b.comps[last.id-1].x=x; b.comps[last.id-1].y=y;
+          const tx=b.texts.length? b.texts[b.texts.length-1]:null;
+          if(tx && tx.comp===last.id){ tx.x=x; tx.y=y; } }
+        bvPin(b, ids, last.id, x, y, cl[5]||"", cl[1]||"", last.side, BV_PAD);
+      }
+    }else if(blk===3){
+      const xy=bvXY(cl);
+      if(!xy) continue;
+      bvNail(b, ids, xy[0]*1000, xy[1]*1000, cl[cl.length-1]||"",
+             /\(T\)/i.test(t)? 1:2);
+    }
+  }
+  bvRing(b, pts);
+  if(!b.pads.length && !b.tracks.length) throw new Error(T("errBvEmpty"));
+  return bvDone(b);
+}
+
+/* ---- BRD（Landrex / TestLink）：首 4 字节有魔数时整篇被位移过 ---- */
+const BV_BRD_MAGIC=[0x23,0xe2,0x63,0x28];
+function brdDecode(u8){
+  const out=new Uint8Array(u8.length);
+  for(let i=0;i<u8.length;i++){
+    const x=u8[i];
+    if(x===13 || x===10 || x===0){ out[i]=x; continue; }
+    const c=x>127? x-256 : x;
+    out[i]=(~(((c>>6)&3) | (c<<2))) & 0xff;
+  }
+  return out;
+}
+function brdText(u8){
+  const has=BV_BRD_MAGIC.every((v,i)=>u8[i]===v);
+  const src=has? brdDecode(u8) : u8;
+  let s="";
+  for(let i=0;i<src.length;i++) s+=String.fromCharCode(src[i]);
+  return s;
+}
+function parseBrdBv(u8){
+  const s=brdText(u8);
+  const lines=s.split(/\r?\n/);
+  let blk=0;
+  const fmtPts=[], rawParts=[], rawPins=[], rawNails=[];
+  let cnt=null, sLen=0;
+  for(const raw of lines){
+    const t=String(raw).trim();
+    if(!t) continue;
+    if(t==="str_length:"){ blk=1; continue; }
+    if(t==="var_data:"){ blk=2; continue; }
+    if(t==="Format:"||t==="format:"){ blk=3; continue; }
+    if(t==="Parts:"||t==="Pins1:"){ blk=4; continue; }
+    if(t==="Pins:"||t==="Pins2:"){ blk=5; continue; }
+    if(t==="Nails:"){ blk=6; continue; }
+    const f=t.split(/\s+/);
+    if(blk===1){ sLen++; continue; }
+    if(blk===2){ cnt=f.map(x=>parseInt(x,10)||0); continue; }
+    if(blk===3){ if(f.length>=2) fmtPts.push([bvNum(f[0]), bvNum(f[1])]); continue; }
+    if(blk===4){
+      /* 名 类型 末脚号 */
+      rawParts.push({name:f[0]||"", type:parseInt(f[1],10)||0,
+                     end:parseInt(f[2],10)||0});
+      continue;
+    }
+    if(blk===5){
+      /* x y probe part net */
+      rawPins.push({x:bvNum(f[0]), y:bvNum(f[1]), probe:parseInt(f[2],10)||0,
+                    part:parseInt(f[3],10)||0, net:(f[4]||"")});
+      continue;
+    }
+    if(blk===6){
+      /* probe x y side net */
+      rawNails.push({probe:parseInt(f[0],10)||0, x:bvNum(f[1]), y:bvNum(f[2]),
+                     side:parseInt(f[3],10)||0, net:(f[4]||"")});
+    }
+  }
+  const b=bvBoard("bv"), ids=new Map();
+  const partId=[];
+  rawParts.forEach((p,i)=>{
+    let side=1;
+    const ty=p.type;
+    if(ty===2 || ty>=8) side=2;          /* 1 或 4~7 是顶层，2 或 ≥8 是底层 */
+    partId[i]=bvPart(b, p.name, side, 0, 0);
+  });
+  const nailNet=new Map();
+  for(const n of rawNails) nailNet.set(n.probe, n.net);
+  for(const p of rawPins){
+    const idx=p.part-1;
+    const pid=(idx>=0 && idx<partId.length)? partId[idx] : -1;
+    const side=(pid>0)? b.comps[pid-1].layer===32?2:1 : 1;
+    let net=p.net;
+    if(!net && nailNet.has(p.probe)) net=nailNet.get(p.probe)||"";
+    bvPin(b, ids, pid, p.x, p.y, net, p.probe? String(p.probe):"", side, BV_PAD);
+    if(pid>0 && !b.comps[pid-1].__moved){
+      b.comps[pid-1].x=p.x; b.comps[pid-1].y=p.y;
+      for(const tx of b.texts) if(tx.comp===pid){ tx.x=p.x; tx.y=p.y; }
+      b.comps[pid-1].__moved=1;
+    }
+  }
+  for(const n of rawNails) bvNail(b, ids, n.x, n.y, n.net, n.side===1?1:2);
+  bvRing(b, fmtPts);
+  if(!b.pads.length && !b.tracks.length) throw new Error(T("errBvEmpty"));
+  return bvDone(b);
+}
+
+/* ---- CAD（COMP / C_PIN / NET / N_VIA，坐标是英寸） ---- */
+const BV_NUMRE=/^[-+]?\d+(\.\d*)?$/;
+const BV_HASLET=/[A-Za-z]/;
+/* 各家的列数并不统一（同一个 .cad 有人多写一列），所以不按死列号取：
+   靠"两个都带小数点的数"找坐标，靠"带字母的第一个字段"找位号。 */
+function bvXYat(f, from){
+  for(let i=from;i+1<f.length;i++)
+    if(f[i].indexOf(".")>=0 && f[i+1].indexOf(".")>=0 &&
+       BV_NUMRE.test(f[i]) && BV_NUMRE.test(f[i+1]))
+      return [i, parseFloat(f[i]), parseFloat(f[i+1])];
+  for(let i=from;i+1<f.length;i++)
+    if(BV_NUMRE.test(f[i]) && BV_NUMRE.test(f[i+1]))
+      return [i, parseFloat(f[i]), parseFloat(f[i+1])];
+  return null;
+}
+function bvFirstLet(f, from){
+  for(let i=from;i<f.length;i++) if(BV_HASLET.test(f[i])) return i;
+  return -1;
+}
+function parseCad(txt){
+  const b=bvBoard("bv"), ids=new Map();
+  let blk="", viaNet="";
+  const partIdx=new Map();
+  for(const raw of txt.split(/\r?\n/)){
+    const t=String(raw).trim();
+    if(!t) continue;
+    if(t.indexOf("COMP")===0){ blk="p"; }
+    else if(t.indexOf("C_PIN")===0){ blk="c"; }
+    else if(t.indexOf("NET ")===0){ blk="n"; }
+    else if(t.indexOf("N_VIA")===0){ blk="v"; }
+    else { blk=""; continue; }
+    const f=t.split(/\s+/);
+    if(blk==="p"){
+      const ni=bvFirstLet(f,1);
+      if(ni<0) continue;
+      const nm=f[ni];
+      const xy=bvXYat(f, ni+1);
+      let side=1;
+      if(xy){
+        for(let i=xy[0]+2;i<f.length;i++){
+          if(f[i]==="1"){ side=1; break; }
+          if(f[i]==="2"){ side=2; break; }
+        }
+      }
+      partIdx.set(nm, bvPart(b, nm, side,
+                             xy? xy[1]*1000 : 0, xy? xy[2]*1000 : 0));
+    }else if(blk==="c"){
+      const ni=bvFirstLet(f,1);
+      if(ni<0) continue;
+      const nm=f[ni].replace(/-.*$/,"");
+      const xy=bvXYat(f, ni+1);
+      if(!xy) continue;
+      const pid=partIdx.get(nm)||-1;
+      const net=f[f.length-1]||"";
+      bvPin(b, ids, pid, xy[1]*1000, xy[2]*1000, net, "",
+            pid>0? ((b.comps[pid-1].layer===32)? 2:1) : 1, BV_PAD);
+    }else if(blk==="n"){
+      viaNet=String(f[1]||"").replace(/^\//,"");
+    }else if(blk==="v"){
+      const xy=bvXYat(f,1);
+      if(!xy) continue;
+      let side=1;
+      for(let i=xy[0]+2;i<f.length;i++){
+        if(f[i]==="1"){ side=1; break; }
+        if(f[i]==="0"){ side=2; break; }
+      }
+      bvNail(b, ids, xy[1]*1000, xy[2]*1000, viaNet, side);
+    }
+  }
+  /* 元件若没写坐标，就用它第一颗脚的位置顶上，位号才不至于堆在原点 */
+  for(const p of b.pads){
+    if(p.comp>0){
+      const c=b.comps[p.comp-1];
+      if(c && !c.__moved){ c.__moved=1;
+        if(!c.x && !c.y){ c.x=p.x; c.y=p.y;
+          for(const tx of b.texts) if(tx.comp===p.comp){ tx.x=p.x; tx.y=p.y; } }
+      }
+    }
+  }
+  if(!b.pads.length && !b.tracks.length) throw new Error(T("errBvEmpty"));
+  return bvDone(b);
+}
+
+/* ---- 派发 ---- */
+function looksBv(buf){
+  const u8=new Uint8Array(buf);
+  const n=Math.min(u8.length, 4096);
+  let s="";
+  for(let i=0;i<n;i++) s+=String.fromCharCode(u8[i]);
+  if(u8.length>4 && BV_BRD_MAGIC.every((v,i)=>u8[i]===v)) return "brd";
+  if(s.indexOf("BVRAW_FORMAT_3")>=0) return "bvr3";
+  if(s.indexOf("BVRAW_FORMAT_1")>=0) return "bvr1";
+  if(s.indexOf("dd:1.3?,r?-=bb")>=0) return "bdv";
+  if(s.indexOf("<<format.asc>>")>=0 && s.indexOf("<<pins.asc>>")>=0) return "bdv";
+  if(s.indexOf("str_length:")>=0 && s.indexOf("var_data:")>=0) return "brd";
+  if(s.indexOf("###Panel Added")>=0 && s.indexOf("C_PIN")>=0) return "cad";
+  return "";
+}
+function parseBoardView(buf, kind){
+  const k=kind||looksBv(buf);
+  const u8=new Uint8Array(buf);
+  if(k==="bvr3" || k==="bvr1" || k==="cad"){
+    let txt="";
+    for(let i=0;i<u8.length;i++) txt+=String.fromCharCode(u8[i]);
+    if(k==="bvr3") return parseBvr3(txt);
+    if(k==="bvr1") return parseBvr1(txt);
+    return parseCad(txt);
+  }
+  if(k==="bdv") return parseBdv(u8);
+  return parseBrdBv(u8);
+}
+
 function parseAny(buf,name){
   if(looksKicad(buf)){
     const txt=new TextDecoder("utf-8").decode(new Uint8Array(buf));
@@ -4928,6 +5414,9 @@ function parseAny(buf,name){
     const txt=new TextDecoder("utf-8").decode(new Uint8Array(buf));
     return parseEagle(txt);
   }
+  /* 点位图要排在 parseBoard 前面：它们是维修文件，Protel/Gerber 那套认不出来 */
+  const bv=looksBv(buf);
+  if(bv) return parseBoardView(buf, bv);
   return parseBoard(buf);
 }
 
@@ -7030,6 +7519,7 @@ function loadBuffer(buf,name,gerSet){
       runDemo();
     });
     if(B.warn.length) toast(T("segWarn")+B.warn.join("; "));
+    else if(B.fmt==="bv") toast(T("bvNoShape"));
   }catch(err){
     B=null;
     document.getElementById("hint").style.display="";
@@ -7129,7 +7619,7 @@ async function uploadToServer(f){
   const nm=f.name||"board.pcb";
   /* 后缀只是一道粗筛：板厂给的 Gerber 包常常没后缀，光看名字会把好东西挡在门外。
      真正的判断交给 exe 那侧（它按内容嗅 + 按 zip 内部结构认工程包）。 */
-  if(!/\.(pcb|ddb|kicad_pcb|brd|json|epro|epro2|zip)$/i.test(nm) && !GER_EXT.test(nm)){
+  if(!/\.(pcb|ddb|kicad_pcb|brd|bvr|bv|bdv|cad|json|epro|epro2|zip)$/i.test(nm) && !GER_EXT.test(nm)){
     toast(T("noPcb")); return;
   }
   toast(T("reading"));
@@ -7296,7 +7786,7 @@ async function openFiles(list){
     const solo=[], ger=[], zips=[], easy=[];
     for(const f of arr){
       const n=f.name||"";
-      if(/\.(pcb|ddb|kicad_pcb|brd)$/i.test(n)){ solo.push(f); continue; }
+      if(/\.(pcb|ddb|kicad_pcb|brd|bvr|bv|bdv|cad)$/i.test(n)){ solo.push(f); continue; }
       /* 立创EDA 专业版的工程包就是 zip，只是后缀改成 .epro / .epro2 */
       if(/\.(zip|epro|epro2)$/i.test(n)){ zips.push(f); continue; }
       if(GER_EXT.test(n)){ ger.push(f); continue; }
@@ -7345,7 +7835,7 @@ async function openFiles(list){
         for(const e of ents){
           if(/\/$/.test(e.name)) continue;
           const base=e.name.split(/[\\/]/).pop();
-          if(!GER_EXT.test(base) && !/\.(pcb|ddb|kicad_pcb|brd)$/i.test(base)) continue;
+          if(!GER_EXT.test(base) && !/\.(pcb|ddb|kicad_pcb|brd|bvr|bv|bdv|cad)$/i.test(base)) continue;
           let ab;
           if(e.method===0){
             ab=e.data.buffer.slice(e.data.byteOffset, e.data.byteOffset+e.data.byteLength);
@@ -7355,8 +7845,8 @@ async function openFiles(list){
           if(!ab){ toast(T("zipNeedUnzip")); break; }
           inner.push({n:base, buf:ab});
         }
-        const g2=inner.filter(x=>!/\.(pcb|ddb|kicad_pcb|brd)$/i.test(x.n));
-        const s2=inner.filter(x=>/\.(pcb|ddb|kicad_pcb|brd)$/i.test(x.n));
+        const g2=inner.filter(x=>!/\.(pcb|ddb|kicad_pcb|brd|bvr|bv|bdv|cad)$/i.test(x.n));
+        const s2=inner.filter(x=>/\.(pcb|ddb|kicad_pcb|brd|bvr|bv|bdv|cad)$/i.test(x.n));
         for(const x of s2){
           openDoc([{n:x.n, d:null, buf:x.buf}], x.n);
           await new Promise(r=>setTimeout(r,300));
