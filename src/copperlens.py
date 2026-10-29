@@ -37,7 +37,7 @@ from ctypes import wintypes
 from pathlib import Path
 
 APP_TITLE = "PCB 看板 CopperLens"
-VERSION = "1.18"
+VERSION = "1.19"
 
 _APPDIR = "CopperLens"
 _LOG = Path(tempfile.gettempdir()) / _APPDIR / "last-run.log"
@@ -377,25 +377,27 @@ def ask_file():
     except Exception:
         pass
     buf = ctypes.create_unicode_buffer(32768)
-    filt = L("所有板文件 (*.pcb;*.ddb;*.kicad_pcb;*.brd;*.json;*.epro2;*.gbr;*.zip)"
-             "\0*.pcb;*.ddb;*.kicad_pcb;*.brd;*.json;*.epro;*.epro2;*.gbr;*.gtl;*.gbl;"
-             "*.gko;*.drl;*.zip\0"
+    filt = L("所有板文件 (*.pcb;*.ddb;*.kicad_pcb;*.brd;*.bvr;*.bv;*.bdv;*.cad;*.json;*.gbr;*.zip)"
+             "\0*.pcb;*.ddb;*.kicad_pcb;*.brd;*.bvr;*.bv;*.bdv;*.cad;*.json;*.epro;*.epro2;"
+             "*.gbr;*.gtl;*.gbl;*.gko;*.drl;*.zip\0"
              "设计库 (*.ddb)\0*.ddb\0"
              "板文件 (*.pcb)\0*.pcb\0"
              "KiCad 板文件 (*.kicad_pcb)\0*.kicad_pcb\0"
-             "Eagle 板文件 (*.brd)\0*.brd\0"
+             "Eagle / 点位图 (*.brd)\0*.brd\0"
+             "维修点位图 (*.bvr;*.bv;*.bdv;*.cad)\0*.bvr;*.bv;*.bdv;*.cad\0"
              "立创EDA 标准版 (*.json)\0*.json\0"
              "立创EDA 专业版 (*.epro2;*.epro)\0*.epro2;*.epro\0"
              "Gerber / 钻孔 (*.gbr;*.gtl;*.gbl;*.gko;*.drl;*.xln;*.zip)"
              "\0*.gbr;*.gtl;*.gbl;*.gts;*.gbs;*.gto;*.gbo;*.gko;*.drl;*.xln;*.zip\0"
              "所有文件 (*.*)\0*.*\0\0",
-             "All board files (*.pcb;*.ddb;*.kicad_pcb;*.brd;*.json;*.epro2;*.gbr;*.zip)"
-             "\0*.pcb;*.ddb;*.kicad_pcb;*.brd;*.json;*.epro;*.epro2;*.gbr;*.gtl;*.gbl;"
-             "*.gko;*.drl;*.zip\0"
+             "All board files (*.pcb;*.ddb;*.kicad_pcb;*.brd;*.bvr;*.bv;*.bdv;*.cad;*.json;*.gbr;*.zip)"
+             "\0*.pcb;*.ddb;*.kicad_pcb;*.brd;*.bvr;*.bv;*.bdv;*.cad;*.json;*.epro;*.epro2;"
+             "*.gbr;*.gtl;*.gbl;*.gko;*.drl;*.zip\0"
              "Design library (*.ddb)\0*.ddb\0"
              "Board file (*.pcb)\0*.pcb\0"
              "KiCad board (*.kicad_pcb)\0*.kicad_pcb\0"
-             "EAGLE board (*.brd)\0*.brd\0"
+             "EAGLE / boardview (*.brd)\0*.brd\0"
+             "Repair boardview (*.bvr;*.bv;*.bdv;*.cad)\0*.bvr;*.bv;*.bdv;*.cad\0"
              "EasyEDA standard (*.json)\0*.json\0"
              "EasyEDA pro (*.epro2;*.epro)\0*.epro2;*.epro\0"
              "Gerber / drill (*.gbr;*.gtl;*.gbl;*.gko;*.drl;*.xln;*.zip)"
@@ -987,6 +989,23 @@ def _raw_deflate(raw):
     return co.compress(raw) + co.flush()
 
 
+BV_MAGIC = b"\x23\xe2\x63\x28"
+BV_MARKS = (b"BVRAW_FORMAT_3", b"BVRAW_FORMAT_1", b"dd:1.3?,r?-=bb",
+            b"<<format.asc>>", b"<<pins.asc>>", b"str_length:", b"###Panel Added")
+
+
+def _looks_bv(raw):
+    """维修点位图（.bvr / .bv / .bdv / .cad，以及维修界的 .brd）。
+
+    页面那边还要细分成五种，这里只要回答"该不该往页面送"。
+    编码过的 BRD 正文是乱的，认不出关键字，只能靠开头 4 字节的魔数。
+    """
+    head = raw[:4096]
+    if head[:4] == BV_MAGIC:
+        return True
+    return any(m in head for m in BV_MARKS)
+
+
 def _payload_for_path(p):
     """把选中的文件读成前端要的结构：{boards:[{n,d}], ddb:bool}"""
     ext = p.suffix.lower()
@@ -1002,19 +1021,39 @@ def _payload_for_path(p):
         return {"boards": [{"n": p.name,
                             "d": base64.b64encode(raw).decode("ascii")}],
                 "ddb": False, "file": p.name, "kicad": True}
-    if ext == ".brd":
-        # Eagle（Autodesk / Fusion 360）的 .brd 是 XML，原样送过去由页面解析。
-        # ⚠ Cadence Allegro 的板文件也叫 .brd，那是二进制 —— 先嗅一下，
-        #   否则用户拖进 Allegro 的文件只会看到一句"读不出来"，不知道为什么。
+    if ext in (".bvr", ".bv", ".bdv", ".cad"):
+        # 维修点位图。扩展名在这一族里并不严格（同一个 .cad 有多种写法），
+        # 所以不在这里卡太死 —— 认不出来也照送，让页面给出人话。
         raw = p.read_bytes()
+        log("点位图：%s，%d 字节，识别=%s"
+            % (p.name, len(raw), "是" if _looks_bv(raw) else "否"))
+        return {"boards": [{"n": p.name,
+                            "d": base64.b64encode(raw).decode("ascii")}],
+                "ddb": False, "file": p.name, "bv": True}
+    if ext == ".brd":
+        # .brd 是个三家抢的扩展名：
+        #   Eagle 的 XML、维修点位图（Landrex / TestLink）、Cadence Allegro 的二进制。
+        # 先看内容再决定，光看后缀必然认错。
+        raw = p.read_bytes()
+        if _looks_bv(raw):
+            log("维修点位图 .brd：%d 字节" % len(raw))
+            return {"boards": [{"n": p.name,
+                                "d": base64.b64encode(raw).decode("ascii")}],
+                    "ddb": False, "file": p.name, "bv": True}
         head = raw[:8192].decode("utf-8", "replace").lstrip("\ufeff \t\r\n")
         if "<eagle" not in head and "<board" not in head:
-            return {"error": L("这个 .brd 不是 Eagle 的板文件。\n"
-                               "（Cadence Allegro 的板文件也叫 .brd，但那是二进制格式，"
-                               "本程序读不了。）",
-                               "This .brd is not an EAGLE board. (Cadence Allegro uses "
-                               "the same extension but stores binary data, which this "
-                               "viewer cannot read.)")}
+            return {"error": L("这个 .brd 读不了。\n\n"
+                               "扩展名叫 .brd 的其实有三家：\n"
+                               "· Eagle 的板文件（XML）—— 本程序支持\n"
+                               "· 维修点位图（Landrex / TestLink）—— 本程序支持\n"
+                               "· Cadence Allegro 的板文件 —— 二进制，本程序读不了\n\n"
+                               "你这个看起来是第三种。",
+                               "This .brd cannot be read.\n\n"
+                               "Three different tools use the .brd extension:\n"
+                               "- EAGLE boards (XML) — supported\n"
+                               "- Repair boardview files (Landrex / TestLink) — supported\n"
+                               "- Cadence Allegro — binary, not supported\n\n"
+                               "Yours looks like the third one.")}
         return {"boards": [{"n": p.name,
                             "d": base64.b64encode(raw).decode("ascii")}],
                 "ddb": False, "file": p.name, "eagle": True}
@@ -1075,9 +1114,11 @@ def _payload_for_path(p):
                                   for n, b in memb]}],
                 "gerber": True, "file": p.name}
 
-    return {"error": L("只认 .pcb / .ddb / .kicad_pcb / Eagle .brd / 立创 .json / .epro2 / Gerber / .zip。",
-                       "Only .pcb, .ddb, .kicad_pcb, EAGLE .brd, EasyEDA .json / .epro2, "
-                       "Gerber and .zip are supported.")}
+    return {"error": L("只认 .pcb / .ddb / .kicad_pcb / Eagle .brd / 维修点位图 (.bvr .bv .bdv .cad) / "
+                       "立创 .json / .epro2 / Gerber / .zip。",
+                       "Only .pcb, .ddb, .kicad_pcb, EAGLE .brd, boardview "
+                       "(.bvr .bv .bdv .cad), EasyEDA .json / .epro2, Gerber and .zip "
+                       "are supported.")}
 
 
 def _payload_for_bytes(name, data):
@@ -1369,17 +1410,38 @@ def handle(path):
         _remember(str(p), {"boards": [{"n": p.name}]})
         return open_viewer(html) is not None
 
-    if ext == ".brd":
-        # Eagle 的板子是纯文本 XML；Cadence Allegro 的板子也叫 .brd，但是二进制。
-        # 光看后缀会把 Allegro 的板子送进 XML 解析器，所以先嗅开头。
+    if ext in (".bvr", ".bv", ".bdv", ".cad"):
+        # 维修点位图：只存位号、焊盘坐标、网络名和板框，没有铜箔图形。
         raw = p.read_bytes()
+        log("维修点位图：%d 字节（识别=%s）"
+            % (len(raw), "是" if _looks_bv(raw) else "否"))
+        html = build_view_html([(p.name, raw)], p.name)
+        _remember(str(p), {"boards": [{"n": p.name}]})
+        return open_viewer(html) is not None
+
+    if ext == ".brd":
+        # 三家共用这个扩展名，只能按内容分：
+        # Eagle 的 XML、维修点位图（Landrex / TestLink）、Cadence Allegro 的二进制。
+        raw = p.read_bytes()
+        if _looks_bv(raw):
+            log("维修点位图 .brd：%d 字节" % len(raw))
+            html = build_view_html([(p.name, raw)], p.name)
+            _remember(str(p), {"boards": [{"n": p.name}]})
+            return open_viewer(html) is not None
         sniff = raw[:8192].decode("utf-8", "replace").lstrip("\ufeff \t\r\n")
         if "<eagle" not in sniff and "<board" not in sniff:
-            msgbox(L("这个 .brd 不是 Eagle 的板文件。\n"
-                     "（Cadence Allegro 的板文件也叫 .brd，但那是二进制格式，本程序读不了。）",
-                     "This .brd is not an EAGLE board.\n"
-                     "(Cadence Allegro also uses .brd, but it is a binary format "
-                     "this program cannot read.)"))
+            msgbox(L("这个 .brd 读不了。\n\n"
+                     "扩展名叫 .brd 的其实有三家：\n"
+                     "· Eagle 的板文件（XML）—— 本程序支持\n"
+                     "· 维修点位图（Landrex / TestLink）—— 本程序支持\n"
+                     "· Cadence Allegro 的板文件 —— 二进制，本程序读不了\n\n"
+                     "你这个看起来是第三种。",
+                     "This .brd cannot be read.\n\n"
+                     "Three different tools use the .brd extension:\n"
+                     "- EAGLE boards (XML) — supported\n"
+                     "- Repair boardview files (Landrex / TestLink) — supported\n"
+                     "- Cadence Allegro — binary, not supported\n\n"
+                     "Yours looks like the third one."))
             return False
         log("Eagle 板：%d 字节 XML" % len(raw))
         html = build_view_html([(p.name, raw)], p.name)
@@ -1464,10 +1526,10 @@ def handle(path):
                  "Some fab archives only hold a PDF and a readme, which cannot be viewed."))
         return False
 
-    msgbox(L("只认 .ddb / .pcb / .kicad_pcb / Eagle .brd / 立创 .json · .epro2 / Gerber / .zip。\n"
-             "你选的是：",
-             "Only .ddb, .pcb, .kicad_pcb, EAGLE .brd, EasyEDA .json / .epro2, Gerber and "
-             ".zip are supported.\nYou picked: ")
+    msgbox(L("只认 .ddb / .pcb / .kicad_pcb / Eagle .brd / 维修点位图 (.bvr .bv .bdv .cad) / "
+             "立创 .json · .epro2 / Gerber / .zip。\n你选的是：",
+             "Only .ddb, .pcb, .kicad_pcb, EAGLE .brd, boardview (.bvr .bv .bdv .cad), "
+             "EasyEDA .json / .epro2, Gerber and .zip are supported.\nYou picked: ")
            + p.name)
     return False
 
@@ -1478,7 +1540,8 @@ def _is_board_arg(a):
     if low.endswith(GER_SUFFIX):
         return True
     return low.endswith((".ddb", ".pcb", ".kicad_pcb", ".brd", ".json",
-                         ".epro", ".epro2", ".zip"))
+                         ".epro", ".epro2", ".zip",
+                         ".bvr", ".bv", ".bdv", ".cad"))
 
 
 def main():
@@ -1495,7 +1558,8 @@ def main():
     # 一堆 Gerber 一起拖到图标上：合成一块板看，而不是弹一堆窗口
     plain = [t for t in targets
              if not t.lower().endswith((".ddb", ".pcb", ".kicad_pcb", ".brd",
-                                        ".json", ".epro", ".epro2", ".zip"))]
+                                        ".json", ".epro", ".epro2", ".zip",
+                                        ".bvr", ".bv", ".bdv", ".cad"))]
     if len(plain) >= 2:
         memb = []
         for t in plain:
