@@ -1,4 +1,4 @@
-# PCB 看板 / CopperLens v1.17
+# PCB 看板 / CopperLens v1.18
 
 **中文** ｜ [English](#english) ｜ [版本履历 Changelog](CHANGELOG.md)
 
@@ -28,6 +28,7 @@
 | `.kicad_pcb`（KiCad） | KiCad 6 / 7 / 8 / 9 / 10 的板文件（纯文本）；4、5 版的老格式也认。见「v1.14 重点」 |
 | **Gerber + 钻孔**（`.gbr` `.gtl` `.gbl` `.gko` `.drl` `.xln` …） | 板厂给的那一包制造文件，**一层一个文件，整包一起拖进来合成一块板**；也可以直接给 `.zip`。见「v1.15 重点」 |
 | 立创EDA **标准版** `.json` | 立创EDA 导出的板文件（纯文本 JSON）。见「v1.16 重点」 |
+| `.brd`（Eagle） | Autodesk Eagle / Fusion 360 的板文件（纯文本 XML）；内层、覆铜、底面镜像元件都按原样解析。见「v1.18 重点」 |
 | 立创EDA **专业版** `.epro2` / `.epro` | 整个工程包直接拖进来，里面那份 `.epru` 设计日志会自己解开。见「v1.16 重点」 |
 
 明确**不做**：原理图（`.sch`）、`PCB 3.0`（更早的 16 位版本，部分兼容、未逐一验证）。
@@ -61,6 +62,58 @@
 鼠标：滚轮**以指针位置为锚点**缩放；**按住左键拖到画布边缘，画面自己往那个方向走**
 （越靠边越快，松手就停）；放大后**左上角缩略图**里的黄框是当前视野，点一下跳过去；
 板上**右键写一句话**就是一条标记，按板子存档。
+
+## v1.18 重点
+
+**第六种格式：Eagle 的 `.brd`。** 另外两件是"一直看着别扭、但一直没空动"的：
+内层不再一律紫色、覆铜浓度按本层片数自适应。
+
+| 之前 | 现在 |
+|---|---|
+| 开源硬件里相当一部分是 Eagle 画的，**`.brd` 打不开** | 纯文本 XML 直接读，Eagle 4 ~ 9.6 都认 |
+
+![Eagle 板](预览_Eagle.png)
+
+上面这块是 pyboard（MicroPython 官方板，Eagle 6.5）：249 个焊盘全部认出位号，
+元件清单是「C1 · 12p」这样一位一号；点一条 GND，亮出来 45 只脚 + 12 个过孔，
+状态栏直接写 `IC1-12 / C1-1 / C10-2 …`。
+
+### 四处必须翻译的地方
+
+Eagle 的文件跟前面几种都不一样，照直觉写会画歪：
+
+| 坑 | 说明 |
+|---|---|
+| 单位是 mm | 内部一律 mil，进来先乘 39.37 |
+| **底层是 16，不是 2** | 2~15 全是内层。照 1/2 处理，四层板的内层会叠到顶层上 |
+| 焊盘尺寸在库里 | 元件只写"用哪个封装、放哪儿、转了多少度"，焊盘得按 rot / mirror 逐个实例化 |
+| 网络写在 `<signals>` 里 | `contactref` 指明哪只脚属于哪条网，焊盘本身不带网络 —— 先扫一遍建表，回头补 |
+
+还有两个细节：圆角板框、圆弧走线是 `<wire curve="90">`（弦长 + 圆心角反算圆心）；
+底面元件是 `rot="MR90"`，层号要跟着翻（1↔16、tPlace↔bPlace），
+不然底面元件的丝印会印到顶面上。
+
+覆铜按外轮廓画 —— Eagle 的真实铺铜是它自己算出来的（要避让、要留 isolate），
+我们拿不到那份结果，跟立创专业版的处理方式一致。
+
+### 顺便修的两件
+
+- **内层不再一律紫色**：四层板有两个内层、六层板有四个，全给一个颜色根本分不清
+  哪条线在哪一层。改成按序号循环取色，冷暖交替；文件里给内层起的名字（GND / PWR）
+  也接进了图层面板，显示成"内层 1 · GND"。
+- **覆铜浓度按片数自适应**：立创专业版一块覆铜拆成上千片，浓度得压到 0.028；
+  Eagle 一块 GND 平面就是一整片轮廓，同样的 0.028 在深色底上几乎看不见 ——
+  打开板子还以为覆铜没画。现在 ≤6 片用 0.20、≤80 片用 0.075、更多才回到 0.028。
+
+### ODB++ 还是没进
+
+上次说的"比较难的两个"，Eagle 这版做完了，ODB++ 没做。原因很实在：
+**它是板厂给的制造数据，开源样例极少，拿不到可信样本就只能盲写** ——
+盲写的解析器在真文件上必然出岔子，那比不做更坏。
+
+能做的先做了：拖进 ODB++ 的包（`.tgz` / `.zip`，里面有 `matrix/matrix` 和 `steps/`）
+时，现在会明确告诉你"这是 ODB++、本程序还不读、该跟对方要什么格式"，
+不再弹一句"只认 Gerber"。桌面版和在线版都认。
 
 ## v1.17 重点
 
@@ -415,6 +468,7 @@ double-click and go.
 | `.pcb` (`PCB 4.0 Binary`) | A single board; the 1998–2000 era of design files |
 | `.ddb` (design database) | Every board inside is extracted; **each board gets its own tab** so you can compare them side by side |
 | `.kicad_pcb` (KiCad) | KiCad 6 / 7 / 8 / 9 / 10 board files (plain text); the older 4 and 5 formats work too. See "What's new in v1.14" |
+| `.brd` (EAGLE) | Autodesk EAGLE / Fusion 360 boards, plain-text XML; inner layers, pours and bottom-side mirrored parts are read as-is. See "What's new in v1.18" |
 | **Gerber + drill** (`.gbr` `.gtl` `.gbl` `.gko` `.drl` `.xln` …) | The fabrication set your board house sends: **one file per layer, drop the whole set in and it becomes one board**. A `.zip` works too. See "What's new in v1.15" |
 | EasyEDA **standard** `.json` | The board file EasyEDA exports (plain-text JSON). See "What's new in v1.16" |
 | EasyEDA **pro** `.epro2` / `.epro` | Drop the whole project file; the `.epru` design log inside is unpacked for you. See "What's new in v1.16" |
@@ -454,6 +508,57 @@ Mouse: the wheel zooms **anchored at the pointer**; **drag to the edge of the ca
 view keeps moving that way** (faster the closer you get, stops when you let go); once zoomed
 in, the **mini-map in the top-left** shows your viewport as a yellow box — click to jump;
 **right-click on the board writes a note**, saved per board.
+
+## What's new in v1.18
+
+**A sixth format: EAGLE `.brd`.** Two smaller things that had been nagging me are
+fixed too — inner layers are no longer all one colour, and copper-pour density now
+adapts to how many pieces a layer has.
+
+| Before | After |
+|---|---|
+| A good share of open-source hardware is drawn in EAGLE, and **`.brd` would not open** | Plain-text XML, read directly; EAGLE 4 through 9.6 |
+
+### Four things that must be translated
+
+EAGLE stores the board differently from every other format here:
+
+| Trap | What it means |
+|---|---|
+| Units are mm | Everything internally is mil — multiply by 39.37 on the way in |
+| **The bottom layer is 16, not 2** | 2–15 are the inner layers. Treat 16 as "the second layer" and a 4-layer board's inner copper lands on top of the top layer |
+| Pad sizes live in the library | An element only says "which package, where, rotated how much" — every pad has to be instantiated through that element's rot / mirror |
+| Nets live in `<signals>` | `contactref` says which pin belongs to which net; the pad itself carries no net — scan signals first, back-fill afterwards |
+
+Two more details: rounded board outlines and curved traces are `<wire curve="90">`
+(chord plus included angle, solved back to a centre and radius); bottom-side parts are
+`rot="MR90"` and their layer numbers flip with them (1↔16, tPlace↔bPlace), otherwise
+their silkscreen prints onto the top side.
+
+Copper pours are drawn as outlines only — EAGLE computes the real pour itself
+(isolation, clearances) and we do not get that result, same approach as the EasyEDA Pro path.
+
+### Two smaller fixes
+
+- **Inner layers are no longer all purple**: a 4-layer board has two of them, a 6-layer
+  board four — one colour makes it impossible to tell which trace is on which layer.
+  They now cycle through a palette, cool and warm alternating; a name the file gives the
+  layer (GND / PWR) is shown too, e.g. "Inner 1 · GND".
+- **Pour density adapts to piece count**: an EasyEDA Pro pour is split into thousands of
+  pieces, so the fill had to be dropped to 0.028; an EAGLE GND plane is a single outline,
+  and 0.028 is all but invisible on a dark background — the board looked like it had no
+  pour at all. Now ≤6 pieces use 0.20, ≤80 use 0.075, and only larger counts fall back to 0.028.
+
+### ODB++ still is not in
+
+Of the two "hard ones" I mentioned last time, EAGLE is done and ODB++ is not. The reason
+is plain: **it is fabrication data from a board house, open samples are scarce, and
+without a trustworthy sample any parser would be guesswork** — and a guessed parser
+breaks on real files, which is worse than not having one.
+
+What it does do now: drop an ODB++ archive (`.tgz` / `.zip` containing `matrix/matrix`
+and `steps/`) and it says so — that this is ODB++, that it is not supported yet, and what
+to ask for instead. No more "only Gerber is supported". Both the desktop and the web build.
 
 ## What's new in v1.17
 
