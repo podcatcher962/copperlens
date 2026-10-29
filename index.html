@@ -678,6 +678,10 @@ zh:{
   fmtBv:"（维修点位图）",
   bvNoShape:"点位图只存位号和网络，不存铜箔图形 —— 所以这块板只画焊盘和板框，"
     +"没有走线。查线、找脚、量距照样能用。",
+  /* ODB++（板厂给的制造数据）*/
+  fmtOdb:"（ODB++ 制造数据）",
+  errOdbEmpty:"这个 ODB++ 包里没读到铜层。\n"
+    +"正常应该有 matrix/matrix 和 steps/<板名>/layers/<层>/features。",
   noNet:"(未分配网络)",
   padNo:n=>"焊盘 "+n,
   feetTitle:"这次点亮的全部元件脚",
@@ -741,7 +745,7 @@ zh:{
     +"　解析 "+o.ms+"ms",
   objs:n=>n+" 个对象",
   pourN:n=>"　覆铜 "+n+" 块",
-  noPcb:"认不出这个文件。支持 .pcb / .ddb / .kicad_pcb / Eagle .brd / 维修点位图 (.bvr .bv .bdv .cad) / 立创 .json / .epro2，或 Gerber 一包。",
+  noPcb:"认不出这个文件。支持 .pcb / .ddb / .kicad_pcb / Eagle .brd / 维修点位图 (.bvr .bv .bdv .cad) / 立创 .json / .epro2，或 Gerber / ODB++ 一包。",
   badFile:"这个文件读不出来：",
   multiBoard:"这个文件里有多块板，按修改时间从新到旧排：",
   latest:"★最新",
@@ -766,7 +770,8 @@ zh:{
         Eagle：<b>.brd</b>（Autodesk EAGLE / Fusion 360 的 XML）<br>
         立创EDA：标准版 <b>.json</b>　·　专业版 <b>.epro2</b> / <b>.epro</b>（整个工程包直接拖）<br>
         维修点位图：<b>.bvr</b> / <b>.bv</b> / <b>.bdv</b> / <b>.cad</b>（手机、笔记本维修用的就是这一族）<br>
-        Gerber：一堆 <b>.gbr / .gtl / .gbl / .gko</b> 连钻孔 <b>.drl</b> 一起拖进来（或直接给 <b>.zip</b>）
+        Gerber：一堆 <b>.gbr / .gtl / .gbl / .gko</b> 连钻孔 <b>.drl</b> 一起拖进来（或直接给 <b>.zip</b>）<br>
+        板厂制造数据 ODB++：<b>.zip</b> / <b>.tgz</b> 直接拖（这种包<b>带网络名</b>，比 Gerber 能查线）
       </div>
     </div>
     <div>
@@ -817,7 +822,12 @@ zh:{
         按内容自动分开，不用你操心
       · <b>.json</b> —— 立创EDA <b>标准版</b>的板文件（纯文本 JSON，导出的就是它）<br>
       · <b>.epro2 / .epro</b> —— 立创EDA <b>专业版</b>的工程包，整个文件直接拖进来，
-        里面的 .epru 设计日志会自己解开</p>
+        里面的 .epru 设计日志会自己解开<br>
+      · <b>Gerber</b> —— 一堆 <b>.gbr / .gtl / .gbl / .gko</b> 加钻孔 <b>.drl</b>，
+        一起选中或压成 <b>.zip</b><br>
+      · <b>ODB++</b> —— 板厂给的制造数据，<b>.zip</b> 或老派的 <b>.tgz</b>，
+        连解开成目录也能直接拖。它比 Gerber 多了<b>网络名和层名</b>，
+        所以焊盘能对上"这颗料第几脚"</p>
 
     <h3>同时看几块板</h3>
     <p>每打开一个文件就多一个<b>页签</b>：可以一边看这块板、一边翻另一块，像 Protel 那样
@@ -995,7 +1005,7 @@ zh:{
       <li><b>最近打开</b>：首页列出上次开过的文件，点一下直接再打开</li>
     </ul>
     <h3>版本</h3>
-    <p>v1.19　·　支持 x86 与 64 位系统　·　单文件便携版</p>
+    <p>v1.20　·　支持 x86 与 64 位系统　·　单文件便携版</p>
     <div class="sig">© 永远的兰兰　·　Lanlan Eternal</div>`
 },
 en:{
@@ -1121,6 +1131,9 @@ en:{
   errBvEmpty:"No pads and no outline could be read from this boardview file.\n"
     +"The version may have changed the field order, or the file is encrypted.",
   fmtBv:"  (boardview)",
+  fmtOdb:"  (ODB++)",
+  errOdbEmpty:"No copper layers could be read from this ODB++ package.\n"
+    +"It should contain matrix/matrix and steps/<board>/layers/<layer>/features.",
   bvNoShape:"A boardview file stores only refdes, pads and nets — no copper shapes. "
     +"So this board shows pads and outline without traces. Net tracing, pin lookup "
     +"and measuring all still work.",
@@ -1189,7 +1202,7 @@ en:{
     +"　parsed in "+o.ms+"ms",
   objs:n=>n+" objects",
   pourN:n=>"　"+n+" pours",
-  noPcb:"Unrecognised file. Supports .pcb / .ddb / .kicad_pcb / EAGLE .brd / repair boardview (.bvr .bv .bdv .cad) / EasyEDA .json / .epro2, or a Gerber set.",
+  noPcb:"Unrecognised file. Supports .pcb / .ddb / .kicad_pcb / EAGLE .brd / repair boardview (.bvr .bv .bdv .cad) / EasyEDA .json / .epro2, or a Gerber / ODB++ set.",
   badFile:"Cannot read this file: ",
   multiBoard:"Several boards in this file, newest first:",
   latest:"★latest",
@@ -1212,7 +1225,8 @@ en:{
       <div style="margin-top:8px;color:var(--fg3)">
         Protel 99SE: single board <b>.pcb</b> or design library <b>.ddb</b>　·　KiCad: <b>.kicad_pcb</b><br>
         EAGLE: <b>.brd</b> (Autodesk EAGLE / Fusion 360 XML)<br>        Boardview: <b>.bvr</b> / <b>.bv</b> / <b>.bdv</b> / <b>.cad</b> — what phone and laptop repair uses<br>        EasyEDA: standard <b>.json</b>　·　pro <b>.epro2</b> / <b>.epro</b> (drop the whole project file)<br>
-        Gerber: drop the whole <b>.gbr / .gtl / .gbl / .gko</b> set plus the <b>.drl</b> drill file together (or just a <b>.zip</b>)
+        Gerber: drop the whole <b>.gbr / .gtl / .gbl / .gko</b> set plus the <b>.drl</b> drill file together (or just a <b>.zip</b>)<br>
+        ODB++ fabrication data: drop the <b>.zip</b> / <b>.tgz</b> as-is (it carries net names, so tracing works)
       </div>
     </div>
     <div>
@@ -1467,7 +1481,7 @@ en:{
       <li><b>Recent files</b>: the home page lists what you opened last; one click reopens it</li>
     </ul>
     <h3>Version</h3>
-    <p>v1.19　·　supports x86 and 64-bit Windows　·　portable single file</p>
+    <p>v1.20　·　supports x86 and 64-bit Windows　·　portable single file</p>
     <div class="sig">© Lanlan Eternal　·　永远的兰兰</div>`
 }
 };
@@ -1537,7 +1551,8 @@ function refreshFileLine(){
     T("fnameLine", lastName, B.fromDdb, n, B.polys.length) +
     (B.fmt==="kicad" ? T("fmtKicad")
                        : (B.fmt==="eagle" ? T("fmtEagle")
-                       : (B.fmt==="bv" ? T("fmtBv") : "")));
+                       : (B.fmt==="bv" ? T("fmtBv")
+                       : (B.fmt==="odb" ? T("fmtOdb") : ""))));
   document.getElementById("stStats").textContent = T("stats", {
     t:B.tracks.length, p:B.pads.length, v:B.vias.length,
     f:B.fills.length, po:B.polys.length, n:B.nets.length,
@@ -3304,6 +3319,8 @@ function gbParseDrill(txt, hintDec){
 
 /* 一包文件 → 一块板 */
 function parseGerberSet(files){
+  /* 板厂给的包可能不是 Gerber 而是 ODB++（同样是 zip）—— 先认一下 */
+  if(odbLooks(files)) return parseOdb(files);
   const b={
     layers:{}, copper:[], nets:[], tracks:[], pads:[], vias:[], arcs:[],
     fills:[], texts:[], comps:[], polys:[], sections:[], warn:[],
@@ -5399,6 +5416,646 @@ function parseBoardView(buf, kind){
   }
   if(k==="bdv") return parseBdv(u8);
   return parseBrdBv(u8);
+}
+
+/* ==================== ODB++（板厂给的那包制造数据） ====================
+   ODB++ 不是"一层一个 Gerber"，而是一棵目录树，压成 zip / tgz 交给板厂：
+
+       matrix/matrix                              层清单：哪层是铜、哪层在上
+       steps/<板名>/layers/<层>/features           每层的几何
+       steps/<板名>/layers/comp_+_top/components   位号 + 每个脚的坐标 + 网络号
+       steps/<板名>/netlist/…                     网络号 → 网络名
+       symbols/<名>/features                      自定义焊盘形状（少数板子才用到）
+
+   features 是逐行记录，空格/制表符分隔，分号后面挂属性：
+
+       P  x y sym pol dcode orient            焊盘（sym 指向下面 $ 表）
+       L  xs ys xe ye sym pol dcode           线（走线 / 轮廓）
+       A  xs ys xe ye xc yc sym pol dcode cw  弧：起点、终点、圆心
+       T  x y font pol orient xs ys '文字'
+       S  pol dcode                           面积开始
+       OB x y I|H                             轮廓开始（I 岛 / H 洞）
+       OS x y / OC xe ye xc yc cw             直线到 / 弧到
+       OE / SE                                轮廓结束 / 面积结束
+       $3 r55                                 符号表：3 号圆盘，直径 55
+
+   两个坑都在这一步解决掉：
+     · 单位：坐标跟文件头的 UNITS=INCH|MM 走，符号参数却可能自带 M/I 后缀，
+       公制符号写 micro、英制符号写 mil 的都有 —— 一律过量级体检。
+     · 网络：铜层几何里**没有**网络名。网络来自 components 的 TOP 记录
+       （每个脚坐标 + 网络号）和 netlist 的 $ 表（编号 → 名字），两边按坐标对号。
+       这就是 ODB++ 比 Gerber 值钱的地方：Gerber 只有图形。
+*/
+const ODB_MM = 39.37007874015748;          /* 1 mm = 39.37 mil */
+
+function odbName(f){
+  return String((f && f.name) || "").replace(/\\/g, "/").replace(/^\.?\/+/, "");
+}
+function odbStr(rec){
+  if(!rec || !rec.buf) return "";
+  const u8 = (rec.buf instanceof Uint8Array) ? rec.buf : new Uint8Array(rec.buf);
+  try{ return new TextDecoder("utf-8").decode(u8); }
+  catch(_){ return decBytes(u8); }
+}
+function odbIndex(files){
+  const map = new Map();
+  for(const f of files || []){
+    const n = odbName(f);
+    if(!n) continue;
+    const k = n.toLowerCase();
+    if(!map.has(k)) map.set(k, {n:n, buf:f.buf || null});
+  }
+  return map;
+}
+/* 认不认这个包：有 matrix/matrix 就算，没有但有一堆 layers/<层>/features 也算 */
+function odbLooks(files){
+  for(const f of files || []){
+    const n = odbName(f).toLowerCase();
+    if(/(^|\/)matrix\/matrix$/.test(n)) return true;
+  }
+  for(const f of files || []){
+    const n = odbName(f).toLowerCase();
+    if(/(^|\/)layers\/[^\/]+\/features$/.test(n)) return true;
+  }
+  return false;
+}
+/* 板厂常在包里再套一层目录（odb/ 或 <工程名>/），先找出那层公共前缀 */
+function odbRootOf(map){
+  let best = null;
+  map.forEach((v, k) => {
+    if(!/(^|\/)matrix\/matrix$/.test(k)) return;
+    const r = k.slice(0, k.length - "matrix/matrix".length);
+    if(best === null || r.length < best.length) best = r;
+  });
+  if(best !== null) return best;
+  let r = null;
+  map.forEach((v, k) => {
+    const i = k.indexOf("steps/");
+    if(i < 0) return;
+    const p = k.slice(0, i);
+    if(r === null || p.length < r.length) r = p;
+  });
+  return r === null ? "" : r;
+}
+
+/* ---------------- matrix：层清单 ---------------- */
+function odbMatrix(txt){
+  const out = {steps:[], layers:[]};
+  let cur = null, kind = "";
+  for(const raw of String(txt || "").split(/\r?\n/)){
+    const line = raw.replace(/^\s+|\s+$/g, "");
+    if(!line || line.charAt(0) === "#") continue;
+    if(/^STEP\s*\{/i.test(line)){ cur = {name:"", col:0}; kind = "step"; continue; }
+    if(/^LAYER\s*\{/i.test(line)){ cur = {name:"", type:"", row:0, context:""}; kind = "layer"; continue; }
+    if(/^[A-Z_][A-Z_0-9]*\s*\{/i.test(line)){ cur = null; kind = "other"; continue; }
+    if(line.charAt(0) === "}"){
+      if(kind === "step" && cur) out.steps.push(cur);
+      else if(kind === "layer" && cur) out.layers.push(cur);
+      cur = null; kind = ""; continue;
+    }
+    const eq = line.indexOf("=");
+    if(eq < 0 || !cur) continue;
+    const k = line.slice(0, eq).replace(/\s+$/,"").toUpperCase();
+    const v = line.slice(eq + 1).replace(/^\s+|\s+$/g, "");
+    if(kind === "step"){
+      if(k === "NAME") cur.name = v;
+      else if(k === "COL") cur.col = +v || 0;
+    }else if(kind === "layer"){
+      if(k === "NAME") cur.name = v;
+      else if(k === "TYPE") cur.type = v.toUpperCase();
+      else if(k === "ROW") cur.row = +v || 0;
+      else if(k === "CONTEXT") cur.context = v.toUpperCase();
+      else if(k === "ADD_TYPE") cur.addType = v.toUpperCase();
+      else if(k === "POLARITY") cur.pol = v.toUpperCase();
+    }
+  }
+  return out;
+}
+
+/* 层名 → 哪一面。matrix 的 ROW 顺序各家不一（有的从顶层列起、有的从底层），
+   名字比行号可靠；看不出来就交给行号。 */
+function odbSide(nm){
+  const s = String(nm || "").toLowerCase();
+  if(!s) return 0;
+  if(/^(bot|bottom|b)$/.test(s) || /(^|[^a-z])(bot|bottom)$/.test(s)) return 2;
+  if(/^(top|t)$/.test(s) || /(^|[^a-z])top$/.test(s)) return 1;
+  /* 丝印/阻焊/钢网那套三字母叫法：sst ssb smt smb spt spb dst dsb */
+  if(/^(ss|sm|sp|ds|ps)[tb]$/.test(s)) return /t$/.test(s) ? 1 : 2;
+  return 0;
+}
+
+/* 名字像不像铜层。sst/smt/ssb/smb 这套三字母叫法最容易误判，单列出来 */
+function odbIsCuName(nm){
+  const s = String(nm || "").toLowerCase();
+  if(!s) return false;
+  if(/^(ss|sm|sp|ds|ps)[tsb]$/.test(s)) return false;
+  return !/(silk|mask|paste|drill|rout|profile|outline|comp|doc|dielectric|mech|fab)/.test(s);
+}
+
+/* ---------------- 符号（焊盘形状） ---------------- */
+/* 返回 {shape, w, h}（还是 raw 数值，没换单位）；shape：1 圆/椭圆、2 方、3 八角 */
+function odbSymParse(name){
+  const s = String(name || "").replace(/^\s+|\s+$/g, "");
+  let m;
+  if((m = /^r(\d+(?:\.\d+)?)$/i.exec(s)))                   return {shape:1, w:+m[1], h:+m[1]};
+  if((m = /^s(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)$/i.exec(s)))   return {shape:2, w:+m[1], h:+m[2]};
+  if((m = /^s(\d+(?:\.\d+)?)$/i.exec(s)))                   return {shape:2, w:+m[1], h:+m[1]};
+  if((m = /^rect(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)$/i.exec(s))) return {shape:2, w:+m[1], h:+m[2]};
+  if((m = /^rect(\d+(?:\.\d+)?)$/i.exec(s)))                return {shape:2, w:+m[1], h:+m[1]};
+  if((m = /^oval(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)$/i.exec(s))) return {shape:1, w:+m[1], h:+m[2]};
+  if((m = /^el(?:lipse)?(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)$/i.exec(s))) return {shape:1, w:+m[1], h:+m[2]};
+  if((m = /^d(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)$/i.exec(s)))   return {shape:3, w:+m[1], h:+m[2]};
+  if((m = /^p(\d+(?:\.\d+)?)(?:x(\d+))?$/i.exec(s)))        return {shape:3, w:+m[1], h:+m[1]};
+  if((m = /^h(\d+(?:\.\d+)?)$/i.exec(s)))                   return {shape:1, w:+m[1], h:+m[1], hole:true};
+  return null;
+}
+/* 符号尺寸换成 mil，顺带做量级体检。
+   ODB++ 的符号参数两种写法都常见：英制写 mil（r6 = 6 mil）、公制写 mm（r0.15），
+   但公制也常写 micro（r150）、英制也常写 inch（r0.006）。
+   落在 1~600 mil 之外就换个解释再试，取第一个说得通的。 */
+function odbSizeToMil(v, unit, fileUnit){
+  if(!(v > 0)) return 0;
+  const u = unit || (fileUnit === "MM" ? "M" : "I");
+  const m = (u === "M") ? v * ODB_MM : v;
+  const ok = x => x >= 1 && x <= 600;
+  if(ok(m)) return m;
+  for(const c of [m * 1000, m / 1000, m * ODB_MM, m / ODB_MM]) if(ok(c)) return c;
+  return m;
+}
+
+/* ---------------- features 文件 ---------------- */
+/* 只做词法：$ 符号表 + 记录行拆成 raw 数值，单位换算留给调用方 */
+function odbFeat(txt){
+  const syms = new Map();              /* 编号 → {shape,w,h,unit} */
+  const recs = [];
+  let unit = "INCH";
+  let surf = null;                     /* 正在读的面积 */
+  let cont = null;                     /* 正在读的轮廓 */
+  const num = (a, i) => { const v = parseFloat(a[i]); return isFinite(v) ? v : 0; };
+
+  for(const raw of String(txt || "").split(/\r?\n/)){
+    const line = raw.replace(/^\s+|\s+$/g, "");
+    if(!line) continue;
+    const c = line.charAt(0);
+    if(c === "#") continue;
+    if(/^UNITS\s*=/i.test(line)){ unit = line.slice(line.indexOf("=") + 1).trim().toUpperCase(); continue; }
+    if(c === "$"){
+      const m = /^\$(\d+)\s+(\S+)(?:\s+([IMim]))?/.exec(line);
+      if(m){
+        const sh = odbSymParse(m[2]);
+        syms.set(+m[1], {name:m[2], shape:sh ? sh.shape : 1,
+                         w:sh ? sh.w : 10, h:sh ? sh.h : 10,
+                         hole:sh ? !!sh.hole : false,
+                         unit:(m[3] || "").toUpperCase()});
+      }
+      continue;
+    }
+    if(c === "@" || c === "&") continue;          /* 属性表：这一版用不上 */
+
+    const semi = line.indexOf(";");               /* 分号后面是属性，先切掉 */
+    const body = semi < 0 ? line : line.slice(0, semi);
+    const f = body.split(/[ \t]+/);
+    const k = f[0].toUpperCase();
+
+    if(k === "P" && f.length >= 5){
+      let sym = +f[3], i = 4, resize = 0;
+      if(sym < 0){ resize = +f[4] || 0; i = 5; }  /* -1 = "按缩放系数画"，极少见 */
+      recs.push({t:"P", x:num(f,1), y:num(f,2), sym:sym, pol:(f[i]||"P").toUpperCase(),
+                 dcode:+(f[i+1]||0), orient:+(f[i+2]||0) || 0, resize:resize});
+      continue;
+    }
+    if(k === "L" && f.length >= 6){
+      recs.push({t:"L", x1:num(f,1), y1:num(f,2), x2:num(f,3), y2:num(f,4),
+                 sym:+(f[5]||0), pol:(f[6]||"P").toUpperCase()});
+      continue;
+    }
+    if(k === "A" && f.length >= 8){
+      recs.push({t:"A", xs:num(f,1), ys:num(f,2), xe:num(f,3), ye:num(f,4),
+                 xc:num(f,5), yc:num(f,6), sym:+(f[7]||0),
+                 pol:(f[8]||"P").toUpperCase(), cw:/^y$/i.test(f[10] || "")});
+      continue;
+    }
+    if(k === "T" && f.length >= 9){
+      let s = f.slice(8).join(" ");
+      if(s.charAt(0) === "'" || s.charAt(0) === "\"") s = s.slice(1);
+      if(/['"]$/.test(s)) s = s.slice(0, -1);
+      recs.push({t:"T", x:num(f,1), y:num(f,2), pol:(f[4]||"P").toUpperCase(),
+                 rot:+(f[5]||0) || 0, h:num(f,7), text:s});
+      continue;
+    }
+    if(k === "S" && f.length >= 2){
+      surf = {t:"S", pol:(f[1]||"P").toUpperCase(), conts:[]};
+      recs.push(surf);
+      continue;
+    }
+    if(k === "SE"){ surf = null; cont = null; continue; }
+    if(k === "OB" && f.length >= 4){
+      cont = {hole:/^h$/i.test(f[3] || ""), pts:[[num(f,1), num(f,2)]]};
+      if(surf) surf.conts.push(cont);
+      continue;
+    }
+    if(k === "OS" && cont && f.length >= 3){
+      cont.pts.push([num(f,1), num(f,2)]);
+      continue;
+    }
+    if(k === "OC" && cont && f.length >= 6){
+      /* OC 是"终点 + 圆心 + 顺时针"，把弧打成折线接进轮廓 */
+      const ex = num(f,1), ey = num(f,2), cx = num(f,3), cy = num(f,4);
+      const cwf = /^y$/i.test(f[5] || "");
+      const from = cont.pts[cont.pts.length - 1];
+      const r = Math.hypot(from[0] - cx, from[1] - cy);
+      if(r > 0){
+        const a1 = Math.atan2(from[1] - cy, from[0] - cx) * 180 / Math.PI;
+        let a2 = Math.atan2(ey - cy, ex - cx) * 180 / Math.PI;
+        let span;
+        if(cwf){ if(a2 > a1) a2 -= 360; span = a1 - a2; }
+        else   { if(a2 < a1) a2 += 360; span = a2 - a1; }
+        if(span < 0) span = 0;
+        if(span > 360) span = 360;
+        const n = Math.max(2, Math.min(48, Math.ceil(span / 6)));
+        for(let i = 1; i <= n; i++){
+          const t = (cwf ? a1 - span * i / n : a1 + span * i / n) * Math.PI / 180;
+          cont.pts.push([cx + r * Math.cos(t), cy + r * Math.sin(t)]);
+        }
+      }
+      cont.pts.push([ex, ey]);
+      continue;
+    }
+    if(k === "OE"){ cont = null; continue; }
+  }
+  return {unit:unit, syms:syms, recs:recs};
+}
+
+/* ---------------- components：位号 + 每个脚的网络号 ---------------- */
+function odbComp(txt){
+  const comps = [], pins = [];
+  let cur = null, unit = "INCH";
+  for(const raw of String(txt || "").split(/\r?\n/)){
+    const line = raw.replace(/^\s+|\s+$/g, "");
+    if(!line || line.charAt(0) === "#") continue;
+    if(/^UNITS\s*=/i.test(line)){ unit = line.slice(line.indexOf("=") + 1).trim().toUpperCase(); continue; }
+    const semi = line.indexOf(";");
+    const body = semi < 0 ? line : line.slice(0, semi);
+    const f = body.split(/[ \t]+/);
+    const k = f[0].toUpperCase();
+    if(k === "CMP" && f.length >= 7){
+      cur = {des:f[6] || "", part:f[7] || "", x:+f[2] || 0, y:+f[3] || 0,
+             rot:+f[4] || 0, mirror:/^m$/i.test(f[5] || "")};
+      comps.push(cur);
+      continue;
+    }
+    if(k === "TOP" && f.length >= 7 && cur){
+      pins.push({ci:comps.length, x:+f[2] || 0, y:+f[3] || 0, rot:+f[4] || 0,
+                 mirror:/^m$/i.test(f[5] || ""), net:+(f[6] || 0),
+                 name:f[8] || f[1] || ""});
+      continue;
+    }
+    if(k === "PRP" && cur && !cur.part){
+      const m = /^PRP\s+(\S+)\s+'?(.*?)'?$/.exec(body);
+      if(m && /^(Part_Number|Description|Value|Comment)$/i.test(m[1]))
+        cur.part = m[2].replace(/^\s+|\s+$/g, "");
+      continue;
+    }
+  }
+  return {comps:comps, pins:pins, unit:unit};
+}
+
+/* ---------------- 主流程 ---------------- */
+function parseOdb(files){
+  const map = odbIndex(files);
+  const root = odbRootOf(map);
+  const at = rel => map.get((root + rel).toLowerCase()) || null;
+  const keys = [];
+  map.forEach((v, k) => { if(k.indexOf(root) === 0) keys.push(k.slice(root.length)); });
+
+  const b = {layers:{}, copper:[], nets:[], tracks:[], pads:[], vias:[], arcs:[],
+             fills:[], texts:[], comps:[], polys:[], sections:[], warn:[],
+             fmt:"odb", fromDdb:false, boardCount:1, layerNames:{}};
+  const ids = new Map();                        /* 网络名 → 1 基编号 */
+  const mx = odbMatrix(odbStr(at("matrix/matrix")));
+
+  /* 步：一块板可能有多个 step，取第一个真有 layer 目录的 */
+  const stepDirs = [];
+  for(const k of keys){
+    const m = /^steps\/([^\/]+)\//.exec(k);
+    if(m && stepDirs.indexOf(m[1]) < 0) stepDirs.push(m[1]);
+  }
+  let step = "";
+  for(const s of mx.steps) if(stepDirs.indexOf(s.name) >= 0){ step = s.name; break; }
+  if(!step) step = stepDirs[0] || (mx.steps[0] && mx.steps[0].name) || "pcb";
+  const S = "steps/" + step + "/";
+
+  /* 层：matrix 说了算；matrix 没写全就按目录里的实际层名补 */
+  const LAYERS = mx.layers.filter(L => L.name);
+  const dirs = [];
+  for(const k of keys){
+    const m = /^steps\/[^\/]+\/layers\/([^\/]+)\//.exec(k);
+    if(m && dirs.indexOf(m[1]) < 0) dirs.push(m[1]);
+  }
+  for(const nm of dirs){
+    if(!LAYERS.some(L => String(L.name).toLowerCase() === nm.toLowerCase()))
+      LAYERS.push({name:nm, type:"", row:0});
+  }
+
+  /* 铜层编号：最上面 = 1、最下面 = 32，中间依次 39、40…（和 Protel 那套一致） */
+  let cu = LAYERS.filter(L => /^(SIGNAL|POWER_GROUND|MIXED)$/.test(L.type));
+  if(!cu.length){
+    cu = LAYERS.filter(L => odbIsCuName(L.name));
+  }
+  cu = cu.slice().sort((a, c) => (a.row || 0) - (c.row || 0));
+  if(cu.length > 1){
+    const f = odbSide(cu[0].name), l = odbSide(cu[cu.length - 1].name);
+    if((f === 2 && l !== 2) || (l === 1 && f !== 1)) cu.reverse();
+  }
+  const cuNo = new Map();
+  cu.forEach((L, i) => {
+    const n = (i === 0) ? 1 : (i === cu.length - 1) ? 32 : 39 + (i - 1);
+    cuNo.set(String(L.name).toLowerCase(), n);
+    b.layerNames[n] = L.name;
+  });
+
+  function layerNo(L){
+    const nm = String(L.name || "");
+    const low = nm.toLowerCase();
+    const side = odbSide(nm) || (/(bot|bottom)/i.test(low) ? 2 : 1);
+    const t = L.type || "";
+    if(cuNo.has(low)) return cuNo.get(low);
+    if(/ROUT|PROFILE|OUTLINE/.test(t) || /^(rout|profile|outline|edge)/.test(low)) return 56;
+    if(/DOCUMENT/.test(t)) return 62;
+    if(/SILK/.test(t) || /silk|^ss[tsb]$/.test(low)) return side === 2 ? 34 : 33;
+    if(/SOLDER_PASTE|CONDUCTIVE_PASTE/.test(t) || /paste|^sp[tsb]$|^sm[tsb]$/.test(low)) return side === 2 ? 36 : 35;
+    if(/SOLDER_MASK|^MASK$/.test(t) || /mask/.test(low)) return side === 2 ? 38 : 37;
+    return 0;
+  }
+
+  /* ---- 逐层读 features ---- */
+  const cache = new Map();
+  function featOf(rel){
+    if(cache.has(rel)) return cache.get(rel);
+    const rec = at(rel);
+    const out = rec ? odbFeat(odbStr(rec)) : null;
+    cache.set(rel, out);
+    return out;
+  }
+
+  function emit(rel, layer, kind){
+    const ff = featOf(rel);
+    if(!ff) return 0;
+    const scale = ff.unit === "MM" ? ODB_MM : 1000;      /* → mil */
+    const px = v => v * scale;
+    const szX = s => odbSizeToMil(s.w, s.unit, ff.unit);
+    const szY = s => odbSizeToMil(s.h, s.unit, ff.unit);
+    let n = 0;
+    for(const r of ff.recs){
+      if(r.t === "P"){
+        if(kind !== "copper" && kind !== "mask" && kind !== "paste") continue;
+        if(r.pol === "N") continue;                     /* 负焊盘是"挖掉"，不画 */
+        const s = ff.syms.get(r.sym);
+        const w = s ? (szX(s) || 10) : 10;
+        const h = s ? (szY(s) || w) : w;
+        b.pads.push({kind:"pad", layer:layer, net:0, comp:-1,
+                     x:px(r.x), y:px(r.y), xs:w, ys:h, xm:w, ym:h, xb:w, yb:h,
+                     stack:false, hole:0, shape:(s && s.shape) || 1, name:"",
+                     rot:r.orient || 0, plated:!!(s && s.hole)});
+        n++;
+        continue;
+      }
+      if(r.t === "L"){
+        if(kind !== "copper" && kind !== "outline") continue;
+        const s = ff.syms.get(r.sym);
+        const w = s ? (szX(s) || 0) : 0;
+        b.tracks.push({kind:"track", layer:layer, net:0, comp:-1,
+                       x1:px(r.x1), y1:px(r.y1), x2:px(r.x2), y2:px(r.y2),
+                       w:(kind === "outline" ? Math.min(w || 4, 8) : (w || 4)), poly:-1});
+        n++;
+        continue;
+      }
+      if(r.t === "A"){
+        if(kind !== "copper" && kind !== "outline") continue;
+        const s = ff.syms.get(r.sym);
+        const w = s ? (szX(s) || 0) : 0;
+        const cx = px(r.xc), cy = px(r.yc);
+        const rad = Math.hypot(px(r.xs) - cx, px(r.ys) - cy);
+        if(!(rad > 0)) continue;
+        let a1 = Math.atan2(px(r.ys) - cy, px(r.xs) - cx) * 180 / Math.PI;
+        let a2 = Math.atan2(px(r.ye) - cy, px(r.xe) - cx) * 180 / Math.PI;
+        /* 本程序的弧一律按"逆时针 a1→a2"画，顺时针的就把起止对调 */
+        if(r.cw){ const t = a1; a1 = a2; a2 = t; }
+        b.arcs.push({kind:"arc", layer:layer, net:0, comp:-1,
+                     x:cx, y:cy, radius:rad, a1:a1, a2:a2,
+                     w:(kind === "outline" ? Math.min(w || 4, 8) : (w || 4)), poly:-1});
+        n++;
+        continue;
+      }
+      if(r.t === "T"){
+        if(!r.text || kind === "mask" || kind === "paste") continue;
+        b.texts.push({kind:"text", layer:layer, comp:-1, x:px(r.x), y:px(r.y),
+                      h:Math.max(6, px(r.h) || 40), rot:r.rot || 0,
+                      text:r.text, isDes:false, isCom:false});
+        n++;
+        continue;
+      }
+      if(r.t === "S"){
+        if(kind !== "copper" && kind !== "outline") continue;
+        if(r.pol === "N") continue;                     /* 负面积（挖空）暂不画 */
+        for(const c of r.conts){
+          if(c.hole || !c.pts || c.pts.length < 3) continue;
+          const pts = [];
+          for(const p of c.pts){
+            const x = px(p[0]), y = px(p[1]);
+            const last = pts[pts.length - 1];
+            if(!last || Math.abs(last[0] - x) > 1e-6 || Math.abs(last[1] - y) > 1e-6) pts.push([x, y]);
+          }
+          if(pts.length < 3) continue;
+          b.polys.push({kind:"polygon", layer:layer, net:0, pid:b.polys.length + 1,
+                        pts:pts, closed:true});
+          n++;
+        }
+        continue;
+      }
+    }
+    return n;
+  }
+
+  /* 铜层先读（网络要回填到焊盘上），然后丝印/阻焊，板框最后 */
+  let nCu = 0;
+  for(const L of LAYERS){
+    const low = String(L.name || "").toLowerCase();
+    if(!low || !cuNo.has(low)) continue;
+    nCu += emit(S + "layers/" + L.name + "/features", cuNo.get(low), "copper");
+  }
+  /* 一层铜都没读到：有的导出把 TYPE 写成 LOOSE，按"里面真有 P 记录"再捞一遍 */
+  if(!nCu){
+    cu = LAYERS.filter(L => odbIsCuName(L.name));
+    cu.forEach((L, i) => {
+      const ff = featOf(S + "layers/" + L.name + "/features");
+      if(!ff || !ff.recs.some(r => r.t === "P")) return;
+      const n = (i === 0) ? 1 : (i === cu.length - 1) ? 32 : 39 + (i - 1);
+      cuNo.set(String(L.name).toLowerCase(), n);
+      b.layerNames[n] = L.name;
+      nCu += emit(S + "layers/" + L.name + "/features", n, "copper");
+    });
+  }
+
+  for(const L of LAYERS){
+    const nm = String(L.name || "");
+    const low = nm.toLowerCase();
+    if(!low || cuNo.has(low)) continue;
+    if(/DRILL/.test(L.type || "") || /drill/.test(low)) continue;   /* 钻孔单独处理 */
+    const no = layerNo(L);
+    if(!no || no === 56) continue;
+    const kind = /paste|^sp[tsb]$|^sm[tsb]$/.test(low) ? "paste"
+               : /mask/.test(low) ? "mask" : "silk";
+    emit(S + "layers/" + nm + "/features", no, kind);
+  }
+
+  /* ---- 板框：rout 层 / profile 文件 ---- */
+  let nOut = 0;
+  for(const L of LAYERS){
+    if(layerNo(L) !== 56) continue;
+    nOut += emit(S + "layers/" + L.name + "/features", 56, "outline");
+  }
+  if(!nOut){
+    const pf = at(S + "profile") || at(S + "profile/profile");
+    if(pf){
+      const ff = odbFeat(odbStr(pf));
+      const scale = ff.unit === "MM" ? ODB_MM : 1000;
+      for(const r of ff.recs){
+        if(r.t !== "S" || r.pol === "N") continue;
+        for(const c of r.conts){
+          if(c.hole || !c.pts || c.pts.length < 3) continue;
+          for(let i = 0; i < c.pts.length; i++){
+            const p = c.pts[i], q = c.pts[(i + 1) % c.pts.length];
+            b.tracks.push({kind:"track", layer:56, net:0, comp:-1,
+                           x1:p[0] * scale, y1:p[1] * scale,
+                           x2:q[0] * scale, y2:q[1] * scale, w:4, poly:-1});
+            nOut++;
+          }
+        }
+      }
+    }
+  }
+
+  /* ---- 网络名（netlist 的 $ 表：编号 → 名字） ---- */
+  const netName = new Map();
+  let nlRel = "";
+  for(const k of keys){
+    if(/^steps\/[^\/]+\/netlist\//.test(k) && !/\/$/.test(k)){ nlRel = k; break; }
+  }
+  if(nlRel){
+    const rec = map.get(root + nlRel);
+    for(const raw of odbStr(rec).split(/\r?\n/)){
+      const m = /^\$(\d+)\s+(\S.*)$/.exec(raw);
+      if(!m) continue;
+      const nm = m[2].replace(/^\s+|\s+$/g, "");
+      if(/^\$NONE\$/i.test(nm)) continue;
+      netName.set(+m[1], nm);
+    }
+  }
+
+  /* ---- 位号 + 每个脚的网络号（ODB++ 最值钱的一层信息） ---- */
+  const pins = [];
+  for(const side of ["top", "bot"]){
+    const crec = at(S + "layers/comp_+_" + side + "/components");
+    if(!crec) continue;
+    const cc = odbComp(odbStr(crec));
+    const bot = (side === "bot");
+    const unit = cc.unit === "MM" ? ODB_MM : 1000;        /* 跟 components 自己的 UNITS= 走 */
+    const idOf = [];
+    for(const c of cc.comps){
+      const id = b.comps.length + 1;
+      idOf.push(id);
+      b.comps.push({id:id, layer:(bot ? 32 : 1), x:c.x * unit, y:c.y * unit,
+                    rot:c.rot || 0, lib:c.part || ""});
+      if(c.des) b.texts.push({kind:"text", layer:(bot ? 34 : 33), comp:id,
+                              x:c.x * unit, y:c.y * unit, h:40, rot:0,
+                              text:c.des, isDes:true, isCom:false});
+      if(c.part) b.texts.push({kind:"text", layer:(bot ? 61 : 60), comp:id,
+                               x:c.x * unit, y:(c.y * unit) - 45, h:26, rot:0,
+                               text:c.part, isDes:false, isCom:true});
+    }
+    for(const p of cc.pins){
+      pins.push({x:p.x * unit, y:p.y * unit, net:p.net, name:p.name,
+                 comp:idOf[p.ci - 1] || 0});
+    }
+  }
+
+  /* ---- 钻孔：钻层的 P 记录就是孔位 ---- */
+  const drills = [];
+  for(const L of LAYERS){
+    const low = String(L.name || "").toLowerCase();
+    if(!/DRILL/.test(L.type || "") && !/drill/.test(low)) continue;
+    const ff = featOf(S + "layers/" + L.name + "/features");
+    if(!ff) continue;
+    const scale = ff.unit === "MM" ? ODB_MM : 1000;
+    for(const r of ff.recs){
+      if(r.t !== "P") continue;
+      const s = ff.syms.get(r.sym);
+      const d = s ? odbSizeToMil(s.w, s.unit, ff.unit) : 0;
+      if(d > 0) drills.push({x:r.x * scale, y:r.y * scale, d:d});
+    }
+  }
+  const kOf = (x, y) => Math.round(x * 100) + "_" + Math.round(y * 100);
+  const drillAt = new Map();
+  for(const h of drills) if(!drillAt.has(kOf(h.x, h.y))) drillAt.set(kOf(h.x, h.y), h);
+  const used = new Set();
+  for(const p of b.pads){
+    if(!isCuLayer(p.layer)) continue;
+    const h = drillAt.get(kOf(p.x, p.y));
+    if(h && h.d <= Math.max(p.xs, p.ys) + 6){ p.hole = h.d; p.plated = true; used.add(kOf(p.x, p.y)); }
+  }
+  for(const h of drills){
+    const k = kOf(h.x, h.y);
+    if(used.has(k) || used.has("v" + k)) continue;
+    used.add("v" + k);
+    b.vias.push({kind:"via", layer:74, net:0, x:h.x, y:h.y,
+                 dia:Math.max(h.d * 1.6, h.d + 10), hole:h.d, start:1, end:32});
+  }
+
+  /* ---- 焊盘 ← 元件的脚：按坐标对号，把网络名和位号挂上去 ---- */
+  const pinAt = new Map();
+  for(const p of pins){
+    const k = kOf(p.x, p.y);
+    if(!pinAt.has(k)) pinAt.set(k, p);
+  }
+  let netPads = 0;
+  for(const pd of b.pads){
+    if(!isCuLayer(pd.layer)) continue;              /* 阻焊/钢网上的同名焊盘不参与查线 */
+    const pin = pinAt.get(kOf(pd.x, pd.y));
+    if(!pin) continue;
+    const nm = netName.get(pin.net);
+    if(nm){
+      const id = bvNet(b, ids, nm);
+      if(id){ pd.net = id; netPads++; }
+    }
+    if(pin.name) pd.name = String(pin.name);
+    if(pin.comp) pd.comp = pin.comp;
+  }
+  /* 通孔焊盘每层都有一份：同坐标的网络名和孔要铺开，否则查线只有一面亮 */
+  const src = new Map();
+  for(const pd of b.pads){
+    if(!isCuLayer(pd.layer)) continue;
+    if(!(pd.net > 0) && !pd.hole) continue;
+    const k = kOf(pd.x, pd.y);
+    if(!src.has(k)) src.set(k, pd);
+  }
+  for(const pd of b.pads){
+    if(!isCuLayer(pd.layer)) continue;
+    const s = src.get(kOf(pd.x, pd.y));
+    if(!s || s === pd) continue;
+    if(!(pd.net > 0) && s.net > 0){ pd.net = s.net; pd.comp = s.comp; }
+    if(!pd.name && s.name) pd.name = s.name;
+    if(!pd.hole && s.hole){ pd.hole = s.hole; pd.plated = true; }
+  }
+
+  if(!b.pads.length && !b.tracks.length) throw new Error(T("errOdbEmpty"));
+  b.desCount = b.comps.length;
+  b.valCount = 0;
+  b.__odb = {step:step, layers:LAYERS.length, netPads:netPads,
+             drill:drills.length, pins:pins.length};
+  finish(b);
+  b.__isBoard = true;
+  return b;
 }
 
 function parseAny(buf,name){
