@@ -38,7 +38,7 @@ from ctypes import wintypes
 from pathlib import Path
 
 APP_TITLE = "PCB 看板 CopperLens"
-VERSION = "1.21"
+VERSION = "1.22"
 
 _APPDIR = "CopperLens"
 _LOG = Path(tempfile.gettempdir()) / _APPDIR / "last-run.log"
@@ -366,7 +366,7 @@ def ask_file():
     """原生"打开文件"对话框。返回路径或 None。"""
     if _comdlg32 is None:
         msgbox(L("系统缺少文件对话框组件（comdlg32.dll）。\n"
-                 "可以改成把 .pcb / .ddb / .kicad_pcb / 立创 .json · .epro2 / PADS .asc "
+                 "可以改成把 .pcb / .ddb / .kicad_pcb / Altium .PcbDoc / 立创 .json · .epro2 / PADS .asc "
                  "文件直接拖到本程序的图标上。",
                  "The file dialog component (comdlg32.dll) is missing.\n"
                  "Workaround: drag a .pcb / .ddb / .kicad_pcb / EasyEDA "
@@ -378,13 +378,14 @@ def ask_file():
     except Exception:
         pass
     buf = ctypes.create_unicode_buffer(32768)
-    filt = L("所有板文件 (*.pcb;*.ddb;*.kicad_pcb;*.brd;*.bvr;*.bv;*.bdv;*.cad;*.json;*.gbr;*.asc;*.zip)"
+    filt = L("所有板文件 (*.pcb;*.ddb;*.kicad_pcb;*.brd;*.bvr;*.bv;*.bdv;*.cad;*.json;*.gbr;*.asc;*.PcbDoc;*.zip)"
              "\0*.pcb;*.ddb;*.kicad_pcb;*.brd;*.bvr;*.bv;*.bdv;*.cad;*.json;*.epro;*.epro2;"
-             "*.gbr;*.gtl;*.gbl;*.gko;*.drl;*.asc;*.zip\0"
+             "*.gbr;*.gtl;*.gbl;*.gko;*.drl;*.asc;*.PcbDoc;*.pcbdoc;*.zip\0"
              "设计库 (*.ddb)\0*.ddb\0"
              "板文件 (*.pcb)\0*.pcb\0"
              "KiCad 板文件 (*.kicad_pcb)\0*.kicad_pcb\0"
              "PADS 板文件 (*.asc)\0*.asc\0"
+             "Altium 板文件 (*.PcbDoc;*.pcbdoc)\0*.PcbDoc;*.pcbdoc\0"
              "Eagle / 点位图 (*.brd)\0*.brd\0"
              "维修点位图 (*.bvr;*.bv;*.bdv;*.cad)\0*.bvr;*.bv;*.bdv;*.cad\0"
              "立创EDA 标准版 (*.json)\0*.json\0"
@@ -393,13 +394,14 @@ def ask_file():
              "\0*.gbr;*.gtl;*.gbl;*.gts;*.gbs;*.gto;*.gbo;*.gko;*.drl;*.xln;*.zip\0"
              "ODB++ 制造数据 (*.zip;*.tgz;*.tar)\0*.zip;*.tgz;*.tar\0"
              "所有文件 (*.*)\0*.*\0\0",
-             "All board files (*.pcb;*.ddb;*.kicad_pcb;*.brd;*.bvr;*.bv;*.bdv;*.cad;*.json;*.gbr;*.asc;*.zip)"
+             "All board files (*.pcb;*.ddb;*.kicad_pcb;*.brd;*.bvr;*.bv;*.bdv;*.cad;*.json;*.gbr;*.asc;*.PcbDoc;*.zip)"
              "\0*.pcb;*.ddb;*.kicad_pcb;*.brd;*.bvr;*.bv;*.bdv;*.cad;*.json;*.epro;*.epro2;"
-             "*.gbr;*.gtl;*.gbl;*.gko;*.drl;*.asc;*.zip\0"
+             "*.gbr;*.gtl;*.gbl;*.gko;*.drl;*.asc;*.PcbDoc;*.pcbdoc;*.zip\0"
              "Design library (*.ddb)\0*.ddb\0"
              "Board file (*.pcb)\0*.pcb\0"
              "KiCad board (*.kicad_pcb)\0*.kicad_pcb\0"
              "PADS board (*.asc)\0*.asc\0"
+             "Altium board (*.PcbDoc;*.pcbdoc)\0*.PcbDoc;*.pcbdoc\0"
              "EAGLE / boardview (*.brd)\0*.brd\0"
              "Repair boardview (*.bvr;*.bv;*.bdv;*.cad)\0*.bvr;*.bv;*.bdv;*.cad\0"
              "EasyEDA standard (*.json)\0*.json\0"
@@ -1126,6 +1128,37 @@ def _pads_kind(raw):
     return ""
 
 
+ALT_MAGIC = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
+
+
+def _utf16(s):
+    return s.encode("utf-16-le")
+
+
+def _altium_kind(raw):
+    """Altium 的 .PcbDoc：二进制（CFB 复合文档）或 ASCII（|RECORD=|），两种都认。
+
+    二进制那种就是老 Office 的"文件里的文件系统"，里面按名字挂着 Board6 /
+    Pads6 / Tracks6 / Nets6 … 一串子流。**不能只看 CFB 魔数**：Protel 99SE 的
+    .ddb 设计库同样是 CFB（它是 Jet 数据库），里面可以装着原理图、封装库和
+    好几块板 —— 认错了就会把整个库当成一块板画出来。靠流名分得开：有
+    MSysObjects 的是 .ddb。
+
+    返回 "pcb" / "ddb" / ""。
+    """
+    if raw[:8] == ALT_MAGIC:
+        seg = raw[:262144]          # 目录项在文件前半段，256 KB 足够
+        if _utf16("MSysObjects") in seg:
+            return "ddb"
+        for nm in ("Board6", "Pads6", "Tracks6", "Board", "Pads", "Tracks"):
+            if _utf16(nm) in seg:
+                return "pcb"
+        return ""
+    if raw[:8] == b"|RECORD=" and b"RECORD=Board" in raw[:20000]:
+        return "pcb"
+    return ""
+
+
 def _payload_for_path(p):
     """把选中的文件读成前端要的结构：{boards:[{n,d}], ddb:bool}"""
     ext = p.suffix.lower()
@@ -1235,6 +1268,34 @@ def _payload_for_path(p):
                            "This archive holds neither ODB++ nor Gerber.\n"
                            "An ODB++ package has matrix/matrix and steps/<board>/layers/.")}
 
+    if ext == ".pcbdoc":
+        # Altium 的板文件。二进制版是 CFB 复合文档，ASCII 版是一行一条 RECORD=。
+        raw = p.read_bytes()
+        kind = _altium_kind(raw)
+        if kind == "pcb":
+            log("Altium：%s，%d 字节（%s）"
+                % (p.name, len(raw), "ASCII" if raw[:8] == b"|RECORD=" else "二进制"))
+            return {"boards": [{"n": p.name,
+                                "d": base64.b64encode(raw).decode("ascii")}],
+                    "ddb": False, "file": p.name, "alt": True}
+        if kind == "ddb":
+            return {"error": L("这是 Protel 99SE 的设计库（.ddb 的内核），不是单块板子。\n\n"
+                               "请先在 Altium / Protel 里打开它，把里面的 PCB 文档"
+                               "另存为 .PcbDoc，再把那个文件拖进来。",
+                               "This is a Protel 99SE design database (a .ddb inside), "
+                               "not a single board.\n\nOpen it in Altium/Protel, save the "
+                               "PCB document as .PcbDoc, and open that file instead.")}
+        return {"error": L("这个 .PcbDoc 认不出来。\n\n"
+                           "Altium 的板文件有两种存法：二进制（默认）和 ASCII"
+                           "（File → Save Copy As → PCB ASCII），两种本程序都读。\n"
+                           "认不出来可能是版本太新、存的时候加了保护，或者文件已经损坏。\n"
+                           "可以试着在 Altium 里另存一份新的 .PcbDoc 再打开。",
+                           "This .PcbDoc is not recognised.\n\n"
+                           "Altium boards come in two flavours: binary (default) and ASCII "
+                           "(File > Save Copy As > PCB ASCII); both are supported.\n"
+                           "This one may be from a newer version, protected, or damaged.\n"
+                           "Try re-saving it as a fresh .PcbDoc in Altium.")}
+
     if ext in (".asc", ".txt"):
         # PADS 的 ASCII 导出。.txt 是有人手工改过后缀，认得出就收。
         # 网络表和原理图也用 .asc 的皮，但不能当板子画 —— 那样出来的图是空的，
@@ -1314,7 +1375,8 @@ def _payload_for_path(p):
                                   for n, b in memb]}],
                 "gerber": True, "file": p.name}
 
-    return {"error": L("只认 .pcb / .ddb / .kicad_pcb / Eagle .brd / 维修点位图 (.bvr .bv .bdv .cad) / "
+    return {"error": L("只认 .pcb / .ddb / .kicad_pcb / Altium .PcbDoc / Eagle .brd / "
+                       "维修点位图 (.bvr .bv .bdv .cad) / "
                        "立创 .json / .epro2 / PADS .asc / Gerber / ODB++ / .zip。",
                        "Only .pcb, .ddb, .kicad_pcb, EAGLE .brd, boardview "
                        "(.bvr .bv .bdv .cad), EasyEDA .json / .epro2, PADS .asc, Gerber, "
@@ -1755,6 +1817,36 @@ def handle(path):
             return False
         # .txt 又不像 PADS → 落到下面按 Gerber 再试一次
 
+    # Altium 的 .PcbDoc：二进制（CFB）和 ASCII 两种皮，页面那边同一个解析器收。
+    if ext == ".pcbdoc":
+        raw = p.read_bytes()
+        kind = _altium_kind(raw)
+        if kind == "pcb":
+            log("Altium：%s，%d 字节（%s）"
+                % (p.name, len(raw), "ASCII" if raw[:8] == b"|RECORD=" else "二进制"))
+            html = build_view_html([(p.name, raw)], p.name)
+            _remember(str(p), {"boards": [{"n": p.name}]})
+            return open_viewer(html) is not None
+        if kind == "ddb":
+            msgbox(L("这是 Protel 99SE 的设计库（.ddb 的内核），不是单块板子。\n\n"
+                     "请先在 Altium / Protel 里打开它，把里面的 PCB 文档另存为 .PcbDoc，"
+                     "再把那个文件拖进来。",
+                     "This is a Protel 99SE design database (a .ddb inside), not a single "
+                     "board.\n\nOpen it in Altium/Protel, save the PCB document as .PcbDoc, "
+                     "and open that file instead."))
+            return False
+        msgbox(L("这个 .PcbDoc 认不出来。\n\n"
+                 "Altium 的板文件有两种存法：二进制（默认）和 ASCII"
+                 "（File → Save Copy As → PCB ASCII），两种本程序都读。\n"
+                 "认不出来可能是版本太新、存的时候加了保护，或者文件已经损坏。\n"
+                 "可以试着在 Altium 里另存一份新的 .PcbDoc 再打开。",
+                 "This .PcbDoc is not recognised.\n\n"
+                 "Altium boards come in two flavours: binary (default) and ASCII "
+                 "(File > Save Copy As > PCB ASCII); both are supported.\n"
+                 "This one may be from a newer version, protected, or damaged.\n"
+                 "Try re-saving it as a fresh .PcbDoc in Altium."))
+        return False
+
     memb = _gerber_auto(p)
     if memb:
         label = p.stem if ext == ".zip" else p.name
@@ -1772,10 +1864,12 @@ def handle(path):
                  "Some fab archives only hold a PDF and a readme, which cannot be viewed."))
         return False
 
-    msgbox(L("只认 .ddb / .pcb / .kicad_pcb / Eagle .brd / 维修点位图 (.bvr .bv .bdv .cad) / "
-             "立创 .json · .epro2 / PADS .asc / Gerber / ODB++ (.zip .tgz)。\n你选的是：",
-             "Only .ddb, .pcb, .kicad_pcb, EAGLE .brd, boardview (.bvr .bv .bdv .cad), "
-             "EasyEDA .json / .epro2, PADS .asc, Gerber and ODB++ (.zip .tgz) are supported.\nYou picked: ")
+    msgbox(L("只认 .ddb / .pcb / .kicad_pcb / Altium .PcbDoc / Eagle .brd / "
+             "维修点位图 (.bvr .bv .bdv .cad) / 立创 .json · .epro2 / PADS .asc / "
+             "Gerber / ODB++ (.zip .tgz)。\n你选的是：",
+             "Only .ddb, .pcb, .kicad_pcb, Altium .PcbDoc, EAGLE .brd, "
+             "boardview (.bvr .bv .bdv .cad), EasyEDA .json / .epro2, PADS .asc, "
+             "Gerber and ODB++ (.zip .tgz) are supported.\nYou picked: ")
            + p.name)
     return False
 
@@ -1794,7 +1888,7 @@ def _is_board_arg(a):
         return True
     return low.endswith((".ddb", ".pcb", ".kicad_pcb", ".brd", ".json",
                          ".epro", ".epro2", ".zip", ".tgz", ".tar", ".tar.gz",
-                         ".bvr", ".bv", ".bdv", ".cad", ".asc"))
+                         ".bvr", ".bv", ".bdv", ".cad", ".asc", ".pcbdoc"))
 
 
 def main():
@@ -1813,7 +1907,7 @@ def main():
              if not t.lower().endswith((".ddb", ".pcb", ".kicad_pcb", ".brd",
                                         ".json", ".epro", ".epro2", ".zip",
                                         ".tgz", ".tar", ".tar.gz",
-                                        ".bvr", ".bv", ".bdv", ".cad", ".asc"))]
+                                        ".bvr", ".bv", ".bdv", ".cad", ".asc", ".pcbdoc"))]
     if len(plain) >= 2:
         memb = []
         for t in plain:
