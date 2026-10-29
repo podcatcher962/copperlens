@@ -678,6 +678,16 @@ zh:{
   fmtBv:"（维修点位图）",
   bvNoShape:"点位图只存位号和网络，不存铜箔图形 —— 所以这块板只画焊盘和板框，"
     +"没有走线。查线、找脚、量距照样能用。",
+  /* PADS ASCII（.asc）*/
+  fmtPads:"（PADS 板文件）",
+  errPadsEmpty:"这份 PADS ASCII 里没读到焊盘，也没读到走线。\n"
+    +"PADS 导出时要把 *PART* / *PARTDECAL* / *ROUTE* 这几段都勾上，"
+    +"只勾网络表是画不出板子的。",
+  errPadsSch:"这是 PADS 的原理图（*PADS-LOGIC* / *PADS-POWERLOGIC*），不是板文件。\n"
+    +"原理图里没有焊盘、走线和层，画不出板子。请在 PADS Layout 里导出 ASCII 板文件。",
+  errPadsNet:"这是 PADS 的网络表，只有连接关系，没有铜箔和器件。\n"
+    +"要画板子，请在 PADS Layout 里 File → Export 导出 ASCII 板文件，"
+    +"文件头会是 !PADS-LAYOUT-V…-MILS! 这种样子。",
   /* ODB++（板厂给的制造数据）*/
   fmtOdb:"（ODB++ 制造数据）",
   errOdbEmpty:"这个 ODB++ 包里没读到铜层。\n"
@@ -986,6 +996,9 @@ zh:{
     <ul>
       <li>打开 .pcb 单板、.ddb 设计库（自动列出里面所有板）、KiCad 的 .kicad_pcb、
           Eagle 的 .brd，以及立创EDA 标准版 .json 与专业版 .epro2 工程包</li>
+      <li><b>PADS 的 .asc</b>（Layout / PowerPCB 导出的 ASCII 板文件）和板厂给的
+          <b>ODB++ 制造包</b>（.zip / .tgz / 解开的小文件夹）也能直接打开 ——
+          这两种都带真网络名，查线比 Gerber 省事</li>
       <li>点一下走线/焊盘，亮出整条铜箔，并写出 U100-4 这样的具体脚位</li>
       <li>显示元件位号、型号、焊盘编号；大面积铺铜可一键隐藏</li>
       <li><b>两点通不通</b>：点两个位置，直接判定电气上通不通（没网表的老板子也行）</li>
@@ -1005,7 +1018,7 @@ zh:{
       <li><b>最近打开</b>：首页列出上次开过的文件，点一下直接再打开</li>
     </ul>
     <h3>版本</h3>
-    <p>v1.20　·　支持 x86 与 64 位系统　·　单文件便携版</p>
+    <p>v1.21　·　支持 x86 与 64 位系统　·　单文件便携版</p>
     <div class="sig">© 永远的兰兰　·　Lanlan Eternal</div>`
 },
 en:{
@@ -1131,6 +1144,15 @@ en:{
   errBvEmpty:"No pads and no outline could be read from this boardview file.\n"
     +"The version may have changed the field order, or the file is encrypted.",
   fmtBv:"  (boardview)",
+  fmtPads:"  (PADS board)",
+  errPadsEmpty:"No pads and no traces could be read from this PADS ASCII file.\n"
+    +"Export must include the *PART*, *PARTDECAL* and *ROUTE* sections - "
+    +"a netlist-only export has no geometry.",
+  errPadsSch:"This is a PADS schematic (*PADS-LOGIC* / *PADS-POWERLOGIC*), not a board.\n"
+    +"A schematic has no pads, traces or layers. Export the ASCII board from PADS Layout.",
+  errPadsNet:"This is a PADS netlist - connections only, no copper or parts.\n"
+    +"Export the ASCII board from PADS Layout (File > Export); it starts with "
+    +"!PADS-LAYOUT-V...-MILS!.",
   fmtOdb:"  (ODB++)",
   errOdbEmpty:"No copper layers could be read from this ODB++ package.\n"
     +"It should contain matrix/matrix and steps/<board>/layers/<layer>/features.",
@@ -1461,6 +1483,9 @@ en:{
     <h3>What it does</h3>
     <ul>
       <li>Opens .pcb files, .ddb design libraries (lists every board inside), KiCad .kicad_pcb and EAGLE .brd</li>
+      <li><b>PADS .asc</b> exports (Layout / PowerPCB) and fab-house <b>ODB++</b> packages
+          (.zip / .tgz / an unzipped folder) open directly too — both carry real net names,
+          which beats Gerber for tracing</li>
       <li>Click a trace or pad to light the whole net and name the exact pins (U100-4 …)</li>
       <li>Shows component designators, values and pad numbers; copper pours hide with one key</li>
       <li><b>Two-point continuity</b>: click two spots and get a straight yes/no
@@ -1481,7 +1506,7 @@ en:{
       <li><b>Recent files</b>: the home page lists what you opened last; one click reopens it</li>
     </ul>
     <h3>Version</h3>
-    <p>v1.20　·　supports x86 and 64-bit Windows　·　portable single file</p>
+    <p>v1.21　·　supports x86 and 64-bit Windows　·　portable single file</p>
     <div class="sig">© Lanlan Eternal　·　永远的兰兰</div>`
 }
 };
@@ -1552,7 +1577,8 @@ function refreshFileLine(){
     (B.fmt==="kicad" ? T("fmtKicad")
                        : (B.fmt==="eagle" ? T("fmtEagle")
                        : (B.fmt==="bv" ? T("fmtBv")
-                       : (B.fmt==="odb" ? T("fmtOdb") : ""))));
+                       : (B.fmt==="pads" ? T("fmtPads")
+                       : (B.fmt==="odb" ? T("fmtOdb") : "")))));
   document.getElementById("stStats").textContent = T("stats", {
     t:B.tracks.length, p:B.pads.length, v:B.vias.length,
     f:B.fills.length, po:B.polys.length, n:B.nets.length,
@@ -6058,7 +6084,896 @@ function parseOdb(files){
   return b;
 }
 
+/* ==PADS-BLOCK-START== */
+/* ==================== PADS ASCII（PADS Layout / PowerPCB 导出的 .asc 板文件） ====================
+   .asc 是一份纯文本的板子数据库，按段切开，段名是星号包起来的大写词：
+
+       *PCB*        板级参数（UNITS / MAXIMUMLAYER / ORIGIN）
+       *PARTDECAL*  封装库：外框、焊盘栈、位号文字
+       *PART*       元件摆放：位号 封装 坐标 角度 贴哪面
+       *ROUTE*      布线：*SIGNAL* 网络名 + 两颗脚 + 一串顶点
+       *VIA*        过孔定义：名字 钻孔 几层 + 每层外径
+       *LINES*      板级图形：板框(BOARD)、铜面(COPPER)、丝印线(LINES)
+       *POUR*       灌铜：轮廓 + 网络名
+       *TEXT*       板面文字
+
+   坐标跟着文件头的单位走：MILS / MM / INCH / BASIC（BASIC 是 1/38100 英寸，
+   即 38100 个单位 = 1 mil）。Y 轴朝上，跟本程序画布一致，不用翻。
+
+   三条要命的细节：
+     · 顶点行 `x y 层 线宽 标志 …`：层 0 = 还没布的飞线，层 65 = 这根线到此接上
+       元件的脚。两个都不是真铜，照画会多出一堆鬼线。
+     · 弧不给圆心：顶点行只带 CW/CCW 标志，而**带标志的那个点就是圆心**，
+       弧从前一个点弧到后一个点。
+     · 线表里的弧角点有八个数：`x y 起始角×10 扫角×10 包围盒四角`。
+       圆心 = 包围盒中点，半径 = 半个宽。别当普通点读。
+*/
+function looksPads(buf){
+  /* 只看开头十几字节：!PADS-<产品>-V<版本>-<单位>! 或 *PADS-PCB*
+     二进制文件也会走这一趟，所以绝不解整块 */
+  const u8=new Uint8Array(buf||[]);
+  let s="";
+  for(let i=0;i<Math.min(20,u8.length);i++) s+=String.fromCharCode(u8[i]);
+  s=s.replace(/^\xEF\xBB\xBF/,"").replace(/^\s+/,"");
+  return /^!PADS-/i.test(s) || /^\*PADS-(PCB|LAYOUT)/i.test(s);
+}
+
+const PADS_U = {MILS:1, MIL:1, THOU:1, INCH:1000, IN:1000,
+                MM:39.37007874015748, BASIC:1 / 38100};
+
+/* 段名：*NAME* 后面可能还跟一段说明文字，所以不能用"以 * 结尾"判断 */
+function padsSecName(line){
+  const m = /^\*([A-Za-z][A-Za-z0-9_]*)\*/.exec(String(line || "").trim());
+  return m ? m[1].toUpperCase() : "";
+}
+function padsFirstLine(txt){
+  const s = String(txt || "").replace(/^\uFEFF/, "");
+  for(const l of s.split(/\r?\n/)) if(l.trim()) return l.trim();
+  return "";
+}
+/* 三种东西都用 .asc 或 .txt 的皮：板文件、网络表、原理图。认清楚再动手 */
+function padsKind(txt){
+  const s = String(txt || "");
+  const t = padsFirstLine(s);
+  if(!t) return "";
+  if(/^\*PADS-LOGIC/i.test(t) || /^\*PADS-POWERLOGIC/i.test(t)) return "sch";
+  if(/^\*PADS-PCB\*/i.test(t)) return "net";
+  if(/^!PADS-/i.test(t)){
+    if(/-LOGIC-|POWERLOGIC/i.test(t)) return "sch";
+    /* 板文件的导出一定会带几何段。只有 *PART* + *CONNECTION* + *SIGNAL* 的那种，
+       是"导出时只勾了网络表"—— 画不出板子，得跟纯网络表一样劝用户重导，
+       否则用户拿到的是"解析成功但一片空白"，比直接报错更让人摸不着头脑。 */
+    if(/\*(ROUTE|LINES|POUR|BOARD|PARTDECAL|VIA|TEXT)\*/i.test(s)) return "pcb";
+    return "net";
+  }
+  return "";
+}
+function padsHdr(txt){
+  const t = padsFirstLine(txt);
+  const out = {product:"PADS", ver:"", unit:"MILS", scale:1, raw:t};
+  const m = /^!PADS-([A-Za-z0-9_-]+?)-V?([\d.]+)(?:-([A-Za-z0-9_-]+))?!/i.exec(t);
+  if(m){
+    out.product = m[1];
+    out.ver = m[2];
+    out.unit = String(m[3] || "").split("-")[0].toUpperCase() || "MILS";
+  }else{
+    const u = /(MILS|INCH|BASIC|MM)/i.exec(t);
+    if(u) out.unit = u[1].toUpperCase();
+  }
+  if(!PADS_U[out.unit]) out.unit = "MILS";
+  out.scale = PADS_U[out.unit] || 1;
+  return out;
+}
+
+/* 行游标：各段自己按"几条"往下吃，比一次切成大块稳 */
+function padsReader(txt){
+  const L = String(txt || "").replace(/^\uFEFF/, "").split(/\r?\n/);
+  let i = 0;
+  const api = {
+    get idx(){ return i; },
+    set idx(v){ i = v; },
+    eof(){ return i >= L.length; },
+    peek(){ return i < L.length ? L[i] : ""; },
+    next(){ return i < L.length ? L[i++] : ""; },
+    /* 空行、*REMARK* 注释都不算内容 */
+    skipJunk(){
+      while(i < L.length){
+        const t = L[i].trim();
+        if(!t || /^\*REMARK\*/i.test(t)){ i++; continue; }
+        break;
+      }
+    },
+    atSection(){
+      const n = padsSecName(api.peek());
+      return !!n && n !== "REMARK";
+    }
+  };
+  return api;
+}
+function padsToks(line){ return String(line || "").trim().split(/\s+/).filter(x => x !== ""); }
+function padsNum(v, d){ const x = parseFloat(v); return isFinite(x) ? x : (d || 0); }
+
+/* 层号 → 本程序层号。铜层：最上 1、最下 32、中间 39 起。
+   -2 / -1 / 0 是焊盘栈专用的相对层，要跟元件贴哪面翻。
+
+   非铜层**不能写死**：同样是 22，老工程里是"丝印顶层"，新工程里是"钢网底层"。
+   所以优先用 *MISC* 里 LAYER DATA 自己声明的名字与类型（layInfo），
+   实在没有才退回"22/25 丝印、23/26 阻焊、24/27 钢网"这套最常见的编号。 */
+function padsLayer(n, cu, mirror, layInfo){
+  if(n === -2) return mirror ? (cu > 1 ? 32 : 1) : 1;
+  if(n === -1) return mirror ? 1 : (cu > 1 ? 32 : 1);
+  if(n === 0) return 0;
+  if(n >= 1 && n <= cu){
+    if(n === 1) return 1;
+    if(n === cu) return 32;
+    return 39 + (n - 2);
+  }
+  const li = layInfo && layInfo.get(n);
+  if(li){
+    const ty = String(li.type || "").toUpperCase();
+    const nm = String(li.name || "").toLowerCase();
+    const bot = /\bbottom\b|\bbot\b/.test(nm);
+    if(/SILK/.test(ty)) return bot ? 34 : 33;
+    /* PASTE 必须排在 MASK 前面：层类型常写成 SOLDER_PASTE_MASK / PASTE_MASK，
+       先问 MASK 的话钢网会被当成阻焊，明明只有一块钢网却画出满屏阻焊 */
+    if(/PASTE/.test(ty)) return bot ? 36 : 35;
+    if(/MASK/.test(ty)) return bot ? 38 : 37;
+    if(/ASSEMBLY/.test(ty)) return bot ? 61 : 60;
+    if(/DRILL/.test(ty)) return 62;
+    if(/ROUTING|PLANE|COPPER/.test(ty)) return 1;
+    return 62;
+  }
+  switch(n){
+    case 19: case 20: return 62;
+    case 21: return 60; case 28: return 61;
+    case 22: return 33; case 25: return 34;      /* 丝印 上/下 */
+    case 23: return 37; case 26: return 38;      /* 阻焊 上/下 */
+    case 24: return 35; case 27: return 36;      /* 钢网 上/下 */
+    case 18: case 29: return 62;                 /* 钻孔图 */
+  }
+  return 62;
+}
+function padsIsCu(n){ return n === 1 || n === 32 || (n >= 39 && n <= 54); }
+
+/* 弧拆折线。**要带上起点**（k 从 0 开始）—— 漏掉起点，前一个顶点会
+   直接连到弧的第二个点，板框和覆铜边上就会出现跨半块板的直弦。 */
+function padsArcPts(cx, cy, r, a0, da){
+  const n = Math.max(2, Math.min(64, Math.ceil(Math.abs(da) / 6)));
+  const out = [];
+  for(let k = 0; k <= n; k++){
+    const a = (a0 + da * k / n) * Math.PI / 180;
+    out.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
+  }
+  return out;
+}
+/* 角点行：普通点两个数；弧点八个数 */
+/* 角点行有四种写法，得看数字个数才知道是哪一种：
+     · 两个数            普通点
+     · 八个数            x y 起始角×10 扫角×10 包围盒四角（线表里的弧）
+     · 四个数            cx cy 起始角×10 扫角×10 —— 弧心行，下一行才是弧的端点
+     · 带 ARC 的七八个数 ARC xs ys xe ye xc yc [CW|CCW]（另一家导出的方言）
+   后两种要连读两行或换算方向，所以真正干活的是 padsCornerSeq（在 parsePads 里，
+   它要用到行读取器）。这里只判断单行。 */
+function padsCorner(line, prev){
+  const t = padsToks(line);
+  /* ARC xs ys xe ye xc yc [CW|CCW]：起、终、圆心都给了，自己换算起角与扫角 */
+  if(t.length >= 7 && /^ARC$/i.test(t[0])){
+    const xs = padsNum(t[1]), ys = padsNum(t[2]);
+    const xe = padsNum(t[3]), ye = padsNum(t[4]);
+    const cx = padsNum(t[5]), cy = padsNum(t[6]);
+    const dir = String(t[7] || "").toUpperCase();
+    const r = Math.hypot(xs - cx, ys - cy);
+    if(r > 0){
+      const a0 = Math.atan2(ys - cy, xs - cx) * 180 / Math.PI;
+      const a1 = Math.atan2(ye - cy, xe - cx) * 180 / Math.PI;
+      let da = a1 - a0;
+      if(dir === "CW" || dir === "CLOCKWISE"){ while(da >= 0) da -= 360; }
+      else if(dir === "CCW"){ while(da <= 0) da += 360; }
+      return {center:null, arc:{cx:cx, cy:cy, r:r, a0:a0, da:da}, pt:[xs, ys]};
+    }
+  }
+  if(t.length >= 8){
+    const a0 = padsNum(t[2]) / 10, da = padsNum(t[3]) / 10;
+    const x1 = padsNum(t[4]), y1 = padsNum(t[5]), x2 = padsNum(t[6]), y2 = padsNum(t[7]);
+    const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2, r = Math.abs(x2 - x1) / 2;
+    if(r > 0) return {center:null, arc:{cx:cx, cy:cy, r:r, a0:a0, da:da},
+                      pt:[cx + r * Math.cos(a0 * Math.PI / 180),
+                          cy + r * Math.sin(a0 * Math.PI / 180)]};
+  }
+  /* 四个数 = 弧心行。半径取到上一个顶点的距离（没有上一个点时才用端点，由
+     padsCornerSeq 补），角度就是文件里写的，不用再猜。 */
+  if(t.length === 4 && prev && prev.length === 2){
+    const cx = padsNum(t[0]), cy = padsNum(t[1]);
+    const r = Math.hypot(prev[0] - cx, prev[1] - cy);
+    if(r > 0) return {center:{cx:cx, cy:cy, r:r,
+                              a0:padsNum(t[2]) / 10, da:padsNum(t[3]) / 10},
+                      arc:null, pt:null};
+  }
+  return {center:null, arc:null, pt:[padsNum(t[0]), padsNum(t[1])]};
+}
+
+/* ---------- 主解析 ---------- */
+function parsePads(txt){
+  const kind = padsKind(txt);
+  if(kind === "sch") throw new Error(T("errPadsSch"));
+  if(kind === "net") throw new Error(T("errPadsNet"));
+  const hd = padsHdr(txt);
+  const SC = hd.scale;                                  /* 文件单位 → mil */
+
+  const b = {layers:{}, copper:[], nets:[], tracks:[], pads:[], vias:[], arcs:[],
+             fills:[], texts:[], comps:[], polys:[], sections:[], warn:[],
+             fmt:"pads", fromDdb:false, boardCount:1, layerNames:{}};
+  const ids = new Map();
+  const R = padsReader(txt);
+  let cu = 2;
+
+  const decals = new Map();
+  const viaDefs = new Map();
+  const parts = [];
+  const pinNet = new Map();                             /* "R1.2" → 网络名 */
+  const routes = [];
+  const layInfo = new Map();                            /* *MISC* 里声明的层号 → {name,type} */
+  const LY = (n, mirror) => padsLayer(n, cu, mirror, layInfo);
+
+  /* 读一串角点。count 是顶点数，arcs 是文件头里声明的弧数（只有 *POUR* 有），
+     实际行数 = count + arcs：弧心行是额外插在端点前面的那一行。 */
+  function padsCornerSeq(count, arcs){
+    const out = [];
+    const total = count + (arcs > 0 ? arcs : 0);
+    let pend = null;
+    for(let j = 0; j < total && !R.eof(); j++){
+      const line = String(R.next() || "").trim();
+      if(!line){ j--; continue; }
+      const t = padsToks(line);
+      if(!t.length){ j--; continue; }
+      if(pend){
+        /* 上一行是弧心，这一行是弧的端点 */
+        out.push({cx:pend.cx, cy:pend.cy, r:pend.r, a0:pend.a0, da:pend.da});
+        pend = null;
+        continue;
+      }
+      const prev = out.length ? out[out.length - 1] : null;
+      const c = padsCorner(line, prev);
+      if(c.center){ pend = c.center; continue; }
+      if(c.arc){ out.push(c.arc); continue; }
+      if(c.pt) out.push(c.pt);
+    }
+    return out;
+  }
+
+  /* ---- *PCB* ---- */
+  function secPCB(){
+    R.next();
+    while(!R.eof()){
+      R.skipJunk();
+      if(R.eof() || R.atSection()) break;
+      const t = padsToks(R.next());
+      if(!t.length) continue;
+      if(t[0] === "MAXIMUMLAYER") cu = Math.max(1, Math.min(64, parseInt(t[1], 10) || 2));
+      else if(t[0] === "JOBNAME") b.jobName = t.slice(1).join(" ");
+    }
+  }
+
+  /* ---- *PARTDECAL* ---- */
+  function secDecal(){
+    R.next();
+    while(!R.eof()){
+      R.skipJunk();
+      if(R.eof() || R.atSection()) break;
+      const h = padsToks(R.next());
+      if(h.length < 9) continue;
+      const d = {name:h[0], unit:(h[1] || "M").toUpperCase(),
+                 pieces:parseInt(h[4], 10) || 0, terms:parseInt(h[5], 10) || 0,
+                 stacks:parseInt(h[6], 10) || 0,
+                 textCount:(parseInt(h[7], 10) || 0) + (parseInt(h[8], 10) || 0),
+                 draws:[], tin:[], sout:[], pads:[]};
+      /* 外框图形 */
+      for(let k = 0; k < d.pieces && !R.eof(); k++){
+        R.skipJunk();
+        if(R.eof() || R.atSection()) break;
+        const pt = padsToks(R.next());
+        const type = (pt[0] || "").toUpperCase();
+        const corners = parseInt(pt[1], 10) || 0;
+        const width = padsNum(pt[2]);
+        let level = 0;
+        for(let q = pt.length - 1; q >= 3; q--) if(/^-?\d+$/.test(pt[q])){ level = parseInt(pt[q], 10); break; }
+        const pts = padsCornerSeq(corners, 0);
+        d.draws.push({type:type, level:level, width:width,
+                      closed:(type === "CLOSED" || type === "CIRCLE" || type === "COPCLS" || type === "COPCIR"),
+                      circle:(type === "CIRCLE" || type === "COPCIR"), pts:pts});
+      }
+      /* 封装里的文字：属性行 + 字体行 + 内容行 */
+      for(let k = 0; k < d.textCount && !R.eof(); k++){
+        const a = padsToks(R.next());
+        if(a.length < 9) continue;
+        const f = String(R.peek()).trim();
+        if(/^</.test(f) || /(Regular|Font|Stroke)/i.test(f)) R.next();
+        const s = R.next();
+        d.tin.push({dx:padsNum(a[1]), dy:padsNum(a[2]), rot:padsNum(a[3]),
+                    level:parseInt(a[4], 10) || 0, h:padsNum(a[5]), s:String(s || "").trim()});
+      }
+      /* 端子：T 和 x 连写，形如 T-675000 0 ... */
+      for(let k = 0; k < d.terms && !R.eof(); k++){
+        const t = padsToks(String(R.next()).replace(/^\s*T/, " "));
+        if(t.length < 2){ d.sout.push({x:0, y:0, name:String(k + 1)}); continue; }
+        let pin = t[4] !== undefined ? t[4] : String(k + 1);
+        d.sout.push({x:padsNum(t[0]), y:padsNum(t[1]), name:String(pin)});
+      }
+      /* 焊盘栈：PAD <脚号> <几层>，每层一行 "层 尺寸 形状 [参数…]" */
+      for(let k = 0; k < d.stacks && !R.eof(); k++){
+        const ph = padsToks(String(R.next()));
+        if((ph[0] || "").toUpperCase() !== "PAD"){
+          /* 有的导出会在这里夹空行/注释，退回重读一次，别把整份封装读歪 */
+          if(/^\*/.test(String(ph[0] || "")) || !ph.length) continue;
+          k--; continue;
+        }
+        const pin = parseInt(ph[1], 10);
+        const n = parseInt(ph[2], 10) || 0;
+        /* 头里还可能自带孔径 / 是否镀铜：PAD 0 5 250 —— 那 250 是孔 */
+        const extra = ph[3] || "";
+        const hdrDrill = /^[\d.]+$/.test(extra) ? padsNum(extra) : 0;
+        const hdrPlated = (extra.toUpperCase() !== "N");
+        const slots = [];
+        for(let j = 0; j < n && !R.eof(); j++){
+          const s = padsToks(String(R.next()));
+          if(!s.length){ j--; continue; }
+          const lv = parseInt(s[0], 10);
+          const size = padsNum(s[1]);
+          const shape = (s[2] || "R").toUpperCase();
+          const rest = s.slice(3);
+          const nums = [];
+          for(const x of rest){
+            if(/^[-+]?[\d.]/.test(x)) nums.push(padsNum(x)); else break;
+          }
+          const slot = {layer:lv, size:size, shape:shape, w:size, h:size,
+                        drill:0, plated:true, rot:0};
+          if(shape === "RF" || shape === "RC" || shape === "OF"){
+            slot.rot = nums.length > 0 ? nums[0] : 0;
+            slot.h = nums.length > 1 ? nums[1] : size;
+            slot.drill = nums.length > 3 ? nums[3] : 0;
+          }else if(shape === "RT" || shape === "ST"){
+            slot.rot = nums.length > 0 ? nums[0] : 0;
+            slot.h = nums.length > 1 ? nums[1] : size;
+            slot.drill = nums.length > 4 ? nums[4] : 0;
+          }else if(shape === "S"){
+            slot.drill = nums.length > 1 ? nums[1] : (nums.length ? nums[0] : 0);
+          }else{
+            slot.drill = nums.length ? nums[0] : 0;
+          }
+          if(rest.indexOf("N") >= 0) slot.plated = false;
+          if(!slot.drill && hdrDrill) slot.drill = hdrDrill;
+          if(!hdrPlated) slot.plated = false;
+          if(!(slot.h > 0)) slot.h = slot.w;
+          slots.push(slot);
+        }
+        d.pads.push({pin:(isFinite(pin) ? pin : 0), slots:slots});
+      }
+      decals.set(d.name, d);
+    }
+  }
+
+  /* ---- *PART* ---- */
+  function secPart(){
+    R.next();
+    while(!R.eof()){
+      R.skipJunk();
+      if(R.eof() || R.atSection()) break;
+      const t = padsToks(R.next());
+      if(t.length < 5) continue;
+      const labels = parseInt(t[11], 10);
+      const n = isFinite(labels) ? labels : 0;
+      for(let k = 0; k < n && !R.eof(); k++){
+        R.next();                                   /* 属性行 */
+        const f = String(R.peek()).trim();
+        if(/^</.test(f) || /(Regular|Font|Stroke)/i.test(f)) R.next();
+        R.next();                                   /* 内容行 */
+      }
+      parts.push({ref:t[0], lib:t[1], x:padsNum(t[2]), y:padsNum(t[3]),
+                  rot:padsNum(t[4]), mirror:((t[6] || "N").toUpperCase() === "M")});
+    }
+  }
+
+  /* ---- *VIA* ---- */
+  function secVia(){
+    R.next();
+    while(!R.eof()){
+      R.skipJunk();
+      if(R.eof() || R.atSection()) break;
+      const t = padsToks(R.next());
+      if(t.length < 2) continue;
+      const name = t[0], drill = padsNum(t[1]);
+      const n = parseInt(t[2], 10) || 0;
+      const rows = [];
+      for(let k = 0; k < n && !R.eof(); k++){
+        const s = padsToks(String(R.next()));
+        if(!s.length){ k--; continue; }
+        rows.push({layer:parseInt(s[0], 10), size:padsNum(s[1]), shape:(s[2] || "R").toUpperCase()});
+      }
+      const top = rows.filter(r => r.layer === -2)[0] || rows[0] || {size:drill * 1.6};
+      viaDefs.set(name, {name:name, drill:drill, size:top.size || drill * 1.6});
+    }
+  }
+
+  /* ---- *ROUTE* ---- */
+  function secRoute(){
+    R.next();
+    let net = "", sig = null, pend = null, pendDir = "";
+    while(!R.eof()){
+      const t = String(R.peek()).trim();
+      if(!t){ R.next(); continue; }
+      if(/^\*REMARK\*/i.test(t)){ R.next(); continue; }
+      if(/^\*SIGNAL\*/i.test(t)){
+        R.next();
+        const s = padsToks(t);
+        net = s[1] || "";
+        sig = {net:net, rows:[]};
+        routes.push(sig);
+        pend = null; pendDir = "";
+        continue;
+      }
+      if(padsSecName(t)) break;
+      R.next();
+      const c0 = t.charAt(0);
+      /* 脚对行：U3.1   C13.1 */
+      if(!(c0 >= "0" && c0 <= "9") && c0 !== "-" && c0 !== "+"){
+        for(const tok of padsToks(t)){
+          const dot = tok.indexOf(".");
+          if(dot <= 0) continue;
+          const key = (tok.slice(0, dot) + "." + tok.slice(dot + 1)).toUpperCase();
+          if(!pinNet.has(key)) pinNet.set(key, net);
+        }
+        continue;
+      }
+      const v = padsToks(t);
+      if(v.length < 5) continue;
+      const x = padsNum(v[0]), y = padsNum(v[1]), layer = parseInt(v[2], 10) || 0;
+      const w = padsNum(v[3]);
+      let arcDir = "", viaName = "";
+      for(let k = 5; k < v.length; k++){
+        const tok = v[k];
+        if(tok === "CW" || tok === "CCW"){ arcDir = tok; continue; }
+        if(viaDefs.has(tok)){ viaName = tok; continue; }
+        if(tok === "TEARDROP") break;
+      }
+      if(!sig) continue;
+      if(arcDir){ pend = [x, y]; pendDir = arcDir; continue; }
+      let arc = null;
+      if(pend && sig.rows.length){
+        const prev = sig.rows[sig.rows.length - 1];
+        arc = {cx:pend[0], cy:pend[1], dir:pendDir,
+               r:Math.hypot(prev.x - pend[0], prev.y - pend[1])};
+      }
+      pend = null; pendDir = "";
+      sig.rows.push({x:x, y:y, layer:layer, w:w, via:viaName, arc:arc,
+                     skip:(layer === 0), pad:(layer === 65)});
+    }
+  }
+
+  /* ---- *LINES* / *BOARD* / *POUR* ---- */
+  function secLines(isBoard, isPour){
+    R.next();
+    while(!R.eof()){
+      R.skipJunk();
+      if(R.eof() || R.atSection()) break;
+      const h = padsToks(R.next());
+      if(h.length < 5) continue;
+      const type = (h[1] || "").toUpperCase();
+      const x0 = padsNum(h[2]), y0 = padsNum(h[3]);
+      const pieces = parseInt(h[4], 10) || 0;
+      const owner = h[6] || "", signame = h[7] || "";
+      for(let k = 0; k < pieces && !R.eof(); k++){
+        R.skipJunk();
+        if(R.eof() || R.atSection()) break;
+        const pt = padsToks(R.next());
+        const shape = (pt[0] || "").toUpperCase();
+        /* 这一行的字段按段不同：
+             *POUR*               PIECETYPE CORNERS ARCS WIDTHHGHT LEVEL [PRIORITY]
+             *LINES* / *BOARD*    PIECETYPE CORNERS WIDTHHGHT LEVEL RESTRICTIONS
+           少认一格就会把"弧数"当成线宽、把"优先级"当成层号，所以分开取。 */
+        const corners = parseInt(pt[1], 10) || 0;
+        const arcs = isPour ? (parseInt(pt[2], 10) || 0) : 0;
+        const width = padsNum(pt[isPour ? 3 : 2]);
+        const level = parseInt(pt[isPour ? 4 : 3], 10) || 0;
+        const raw = padsCornerSeq(corners, arcs).map(c => {
+          if(c && c.r !== undefined)
+            return {cx:c.cx + x0, cy:c.cy + y0, r:c.r, a0:c.a0, da:c.da};
+          return [c[0] + x0, c[1] + y0];
+        });
+        /* CIRCLE 类的两个角点是"直径的两端"，不是圆心和半径。若照两点连线画，
+           整块板上会多出一条横贯的直线 —— 圆反倒没了。这里换成 48 边形的圈。 */
+        if((shape === "CIRCLE" || shape === "BRDCIR" || shape === "COPCIR" || shape === "KPTCIR")
+           && raw.length === 2 && raw[0] && raw[0].length === 2
+           && raw[1] && raw[1].length === 2){
+          const ax = raw[0][0], ay = raw[0][1], bx = raw[1][0], by = raw[1][1];
+          const cx = (ax + bx) / 2, cy = (ay + by) / 2;
+          const r = Math.hypot(bx - ax, by - ay) / 2;
+          if(r > 0){
+            const ring = [];
+            for(let q = 0; q < 48; q++){
+              const th = q * Math.PI * 2 / 48;
+              ring.push([cx + r * Math.cos(th), cy + r * Math.sin(th)]);
+            }
+            /* 要把 48 个点"摊平"进去，不是把整个 ring 当一个点塞进去 */
+            raw.splice(0, raw.length, ...ring);
+          }
+        }
+        if(!raw.length) continue;
+        const closed = (shape === "CLOSED" || shape === "BRDCLS" || shape === "COPCLS" ||
+                        shape === "COPCIR" || shape === "CIRCLE" || shape === "POLY");
+        const cut = (shape === "COPCUT" || shape === "COPCCO" || shape === "CIRCUR" ||
+                     shape === "POCUT" || shape === "CUTOUT" || shape === "CIRCUT" ||
+                     shape === "VOIDOUT");
+        const isCuShape = isPour || type === "COPPER" || type === "COPCUT";
+        if(cut) continue;
+        if(isBoard || type === "BOARD"){
+          const seq = [];
+          for(const p of raw){
+            if(p.r !== undefined) for(const m of padsArcPts(p.cx, p.cy, p.r, p.a0, p.da)) seq.push(m);
+            else seq.push(p);
+          }
+          const lim = closed ? seq.length : seq.length - 1;
+          for(let q = 0; q < lim; q++){
+            const a = seq[q], c = seq[(q + 1) % seq.length];
+            b.tracks.push({kind:"track", layer:56, net:0, comp:-1,
+                           x1:a[0] * SC, y1:a[1] * SC, x2:c[0] * SC, y2:c[1] * SC,
+                           w:Math.min(Math.max((width * SC) || 4, 2), 10), poly:-1});
+          }
+          continue;
+        }
+        /* 铜面在旧格式里不带层号（第 4 个数是线型），那就落到顶层；
+           线类图形不带层号时按丝印顶层算 —— 总比丢到"层 0"看不见强 */
+        let lay;
+        if(isCuShape && !(level >= 1 && level <= cu)) lay = 1;
+        else{
+          lay = LY(level, false);
+          if(!lay) lay = isCuShape ? 1 : 33;
+        }
+        const netId = (signame && (isCuShape || padsIsCu(lay))) ? bvNet(b, ids, signame) : 0;
+        if(isCuShape && closed && raw.length >= 3){
+          const poly = [];
+          for(const p of raw){
+            if(p.r !== undefined) for(const m of padsArcPts(p.cx, p.cy, p.r, p.a0, p.da)) poly.push([m[0] * SC, m[1] * SC]);
+            else poly.push([p[0] * SC, p[1] * SC]);
+          }
+          b.polys.push({kind:"polygon", layer:lay, net:netId, pid:b.polys.length + 1,
+                        pts:poly, closed:true});
+          continue;
+        }
+        const seq = [];
+        for(const p of raw){
+          if(p.r !== undefined) for(const m of padsArcPts(p.cx, p.cy, p.r, p.a0, p.da)) seq.push(m);
+          else seq.push(p);
+        }
+        const lim = closed ? seq.length : seq.length - 1;
+        const w2 = Math.max((width * SC) || 4, 1);
+        for(let q = 0; q < lim; q++){
+          const a = seq[q], c = seq[(q + 1) % seq.length];
+          b.tracks.push({kind:"track", layer:lay, net:netId, comp:-1,
+                         x1:a[0] * SC, y1:a[1] * SC, x2:c[0] * SC, y2:c[1] * SC,
+                         w:w2, poly:-1});
+        }
+      }
+      b.lastObj = owner;
+    }
+  }
+
+  /* ---- *TEXT* ---- */
+  function secText(){
+    R.next();
+    while(!R.eof()){
+      R.skipJunk();
+      if(R.eof() || R.atSection()) break;
+      const raw = String(R.next()).trim();
+      /* 另一种写法：文字在前、参数在后 —— "GND" x y 高 宽 层 角度 镜像 对齐 */
+      if(raw.charAt(0) === '"'){
+        const m = /^"((?:[^"\\]|\\.)*)"\s*(.*)$/.exec(raw);
+        if(!m) continue;
+        const q = padsToks(m[2]);
+        const level0 = parseInt(q[4], 10) || 0;
+        b.texts.push({kind:"text", layer:LY(level0, false), comp:-1,
+                      x:padsNum(q[0]) * SC, y:padsNum(q[1]) * SC,
+                      h:Math.max(6, (padsNum(q[2]) || 40) * SC), rot:padsNum(q[5]),
+                      text:m[1].replace(/\\"/g, '"'), isDes:false, isCom:false,
+                      mirror:(q[6] === "1" || q[6] === "M")});
+        continue;
+      }
+      const a = padsToks(raw);
+      if(a.length < 4) continue;
+      const f = String(R.peek()).trim();
+      if(/^</.test(f) || /(Regular|Font|Stroke)/i.test(f)) R.next();
+      const s = R.next();
+      const level = parseInt(a[3], 10) || 0;
+      b.texts.push({kind:"text", layer:LY(level, false), comp:-1,
+                    x:padsNum(a[0]) * SC, y:padsNum(a[1]) * SC,
+                    h:Math.max(6, (padsNum(a[4]) || 40) * SC), rot:padsNum(a[2]),
+                    text:String(s || "").trim(), isDes:false, isCom:false,
+                    mirror:((a[6] || "N").toUpperCase() === "M")});
+    }
+  }
+
+  /* ---- *NET*：只有脚对、没有坐标的网络表。板文件里也常带一段，
+     拿它给焊盘挂网络最省事（不用按坐标猜） ---- */
+  function secNet(){
+    R.next();
+    let net = "";
+    while(!R.eof()){
+      const t = String(R.peek()).trim();
+      if(!t){ R.next(); continue; }
+      if(/^\*REMARK\*/i.test(t)){ R.next(); continue; }
+      if(/^\*SIGNAL\*/i.test(t)){
+        R.next();
+        const s = padsToks(t);
+        net = s[1] || "";
+        continue;
+      }
+      if(padsSecName(t)) break;
+      R.next();
+      for(const tok of padsToks(t)){
+        const dot = tok.indexOf(".");
+        if(dot <= 0) continue;
+        const key = (tok.slice(0, dot) + "." + tok.slice(dot + 1)).toUpperCase();
+        if(!pinNet.has(key)) pinNet.set(key, net);
+      }
+    }
+  }
+
+  /* ---- *MISC*：层号 → 名字/类型。非铜层到底哪一层是丝印、哪一层是阻焊，
+     只有这里说得准（同一个 22，老工程是丝印顶，新工程是钢网底） ---- */
+  function secMisc(){
+    R.next();
+    while(!R.eof()){
+      const t = String(R.peek()).trim();
+      if(padsSecName(t)) break;
+      R.next();
+      const m = /^LAYER\s+(\d+)$/i.exec(t);
+      if(!m) continue;
+      const num = parseInt(m[1], 10);
+      let depth = 0, nm = "", ty = "";
+      while(!R.eof()){
+        const s = String(R.next()).trim();
+        if(s === "{"){ depth++; continue; }
+        if(s === "}"){ depth--; if(depth <= 0) break; continue; }
+        let a = /^LAYER_NAME\s+(.*)$/i.exec(s);
+        if(a) nm = a[1].trim();
+        let b = /^LAYER_TYPE\s+(\S+)/i.exec(s);
+        if(b) ty = b[1].toUpperCase();
+        if(padsSecName(s)) break;
+      }
+      if(num >= 1 && num <= 64) layInfo.set(num, {name:nm, type:ty});
+    }
+  }
+
+  /* ---- 走段 ---- */
+  while(!R.eof()){
+    const t = String(R.peek()).trim();
+    if(!t){ R.next(); continue; }
+    const name = padsSecName(t);
+    if(!name){ R.next(); continue; }
+    if(name === "PCB") secPCB();
+    else if(name === "PARTDECAL") secDecal();
+    else if(name === "PART") secPart();
+    else if(name === "NET") secNet();
+    else if(name === "MISC") secMisc();
+    else if(name === "VIA") secVia();
+    else if(name === "ROUTE") secRoute();
+    else if(name === "LINES") secLines(false, false);
+    else if(name === "BOARD") secLines(true, false);
+    else if(name === "POUR") secLines(false, true);
+    else if(name === "TEXT") secText();
+    else if(name === "END") break;
+    else {
+      R.next();
+      while(!R.eof() && !R.atSection()) R.next();
+    }
+  }
+
+  /* ---- 布线 → 走线 ---- */
+  const kOf = (x, y) => Math.round(x * 100) + "_" + Math.round(y * 100);
+  const pinPts = new Map();
+  for(const r of routes){
+    const netId = r.net ? bvNet(b, ids, r.net) : 0;
+    let cur = null;
+    const flush = () => {
+      if(cur && cur.pts.length >= 2){
+        for(let q = 0; q < cur.pts.length - 1; q++){
+          const a = cur.pts[q], c = cur.pts[q + 1];
+          b.tracks.push({kind:"track", layer:cur.layer, net:netId, comp:-1,
+                         x1:a[0], y1:a[1], x2:c[0], y2:c[1], w:cur.w, poly:-1});
+        }
+      }
+      cur = null;
+    };
+    for(const row of r.rows){
+      const x = row.x * SC, y = row.y * SC;
+      if(row.pad){ pinPts.set(kOf(x, y), true); flush(); continue; }
+      if(row.skip || !(row.layer >= 1 && row.layer <= cu)){ flush(); continue; }
+      const lay = LY(row.layer, false);
+      const w = Math.max(1, row.w * SC);
+      if(row.arc && cur && cur.pts.length){
+        const a = cur.pts[cur.pts.length - 1];
+        const r0 = Math.hypot(a[0] - row.arc.cx * SC, a[1] - row.arc.cy * SC);
+        if(r0 > 0){
+          const a0 = Math.atan2(a[1] - row.arc.cy * SC, a[0] - row.arc.cx * SC);
+          let d = Math.atan2(y - row.arc.cy * SC, x - row.arc.cx * SC) - a0;
+          if(row.arc.dir === "CCW"){ while(d <= 0) d += Math.PI * 2; }
+          else { while(d >= 0) d -= Math.PI * 2; }
+          const steps = Math.max(2, Math.min(48, Math.ceil(Math.abs(d) / 0.15)));
+          for(let q = 1; q < steps; q++){
+            const ang = a0 + d * q / steps;
+            cur.pts.push([row.arc.cx * SC + r0 * Math.cos(ang), row.arc.cy * SC + r0 * Math.sin(ang)]);
+          }
+        }
+        cur.pts.push([x, y]);
+      }else if(cur && cur.layer === lay && Math.abs(cur.w - w) < 0.01){
+        cur.pts.push([x, y]);
+      }else{
+        flush();
+        cur = {layer:lay, w:w, pts:[[x, y]]};
+      }
+      if(row.via){
+        const vd = viaDefs.get(row.via);
+        b.vias.push({kind:"via", layer:74, net:netId, x:x, y:y,
+                     dia:(vd && vd.size ? vd.size * SC : 30),
+                     hole:vd ? vd.drill * SC : 0, start:1, end:cu > 1 ? 32 : 1});
+        flush();
+      }
+    }
+    flush();
+  }
+
+  /* ---- 元件 + 焊盘 ---- */
+  for(const p of parts){
+    const id = b.comps.length + 1;
+    const mirror = p.mirror;
+    b.comps.push({id:id, layer:mirror ? 32 : 1, x:p.x * SC, y:p.y * SC,
+                  rot:p.rot, lib:p.lib, ref:p.ref, value:p.lib});
+    const d = decals.get(p.lib);
+    const rad = (p.rot || 0) * Math.PI / 180;
+    const cq = Math.cos(rad), sq = Math.sin(rad);
+    const xf = (x, y) => {
+      const lx = mirror ? -x : x;
+      return [p.x * SC + (lx * cq - y * sq) * SC, p.y * SC + (lx * sq + y * cq) * SC];
+    };
+    /* 位号 / 型号：位置和字号都由封装里的文字记录给，别自己瞎放 */
+    const labels = (d && d.tin ? d.tin : []).filter(t => t.s);
+    if(labels.length){
+      for(const t of labels){
+        const xy = xf(t.dx, t.dy);
+        const raw = String(t.s);
+        const isDes = /^ref\.?\s*des/i.test(raw);
+        const isVal = /^part\s*type$/i.test(raw);
+        const out = isDes ? p.ref : (isVal ? p.lib : raw);
+        let lay = LY(t.level || 0, mirror);
+        if(!lay) lay = mirror ? 34 : 33;
+        if(lay === 33 || lay === 34) lay = mirror ? 34 : 33;
+        b.texts.push({kind:"text", layer:lay, comp:id, x:xy[0], y:xy[1],
+                      h:Math.max(10, (t.h || 40) * SC), rot:(t.rot || 0) + p.rot,
+                      text:out, isDes:isDes, isCom:(isVal && !isDes)});
+      }
+    }else{
+      b.texts.push({kind:"text", layer:mirror ? 34 : 33, comp:id,
+                    x:p.x * SC, y:(p.y * SC) + 22, h:28, rot:p.rot,
+                    text:p.ref, isDes:true, isCom:false});
+    }
+    if(!d) continue;
+
+    const slotOf = (slots, lay) => {
+      for(const s of slots){
+        if(!(s.size > 0) && !(s.drill > 0)) continue;
+        if(LY(s.layer, mirror) === lay) return s;
+      }
+      for(const s of slots){
+        if(!(s.size > 0) && !(s.drill > 0)) continue;
+        if(LY(s.layer, mirror) === 0) return s;
+      }
+      return slots.length ? slots[0] : null;
+    };
+    const slotsFor = idx => {
+      if(d.pads.length <= 1) return d.pads.length ? d.pads[0].slots : [];
+      for(const st of d.pads){
+        if(st.pin >= 1 && st.pin <= d.sout.length && st.pin - 1 === idx) return st.slots;
+      }
+      for(const st of d.pads) if(st.pin === 0) return st.slots;
+      return d.pads[0].slots;
+    };
+    d.sout.forEach((tm, idx) => {
+      const xy = xf(tm.x, tm.y);
+      const slots = slotsFor(idx);
+      let netName = pinNet.get((p.ref + "." + tm.name).toUpperCase()) || "";
+      if(!netName) netName = pinNet.get((p.ref + "." + (idx + 1)).toUpperCase()) || "";
+      const netId = netName ? bvNet(b, ids, netName) : 0;
+      const push = (lay, s) => {
+        const w = s && s.w > 0 ? s.w * SC : (s && s.drill ? s.drill * SC * 1.8 : 24);
+        const h = s && s.h > 0 ? s.h * SC : w;
+        b.pads.push({kind:"pad", layer:lay, net:netId, comp:id,
+                     x:xy[0], y:xy[1], xs:w, ys:h, xm:w, ym:h, xb:w, yb:h,
+                     stack:false, hole:(s && s.drill ? s.drill * SC : 0),
+                     shape:padsShape(s), name:tm.name,
+                     rot:((s && s.rot) || 0) + p.rot,
+                     plated:(s ? s.plated !== false : true)});
+      };
+      let made = 0;
+      for(const s of slots){
+        if(!(s.size > 0) && !(s.drill > 0)) continue;
+        const lay = LY(s.layer, mirror);
+        /* 焊盘栈里的层 0 是"内层"，不是"所有铜层"。两层板上它等于不存在 ——
+           顺手给顶/底补一块会凭空多出焊盘（一个通孔会变成四块）。 */
+        if(lay === 0){ for(let q = 2; q < cu; q++){ push(39 + q - 2, s); made++; } }
+        else { push(lay, s); made++; }
+      }
+      if(!made) push(mirror ? 32 : 1, null);
+    });
+    /* 封装外框（丝印）。老格式的图形块不带层号（第 4 个数是线型），
+       那就按"这块元件贴哪面"落到丝印层上。 */
+    for(const g of d.draws){
+      let lay = LY(g.level, mirror);
+      if(!lay) lay = mirror ? 34 : 33;
+      if(lay === 33 || lay === 34) lay = mirror ? 34 : 33;
+      const seq = [];
+      for(const q of g.pts){
+        if(q && q.r !== undefined){
+          for(const m of padsArcPts(q.cx, q.cy, q.r, q.a0, q.da)) seq.push(xf(m[0], m[1]));
+        }else if(q && q.length){ seq.push(xf(q[0], q[1])); }
+      }
+      if(seq.length < 2) continue;
+      const lim = g.closed ? seq.length : seq.length - 1;
+      for(let q = 0; q < lim; q++){
+        const a = seq[q], c = seq[(q + 1) % seq.length];
+        b.tracks.push({kind:"track", layer:lay, net:0, comp:-1,
+                       x1:a[0], y1:a[1], x2:c[0], y2:c[1],
+                       w:Math.max(((g.width || 6) * SC), 1), poly:-1});
+      }
+    }
+  }
+
+  if(!b.pads.length && !b.tracks.length) throw new Error(T("errPadsEmpty"));
+  b.desCount = b.comps.length;
+  b.valCount = b.comps.length;
+  b.layerNames[1] = "Top";
+  if(cu > 1) b.layerNames[32] = "Bottom";
+  for(let n = 2; n < cu; n++) b.layerNames[39 + n - 2] = "Inner" + (n - 1);
+  b.__pads = {unit:hd.unit, ver:hd.ver, cu:cu, parts:parts.length,
+              decals:decals.size, pins:pinNet.size, routes:routes.length,
+              pinPts:pinPts.size};
+  finish(b);
+  /* 板框单独记一份：PADS 的图框和层名图例常常离板子老远，首屏按板框取景才看得清；
+     整块画布仍是全量包围盒，缩回去还能看到图例。 */
+  try{
+    let o = null;
+    for(const t of b.tracks){
+      if(t.layer !== 56) continue;
+      if(!o) o = {x1:1e9, y1:1e9, x2:-1e9, y2:-1e9};
+      o.x1 = Math.min(o.x1, t.x1, t.x2); o.x2 = Math.max(o.x2, t.x1, t.x2);
+      o.y1 = Math.min(o.y1, t.y1, t.y2); o.y2 = Math.max(o.y2, t.y1, t.y2);
+    }
+    if(o){
+      const bw = o.x2 - o.x1, bh = o.y2 - o.y1;
+      const tw = b.bounds.x2 - b.bounds.x1, th = b.bounds.y2 - b.bounds.y1;
+      if(bw > 0 && bh > 0 && bw * bh < tw * th * 0.4){
+        b.fitBounds = {x1:o.x1 - bw * 0.04, y1:o.y1 - bh * 0.04,
+                       x2:o.x2 + bw * 0.04, y2:o.y2 + bh * 0.04};
+      }
+    }
+  }catch(_){}
+  b.__isBoard = true;
+  return b;
+}
+function padsShape(s){
+  if(!s) return 1;
+  switch(s.shape){
+    case "S": case "ST": case "RF": case "RC": return 2;
+    case "RT": return 1;
+    case "R": case "A": case "O": case "OC": case "OF": return 1;
+  }
+  return 1;
+}
+/* ==PADS-BLOCK-END== */
 function parseAny(buf,name){
+  /* PADS 的 .asc 是纯文本，先认一把 —— 它既不是 KiCad 也不是 Gerber，认错了会当成二进制乱读 */
+  if(looksPads(buf)){
+    const txt=new TextDecoder("utf-8").decode(new Uint8Array(buf));
+    return parsePads(txt);
+  }
   if(looksKicad(buf)){
     const txt=new TextDecoder("utf-8").decode(new Uint8Array(buf));
     return parseKicad(txt);
@@ -6217,7 +7132,9 @@ function fit(){
   const r=stage.getBoundingClientRect();
   const W=Math.max(r.width||0, stage.clientWidth||0, 160);
   const H=Math.max(r.height||0, stage.clientHeight||0, 160);
-  const bb=B.bounds;
+  /* 有的格式（PADS）板子只占图纸一小块，图框/图例在很远的地方。
+     这种文件自己给了 fitBounds，首屏就按板框取景。 */
+  const bb=B.fitBounds||B.bounds;
   const w=Math.max(1,bb.x2-bb.x1), h=Math.max(1,bb.y2-bb.y1);
   const pad=70;
   let s=Math.min((W-pad)/w,(H-pad)/h);
