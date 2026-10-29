@@ -404,7 +404,7 @@
     <div class="hrow">
       <button class="btn primary" id="open" data-i18n="btnOpen"
               data-i18n-title="btnOpenTip">打开文件</button>
-      <input type="file" id="file" accept=".pcb,.PCB,.ddb,.DDB,.kicad_pcb,.KICAD_PCB,.gbr,.GBR,.gtl,.gbl,.gts,.gbs,.gto,.gbo,.gko,.drl,.xln,.zip,.ZIP,.json,.JSON,.epro,.EPRO,.epro2,.EPRO2" multiple>
+      <input type="file" id="file" accept=".pcb,.PCB,.ddb,.DDB,.kicad_pcb,.KICAD_PCB,.brd,.BRD,.gbr,.GBR,.gtl,.gbl,.gts,.gbs,.gto,.gbo,.gko,.drl,.xln,.zip,.ZIP,.json,.JSON,.epro,.EPRO,.epro2,.EPRO2" multiple>
       <select id="boards" style="display:none"></select>
       <div class="sep"></div>
       <button class="btn" id="fit" data-i18n="btnFit" data-i18n-title="btnFitTip">适合窗口</button>
@@ -657,9 +657,21 @@ zh:{
   gbLooseHole:n=>"有 "+n+" 个钻孔对不上铜皮（大概是安装孔），已单独画出。",
   gbNoProfile:"没有板框层（Profile / .gko），尺寸是按铜皮外包估的。",
   zipNeedUnzip:"这个压缩包解不开，请先解压，再把里面的文件一起拖进来。",
+  zipEmpty:"这个压缩包里没找到板文件，也没找到 Gerber。",
+  odbNo:"这个包是 ODB++（板厂的制造数据），本程序还不读这种格式。\n"
+    +"可以让出图方另存一份 Gerber + 钻孔，或者直接给原始的板设计文件"
+    +"（.pcb / .kicad_pcb / .brd）。",
   fmtGerber:"（Gerber 制造文件）",
   gbSet:n=>"（"+n+" 个文件合成一块板）",
   fmtKicad:"（KiCad 板文件）",
+  /* Eagle（.brd，XML）*/
+  errNotEagle:"这个文件不是 Eagle 的板图（找不到 <board> 节点）。\n"
+    +"（Allegro 的 .brd 也叫这个名字，但那是二进制，本程序读不了。）",
+  errEagleBig:"Eagle 文件太大，超出本程序的浏览上限。",
+  eagleNoPkg:n=>"有 "+n+" 个元件的封装在文件里找不到（库没随板子一起存），"
+    +"这些元件只画了位置，没有焊盘。",
+  eagleEmpty:"这块板里没有走线也没有焊盘 —— 可能只存了板框，或者封装库是外部引用的。",
+  fmtEagle:"（Eagle 板文件）",
   noNet:"(未分配网络)",
   padNo:n=>"焊盘 "+n,
   feetTitle:"这次点亮的全部元件脚",
@@ -723,7 +735,7 @@ zh:{
     +"　解析 "+o.ms+"ms",
   objs:n=>n+" 个对象",
   pourN:n=>"　覆铜 "+n+" 块",
-  noPcb:"认不出这个文件。支持 .pcb / .ddb / .kicad_pcb / 立创 .json / .epro2，或 Gerber 一包。",
+  noPcb:"认不出这个文件。支持 .pcb / .ddb / .kicad_pcb / Eagle .brd / 立创 .json / .epro2，或 Gerber 一包。",
   badFile:"这个文件读不出来：",
   multiBoard:"这个文件里有多块板，按修改时间从新到旧排：",
   latest:"★最新",
@@ -732,7 +744,7 @@ zh:{
       <div class="sub">点一下走线，就知道这根线通到哪儿、两头是哪颗元件的哪只脚</div>
       <button class="hbtn" id="hintOpen">打开文件</button>
       <div class="tip2">
-        也可以把 <b>.pcb</b> / <b>.ddb</b> / <b>.kicad_pcb</b> / 立创 <b>.json</b> / <b>.epro2</b> 直接拖到这里<br>
+        也可以把 <b>.pcb</b> / <b>.ddb</b> / <b>.kicad_pcb</b> / Eagle <b>.brd</b> / 立创 <b>.json</b> / <b>.epro2</b> 直接拖到这里<br>
         只读，不会修改你的任何文件　·　不联网
       </div>
       <div class="feats">
@@ -745,6 +757,7 @@ zh:{
       <div class="big">把板文件拖到这里</div>
       <div style="margin-top:8px;color:var(--fg3)">
         Protel 99SE：单板 <b>.pcb</b> 或设计库 <b>.ddb</b>　·　KiCad：<b>.kicad_pcb</b><br>
+        Eagle：<b>.brd</b>（Autodesk EAGLE / Fusion 360 的 XML）<br>
         立创EDA：标准版 <b>.json</b>　·　专业版 <b>.epro2</b> / <b>.epro</b>（整个工程包直接拖）<br>
         Gerber：一堆 <b>.gbr / .gtl / .gbl / .gko</b> 连钻孔 <b>.drl</b> 一起拖进来（或直接给 <b>.zip</b>）
       </div>
@@ -761,7 +774,7 @@ zh:{
   hintWeb:`<div class="drop">
       <div class="big">把板文件拖到这里</div>
       <div style="margin-top:8px;color:var(--fg3)">
-        也可以点左上角「打开文件」选择　·　支持 <b>.pcb</b> / <b>.kicad_pcb</b> / 立创 <b>.json</b> / <b>.epro2</b>
+        也可以点左上角「打开文件」选择　·　支持 <b>.pcb</b> / <b>.kicad_pcb</b> / Eagle <b>.brd</b> / 立创 <b>.json</b> / <b>.epro2</b>
       </div>
       <div class="privacy">文件只在你自己的浏览器里读取，<b>不会上传到任何服务器</b></div>
       <div style="margin-top:6px;color:var(--fg3);font-size:12px">
@@ -782,13 +795,15 @@ zh:{
     <h3>打开文件</h3>
     <p>双击程序图标，先看到一段<b>海报</b>（几秒后自动进首页），然后是<b>首页</b>——
        没带文件也能先把程序打开看界面：<b>点「打开文件」挑文件</b>，
-       或者把 <code>.pcb</code> / <code>.ddb</code> / <code>.kicad_pcb</code> 直接拖进窗口。</p>
+       或者把 <code>.pcb</code> / <code>.ddb</code> / <code>.kicad_pcb</code> / <code>.brd</code> 直接拖进窗口。</p>
     <p>这些文件在同一个对话框里，直接挑就行，也可以拖到窗口里：</p>
     <p style="color:var(--fg3)">
       · <b>.pcb</b> —— Protel / Altium 的老式二进制单板<br>
       · <b>.ddb</b> —— 老式设计库，里面可能有好几块板，一次全带出来<br>
       · <b>.kicad_pcb</b> —— KiCad 6 / 7 / 8 / 9 / 10 的板文件（纯文本 S 表达式），
         4、5 版的老格式也认<br>
+      · <b>.brd</b> —— Eagle（Autodesk EAGLE / Fusion 360）的板文件，纯文本 XML；
+        内层、覆铜、底面镜像元件都按原样解析<br>
       · <b>.json</b> —— 立创EDA <b>标准版</b>的板文件（纯文本 JSON，导出的就是它）<br>
       · <b>.epro2 / .epro</b> —— 立创EDA <b>专业版</b>的工程包，整个文件直接拖进来，
         里面的 .epru 设计日志会自己解开</p>
@@ -948,8 +963,8 @@ zh:{
     <p class="dim">已在 Windows 10 x86 与 Windows 11 64 位上实测通过。</p>
     <h3>能做什么</h3>
     <ul>
-      <li>打开 .pcb 单板、.ddb 设计库（自动列出里面所有板）、KiCad 的 .kicad_pcb，
-          以及立创EDA 标准版 .json 与专业版 .epro2 工程包</li>
+      <li>打开 .pcb 单板、.ddb 设计库（自动列出里面所有板）、KiCad 的 .kicad_pcb、
+          Eagle 的 .brd，以及立创EDA 标准版 .json 与专业版 .epro2 工程包</li>
       <li>点一下走线/焊盘，亮出整条铜箔，并写出 U100-4 这样的具体脚位</li>
       <li>显示元件位号、型号、焊盘编号；大面积铺铜可一键隐藏</li>
       <li><b>两点通不通</b>：点两个位置，直接判定电气上通不通（没网表的老板子也行）</li>
@@ -969,7 +984,7 @@ zh:{
       <li><b>最近打开</b>：首页列出上次开过的文件，点一下直接再打开</li>
     </ul>
     <h3>版本</h3>
-    <p>v1.17　·　支持 x86 与 64 位系统　·　单文件便携版</p>
+    <p>v1.18　·　支持 x86 与 64 位系统　·　单文件便携版</p>
     <div class="sig">© 永远的兰兰　·　Lanlan Eternal</div>`
 },
 en:{
@@ -1077,9 +1092,21 @@ en:{
   gbLooseHole:n=>n+" drill hits found no copper (mounting holes?) — drawn separately.",
   gbNoProfile:"No profile layer (Profile / .gko); board size is estimated from the copper.",
   zipNeedUnzip:"This archive could not be opened — unzip it and drag the files in together.",
+  zipEmpty:"No board file and no Gerber data inside this archive.",
+  odbNo:"This archive is ODB++ (fabrication data from a PCB house); this viewer does "
+    +"not read that format yet.\nAsk for Gerber + drill files, or send the original "
+    +"board file (.pcb / .kicad_pcb / .brd).",
   fmtGerber:"  (Gerber fabrication data)",
   gbSet:n=>"  ("+n+" files merged into one board)",
   fmtKicad:"  (KiCad board)",
+  errNotEagle:"This is not an EAGLE board (no <board> element).\n"
+    +"(Allegro files use the same .brd extension but are binary — not supported.)",
+  errEagleBig:"This EAGLE file is too large for the viewer.",
+  eagleNoPkg:n=>n+" elements reference a package that is not stored in the file "
+    +"(library not embedded) — only their position is drawn, without pads.",
+  eagleEmpty:"No tracks and no pads found — maybe only the outline was saved, "
+    +"or the packages live in an external library.",
+  fmtEagle:"  (EAGLE board)",
   noNet:"(no net)",
   padNo:n=>"Pad "+n,
   feetTitle:"Every pin lit by this click",
@@ -1145,7 +1172,7 @@ en:{
     +"　parsed in "+o.ms+"ms",
   objs:n=>n+" objects",
   pourN:n=>"　"+n+" pours",
-  noPcb:"Unrecognised file. Supports .pcb / .ddb / .kicad_pcb / EasyEDA .json / .epro2, or a Gerber set.",
+  noPcb:"Unrecognised file. Supports .pcb / .ddb / .kicad_pcb / EAGLE .brd / EasyEDA .json / .epro2, or a Gerber set.",
   badFile:"Cannot read this file: ",
   multiBoard:"Several boards in this file, newest first:",
   latest:"★latest",
@@ -1154,7 +1181,7 @@ en:{
       <div class="sub">Click a trace and see where it goes — and which pins it lands on.</div>
       <button class="hbtn" id="hintOpen">Open File</button>
       <div class="tip2">
-        You can also drop a <b>.pcb</b> / <b>.ddb</b> / <b>.kicad_pcb</b> file right here<br>
+        You can also drop a <b>.pcb</b> / <b>.ddb</b> / <b>.kicad_pcb</b> / <b>.brd</b> file right here<br>
         Read-only, never modifies your files · no network access
       </div>
       <div class="feats">
@@ -1167,7 +1194,7 @@ en:{
       <div class="big">Drop a board file here</div>
       <div style="margin-top:8px;color:var(--fg3)">
         Protel 99SE: single board <b>.pcb</b> or design library <b>.ddb</b>　·　KiCad: <b>.kicad_pcb</b><br>
-        EasyEDA: standard <b>.json</b>　·　pro <b>.epro2</b> / <b>.epro</b> (drop the whole project file)<br>
+        EAGLE: <b>.brd</b> (Autodesk EAGLE / Fusion 360 XML)<br>        EasyEDA: standard <b>.json</b>　·　pro <b>.epro2</b> / <b>.epro</b> (drop the whole project file)<br>
         Gerber: drop the whole <b>.gbr / .gtl / .gbl / .gko</b> set plus the <b>.drl</b> drill file together (or just a <b>.zip</b>)
       </div>
     </div>
@@ -1183,7 +1210,7 @@ en:{
   hintWeb:`<div class="drop">
       <div class="big">Drop a board file here</div>
       <div style="margin-top:8px;color:var(--fg3)">
-        Or use <b>Open File</b> at the top left　·　<b>.pcb</b> single boards and <b>.kicad_pcb</b>
+        Or use <b>Open File</b> at the top left　·　<b>.pcb</b> single boards, <b>.kicad_pcb</b> and EAGLE <b>.brd</b>
       </div>
       <div class="privacy">The file is read in your own browser and <b>never uploaded to any server</b></div>
       <div style="margin-top:6px;color:var(--fg3);font-size:12px">
@@ -1204,13 +1231,15 @@ en:{
     <h3>Opening a file</h3>
     <p>Double-click the exe: a short <b>splash</b> appears for a few seconds, then the <b>home page</b>.
        You can open the program without a board — click <b>Open File</b>, or drag a
-       <code>.pcb</code> / <code>.ddb</code> / <code>.kicad_pcb</code> into the window.</p>
+       <code>.pcb</code> / <code>.ddb</code> / <code>.kicad_pcb</code> / <code>.brd</code> into the window.</p>
     <p>All formats share one dialog — no second button needed. You can also drag a file in:</p>
     <p style="color:var(--fg3)">
       · <b>.pcb</b> — legacy Protel / Altium binary single board<br>
       · <b>.ddb</b> — legacy design library; all boards inside come along at once<br>
       · <b>.kicad_pcb</b> — KiCad 6 / 7 / 8 / 9 / 10 boards (plain-text S-expressions);
         the older 4 and 5 formats work too<br>
+      · <b>.brd</b> — EAGLE (Autodesk EAGLE / Fusion 360) boards, plain-text XML; inner
+        layers, copper pours and bottom-side mirrored parts are all read as-is<br>
       · <b>.json</b> — EasyEDA (LCEDA) <b>standard</b> board file, the plain-text JSON it exports<br>
       · <b>.epro2 / .epro</b> — EasyEDA (LCEDA) <b>pro</b> project file; drop it as-is and the
         .epru design log inside is unpacked for you</p>
@@ -1395,7 +1424,7 @@ en:{
     <p class="dim">Verified on Windows 10 x86 and Windows 11 64-bit.</p>
     <h3>What it does</h3>
     <ul>
-      <li>Opens .pcb files, .ddb design libraries (lists every board inside), and KiCad .kicad_pcb</li>
+      <li>Opens .pcb files, .ddb design libraries (lists every board inside), KiCad .kicad_pcb and EAGLE .brd</li>
       <li>Click a trace or pad to light the whole net and name the exact pins (U100-4 …)</li>
       <li>Shows component designators, values and pad numbers; copper pours hide with one key</li>
       <li><b>Two-point continuity</b>: click two spots and get a straight yes/no
@@ -1416,7 +1445,7 @@ en:{
       <li><b>Recent files</b>: the home page lists what you opened last; one click reopens it</li>
     </ul>
     <h3>Version</h3>
-    <p>v1.17　·　supports x86 and 64-bit Windows　·　portable single file</p>
+    <p>v1.18　·　supports x86 and 64-bit Windows　·　portable single file</p>
     <div class="sig">© Lanlan Eternal　·　永远的兰兰</div>`
 }
 };
@@ -1484,7 +1513,8 @@ function refreshFileLine(){
   const n=B.tracks.length+B.pads.length+B.vias.length+B.fills.length;
   document.getElementById("fname").textContent =
     T("fnameLine", lastName, B.fromDdb, n, B.polys.length) +
-    (B.fmt==="kicad" ? T("fmtKicad") : "");
+    (B.fmt==="kicad" ? T("fmtKicad")
+                       : (B.fmt==="eagle" ? T("fmtEagle") : ""));
   document.getElementById("stStats").textContent = T("stats", {
     t:B.tracks.length, p:B.pads.length, v:B.vias.length,
     f:B.fills.length, po:B.polys.length, n:B.nets.length,
@@ -4449,6 +4479,442 @@ function parseLcedaLog(txt){
   return b;
 }
 
+/* ==================== Eagle（Autodesk EAGLE / .brd，XML）====================
+   Eagle 的 .brd 就是一份 XML。跟前面几种格式比，有三处必须翻译，不然画出来是歪的：
+
+   ① 单位是 mm。内部一律 mil，进来先乘 39.3700787。
+   ② 层号是另一套：1 顶铜、16 底铜、2~15 内层、20 板框、21/22 丝印、25~28 位号与型号、
+      17/18 是"焊盘层/过孔层"（不是真的层，别当铜看）。内部约定 1 顶铜 / 32 底铜 /
+      39~54 内层 / 56 板框 / 33、34 丝印，所以逐层翻。
+      ⚠ 最容易错的一条：Eagle 的**底层是 16，不是 2**；2~15 全是内层。
+        照 1/2 处理的话，四层板的内层会跑到顶层上叠着。
+   ③ 焊盘尺寸不在元件身上。元件只写"用哪个库的哪个封装、放哪儿、转了多少度"，
+      尺寸全在 <libraries> 里 —— 所以焊盘得按元件的 rot/mirror 逐个"实例化"。
+      而"哪只脚属于哪条网"又另外写在 <signals> 的 <contactref> 里，得回头补。
+
+   覆铜只按外轮廓画（Eagle 的真实铺铜是它算出来的，要避让 + isolate），
+   本程序一律画成极淡底纹 + 轮廓 —— 跟立创专业版的覆铜一个处理方式。 */
+const EAGLE_MM=39.37007874015748;          /* 1 mm = 39.37 mil */
+
+function looksEagle(buf){
+  const u8=new Uint8Array(buf), n=Math.min(u8.length, 4096);
+  let s="";
+  for(let i=0;i<n;i++) s+=String.fromCharCode(u8[i]);
+  s=s.replace(/^\uFEFF/,"");
+  const t=s.replace(/^\s+/,"");
+  /* 光看后缀不行：Cadence Allegro 的板文件也叫 .brd，而且是二进制。
+     只认真正的 Eagle XML。 */
+  return t.charCodeAt(0)===60 &&
+         (s.indexOf("<eagle")>=0 || (s.indexOf("<board")>=0 && s.indexOf("<signals")>=0));
+}
+
+/* 极简 XML → 树。Eagle 只用得到属性、子元素和标签体文字（<text> 的内容在标签体里），
+   注释 / CDATA / <?xml?> / <!DOCTYPE> 一律跳过。
+   不借浏览器的 DOMParser：探针要在 node 里跑同一份代码，手写更省事，也躲开
+   "带外部 DTD 的 XML"在某些浏览器里报错的坑。 */
+function exParse(txt){
+  const root={tag:"#root", att:{}, kids:[], txt:""};
+  const stack=[root];
+  const n=txt.length;
+  let i=0;
+  const unesc=s=>s.indexOf("&")<0? s : s.replace(/&lt;/g,"<").replace(/&gt;/g,">")
+      .replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,"&");
+  const addText=s=>{
+    if(!s) return;
+    const t=unesc(s);
+    if(!t.trim()) return;
+    stack[stack.length-1].txt += t;
+  };
+  /* 找标签的结束 '>'：属性值里的 '>' 不算 */
+  const findGt=f=>{
+    let q=0;
+    for(let k=f;k<n;k++){
+      const c=txt.charCodeAt(k);
+      if(q){ if(c===q) q=0; }
+      else if(c===34||c===39) q=c;
+      else if(c===62) return k;
+    }
+    return -1;
+  };
+  while(i<n){
+    const lt=txt.indexOf("<", i);
+    if(lt<0){ addText(txt.slice(i)); break; }
+    if(lt>i) addText(txt.slice(i, lt));
+    if(txt.startsWith("<!--", lt)){
+      const e=txt.indexOf("-->", lt+4); i = e<0? n : e+3; continue;
+    }
+    if(txt.startsWith("<![CDATA[", lt)){
+      const e=txt.indexOf("]]>", lt+9);
+      if(e>0) addText(txt.slice(lt+9, e));
+      i = e<0? n : e+3; continue;
+    }
+    if(txt[lt+1]==="?" || txt[lt+1]==="!"){
+      const e=findGt(lt); i = e<0? n : e+1; continue;
+    }
+    const gt=findGt(lt+1);
+    if(gt<0) break;
+    let inner=txt.slice(lt+1, gt);
+    if(inner[0]==="/"){                        /* 结束标签 */
+      if(stack.length>1) stack.pop();
+      i=gt+1; continue;
+    }
+    const self=inner[inner.length-1]==="/";
+    if(self) inner=inner.slice(0,-1);
+    const sp=inner.search(/\s/);
+    const node={tag:(sp<0? inner : inner.slice(0,sp)), att:{}, kids:[], txt:""};
+    if(sp>=0){
+      const re=/([A-Za-z_:][\w.:\-]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
+      let m;
+      while((m=re.exec(inner))) node.att[m[1]]=unesc(m[2]!==undefined? m[2] : m[3]);
+    }
+    stack[stack.length-1].kids.push(node);
+    if(!self) stack.push(node);
+    i=gt+1;
+  }
+  return root;
+}
+
+/* Eagle 层号 → 内部层号。返回 0 表示这层本程序不画（阻焊、助焊、装配、参考…）。 */
+function eagleLayer(n){
+  n=+n||0;
+  if(n===1) return 1;                                   /* Top */
+  if(n===16) return 32;                                 /* Bottom */
+  if(n>=2 && n<=15) return 39+(n-2);                    /* Inner1..14 → 39..52 */
+  if(n===20 || n===46) return 56;                       /* Dimension / Milling → 板框层 */
+  if(n===21 || n===25 || n===27 || n===51) return 33;   /* tPlace/tNames/tValues/tDocu */
+  if(n===22 || n===26 || n===28 || n===52) return 34;
+  return 0;                                             /* 17/18 焊盘层、29~38 阻焊助焊等 */
+}
+
+/* "R90" / "MR90" / "SMR90" 里的角度 */
+function eagleAng(rot){
+  const m=/(\d+(?:\.\d+)?)/.exec(String(rot||""));
+  return m? +m[1] : 0;
+}
+/* 镜像时层要跟着翻：顶↔底、tPlace↔bPlace…，不翻的话底面元件会印在顶丝印上 */
+function eagleFlip(n){
+  n=+n||0;
+  if(n===1) return 16;
+  if(n===16) return 1;
+  if(n===21) return 22;
+  if(n===22) return 21;
+  if(n===25) return 26;
+  if(n===26) return 25;
+  if(n===27) return 28;
+  if(n===28) return 27;
+  if(n===51) return 52;
+  if(n===52) return 51;
+  return n;
+}
+
+/* 弦 + 圆心角 → 圆心 / 半径 / 起止角（单位：传进来是 mm，角度是度）。
+   Eagle 的 curve 正数是逆时针；圆角板框、圆形焊盘轮廓全靠它。
+   arcSegs 只从 a1 逆时针扫到 a2，所以顺时针的弧把两头对调。 */
+function eagleChordArc(x1,y1,x2,y2,deg){
+  const dx=x2-x1, dy=y2-y1, L=Math.hypot(dx,dy);
+  if(!(L>1e-9)) return null;
+  const th=Math.abs(deg);
+  if(th>=359.9) return null;
+  const half=th*Math.PI/360;
+  const R=L/(2*Math.sin(half));
+  if(!isFinite(R) || R>1e6) return null;
+  const h=R*Math.cos(half);
+  const sgn=deg>0? 1 : -1;
+  const nx=-dy/L, ny=dx/L;                              /* 弦的左手法向 */
+  const cx=(x1+x2)/2 + sgn*h*nx;
+  const cy=(y1+y2)/2 + sgn*h*ny;
+  const norm=v=>{ v%=360; return v<0? v+360 : v; };
+  let a1=norm(Math.atan2(y1-cy, x1-cx)*180/Math.PI);
+  let a2=norm(Math.atan2(y2-cy, x2-cx)*180/Math.PI);
+  if(deg<0){ const t=a1; a1=a2; a2=t; }
+  return {x:cx, y:cy, r:R, a1:a1, a2:a2};
+}
+
+function parseEagle(txt){
+  if(txt.length > 160e6) throw new Error(T("errEagleBig"));
+  const doc=exParse(txt);
+  const eagle=doc.kids.find(k=>k.tag==="eagle");
+  const drawing=eagle && eagle.kids.find(k=>k.tag==="drawing");
+  const brd=drawing && drawing.kids.find(k=>k.tag==="board");
+  if(!brd) throw new Error(T("errNotEagle"));
+
+  const b={
+    layers:{}, copper:[], nets:[], tracks:[], pads:[], vias:[], arcs:[],
+    fills:[], texts:[], comps:[], polys:[], sections:[], warn:[],
+    fmt:"eagle", fromDdb:false, boardCount:1, layerNames:{}
+  };
+  const MM=v=>v*EAGLE_MM;
+  const num=(v,d)=>{ const x=+v; return isFinite(x)?x:(d===undefined?0:d); };
+
+  /* 内层名字用文件里的（Inner1 / GND / VCC…），其余层 UI 有固定叫法 */
+  const layNode=drawing.kids.find(k=>k.tag==="layers");
+  if(layNode) for(const l of layNode.kids){
+    const id=eagleLayer(l.att.number);
+    if(id>=39 && id<=54 && l.att.name) b.layerNames[id]=l.att.name;
+  }
+
+  /* ---- 网络 ----
+     Eagle 把"哪只脚属于哪条网"单独写在 signals 的 contactref 里，焊盘本身不带网络。
+     所以先扫一遍建表（位号\0脚号 → 网号），等焊盘生成出来再回填。 */
+  const netIds=new Map();
+  let nullNet=0;
+  const netNum=nm=>{
+    if(nm===undefined || nm===null) return 0;
+    const s=String(nm).trim();
+    if(!s) return 0;
+    let id=netIds.get(s);
+    if(!id){ id=b.nets.length+1; netIds.set(s,id); b.nets[id-1]=s; }
+    return id;
+  };
+  const padNet=new Map();
+  const sigs=[];
+  const sigNode=brd.kids.find(k=>k.tag==="signals");
+  if(sigNode) for(const s of sigNode.kids){
+    if(s.tag!=="signal") continue;
+    const id=netNum(s.att.name);
+    if(!id) nullNet++;
+    sigs.push({id:id, node:s});
+    if(!id) continue;
+    for(const c of s.kids){
+      if(c.tag!=="contactref") continue;
+      padNet.set(String(c.att.element||"")+"\u0000"+String(c.att.pad||""), id);
+    }
+  }
+
+  /* ---- 图元：一律先进"世界 mm"，再由下面几个 add 函数换算成 mil ---- */
+  const addWireMm=(x1,y1,x2,y2,wMm,en,curve,net)=>{
+    const L=eagleLayer(en);
+    if(!L) return;
+    const w=Math.max(0,wMm)*EAGLE_MM;
+    if(Math.abs(curve)>0.5 && Math.abs(curve)<359.5){
+      const c=eagleChordArc(x1,y1,x2,y2,curve);
+      if(c){
+        b.arcs.push({kind:"arc", layer:L, net:net, x:MM(c.x), y:MM(c.y),
+                     radius:MM(c.r), a1:c.a1, a2:c.a2, w:w});
+        return;
+      }
+    }
+    b.tracks.push({kind:"track", layer:L, net:net,
+      x1:MM(x1), y1:MM(y1), x2:MM(x2), y2:MM(y2), w:w, poly:-1});
+  };
+
+  let polySeq=0;
+  const addPoly=(o, net, X)=>{
+    const en = X? eagleFlip(o.att.layer) : o.att.layer;
+    const L=eagleLayer(en);
+    if(!L) return;
+    const pts=[];
+    for(const v of o.kids){
+      if(v.tag!=="vertex") continue;
+      const x=num(v.att.x), y=num(v.att.y);
+      const P = X? X(x,y) : [x,y];
+      pts.push([MM(P[0]), MM(P[1])]);
+    }
+    if(pts.length<3) return;
+    b.polys.push({kind:"polygon", layer:L, net:net, pid:++polySeq, pts:pts, closed:true});
+  };
+
+  const addArcFull=(cx,cy,rMm,wMm,en,net)=>{
+    const L=eagleLayer(en);
+    if(!L || !(rMm>0)) return;
+    b.arcs.push({kind:"arc", layer:L, net:net, x:MM(cx), y:MM(cy),
+                 radius:MM(rMm), a1:0, a2:360, w:MM(Math.max(0,wMm))});
+  };
+
+  const addFillMm=(x1,y1,x2,y2,en,net)=>{
+    const L=eagleLayer(en);
+    if(!L) return;
+    b.fills.push({kind:"fill", layer:L, net:net,
+      x1:MM(Math.min(x1,x2)), y1:MM(Math.min(y1,y2)),
+      x2:MM(Math.max(x1,x2)), y2:MM(Math.max(y1,y2)), rot:0, poly:-1});
+  };
+
+  const addHoleMm=(cx,cy,dMm,net)=>{
+    if(!(dMm>0)) return;
+    b.pads.push({kind:"pad", layer:74, net:net||0, comp:-1,
+      x:MM(cx), y:MM(cy), xs:MM(dMm), ys:MM(dMm),
+      xm:MM(dMm), ym:MM(dMm), xb:MM(dMm), yb:MM(dMm), stack:false,
+      hole:MM(dMm), shape:1, name:"", rot:0, plated:false});
+  };
+
+  const addTextMm=(x,y,hMm,en,rot,text,comp,isDes,isCom)=>{
+    const L=eagleLayer(en);
+    const s=String(text||"").replace(/\s+/g," ").trim();
+    if(!L || !s) return;
+    b.texts.push({kind:"text", layer:L, comp:(comp===undefined? -1 : comp),
+      x:MM(x), y:MM(y), h:MM(hMm>0? hMm : 1.27), rot:rot||0,
+      text:s, isDes:!!isDes, isCom:!!isCom});
+  };
+
+  /* ---- 板框、安装孔、板面文字 ---- */
+  const plain=brd.kids.find(k=>k.tag==="plain");
+  if(plain) for(const o of plain.kids){
+    if(o.tag==="wire"){
+      addWireMm(num(o.att.x1), num(o.att.y1), num(o.att.x2), num(o.att.y2),
+                num(o.att.width), o.att.layer, num(o.att.curve), 0);
+    }else if(o.tag==="circle"){
+      addArcFull(num(o.att.x), num(o.att.y), num(o.att.radius), num(o.att.width), o.att.layer, 0);
+    }else if(o.tag==="rectangle"){
+      addFillMm(num(o.att.x1), num(o.att.y1), num(o.att.x2), num(o.att.y2), o.att.layer, 0);
+    }else if(o.tag==="polygon"){
+      addPoly(o, 0, null);
+    }else if(o.tag==="hole"){
+      addHoleMm(num(o.att.x), num(o.att.y), num(o.att.drill), 0);
+    }else if(o.tag==="text"){
+      addTextMm(num(o.att.x), num(o.att.y), num(o.att.size,1.27), o.att.layer,
+                eagleAng(o.att.rot), o.txt, -1, false, false);
+    }
+  }
+
+  /* ---- 封装库 ---- */
+  const pkgs=new Map();
+  const libs=brd.kids.find(k=>k.tag==="libraries");
+  if(libs) for(const l of libs.kids){
+    if(l.tag!=="library") continue;
+    const ps=l.kids.find(k=>k.tag==="packages");
+    if(!ps) continue;
+    for(const p of ps.kids){
+      if(p.tag!=="package") continue;
+      const key=String(l.att.name||"")+"\u0000"+String(p.att.name||"");
+      if(!pkgs.has(key)) pkgs.set(key, p);
+    }
+  }
+
+  /* 封装内的图元：坐标相对封装原点，套 element 的 rot / mirror 变换过去 */
+  const pkgGraph=(g, X, mir, comp, des, val)=>{
+    const en = mir? eagleFlip(g.att.layer) : g.att.layer;
+    if(g.tag==="wire"){
+      const A=X(num(g.att.x1), num(g.att.y1)), C=X(num(g.att.x2), num(g.att.y2));
+      /* 注意：镜像之后弧的方向也反了，curve 取负才是同一条弧 */
+      addWireMm(A[0], A[1], C[0], C[1], num(g.att.width), en,
+                mir? -num(g.att.curve) : num(g.att.curve), 0);
+    }else if(g.tag==="circle"){
+      const P=X(num(g.att.x), num(g.att.y));
+      addArcFull(P[0], P[1], num(g.att.radius), num(g.att.width), en, 0);
+    }else if(g.tag==="rectangle"){
+      const A=X(num(g.att.x1), num(g.att.y1)), C=X(num(g.att.x2), num(g.att.y2));
+      addFillMm(A[0], A[1], C[0], C[1], en, 0);
+    }else if(g.tag==="polygon"){
+      addPoly(g, 0, X);
+    }else if(g.tag==="text"){
+      let s=(g.txt||"").trim(), d=false, c=false;
+      if(s===">NAME"){ s=des||""; d=true; }
+      else if(s===">VALUE"){ s=val||""; c=true; }
+      if(!s) return;
+      const P=X(num(g.att.x), num(g.att.y));
+      addTextMm(P[0], P[1], num(g.att.size,1.27), en, eagleAng(g.att.rot), s, comp, d, c);
+    }
+  };
+
+  /* ---- 元件实例化 ---- */
+  let compSeq=0, missPkg=0, padCnt=0;
+  const els=brd.kids.find(k=>k.tag==="elements");
+  if(els) for(const el of els.kids){
+    if(el.tag!=="element") continue;
+    const des=String(el.att.name||"");
+    if(!des) continue;
+    const lib=String(el.att.library||""), pkgName=String(el.att.package||"");
+    const rot=String(el.att.rot||"");
+    const mir=rot.indexOf("M")>=0;
+    const ang=eagleAng(rot);
+    const rad=ang*Math.PI/180, cs=Math.cos(rad), sn=Math.sin(rad);
+    const ox=num(el.att.x), oy=num(el.att.y);
+    /* Eagle 的顺序：先镜像（绕 X 轴翻，y 取反），再按 rot 逆时针转，最后平移 */
+    const X=(lx,ly)=>{
+      const py = mir? -ly : ly;
+      return [ox + lx*cs - py*sn, oy + lx*sn + py*cs];
+    };
+    const id=++compSeq;
+    const P0=X(0,0);
+    b.comps.push({id:id, layer:(mir?32:1), x:MM(P0[0]), y:MM(P0[1]), rot:ang, lib:pkgName});
+    const val=String(el.att.value||"");
+    const def=pkgs.get(lib+"\u0000"+pkgName);
+    let hasDes=false, hasVal=false;
+
+    if(def) for(const g of def.kids){
+      if(g.tag==="smd" || g.tag==="pad"){
+        const nm=String(g.att.name||"");
+        const net=padNet.get(des+"\u0000"+nm) || 0;
+        const P=X(num(g.att.x), num(g.att.y));
+        if(g.tag==="smd"){
+          const en = mir? eagleFlip(g.att.layer) : g.att.layer;
+          const L=eagleLayer(en);
+          const dx=num(g.att.dx), dy=num(g.att.dy);
+          if(!L || (!(dx>0) && !(dy>0))) continue;
+          const prot=eagleAng(g.att.rot);
+          b.pads.push({kind:"pad", layer:L, net:net, comp:id,
+            x:MM(P[0]), y:MM(P[1]), xs:MM(dx), ys:MM(dy),
+            xm:MM(dx), ym:MM(dy), xb:MM(dx), yb:MM(dy), stack:false,
+            hole:0, shape:2, name:nm, rot:(mir? -prot : prot), plated:true});
+          padCnt++;
+        }else{
+          const drill=num(g.att.drill);
+          let dia=num(g.att.diameter);
+          if(!(dia>0)) dia=Math.max(drill*1.6, drill+0.5);   /* Eagle 允许不写 diameter */
+          if(!(dia>0)) continue;
+          const sh=String(g.att.shape||"round");
+          const shape = sh==="square"? 2 : (sh==="octagon"? 3 : 1);
+          /* 通孔焊盘在 Eagle 里只在 1 层写着，实际两层都有铜 → 按多层焊盘处理 */
+          b.pads.push({kind:"pad", layer:74, net:net, comp:id,
+            x:MM(P[0]), y:MM(P[1]), xs:MM(dia), ys:MM(dia),
+            xm:MM(dia), ym:MM(dia), xb:MM(dia), yb:MM(dia), stack:false,
+            hole:MM(drill), shape:shape, name:nm, rot:0, plated:true});
+          padCnt++;
+        }
+      }else if(g.tag==="hole"){
+        const P=X(num(g.att.x), num(g.att.y));
+        addHoleMm(P[0], P[1], num(g.att.drill), 0);
+      }else{
+        if(g.tag==="text"){
+          const s=(g.txt||"").trim();
+          if(s===">NAME") hasDes=true;
+          else if(s===">VALUE") hasVal=true;
+        }
+        pkgGraph(g, X, mir, id, des, val);
+      }
+    }else{
+      missPkg++;
+    }
+
+    /* 库里没有 >NAME / >VALUE 占位（或整个封装都没找到）时补一条，
+       否则这个位号在"元件"清单和搜索里就查不到。 */
+    const tl = mir? 34 : 33;
+    if(!hasDes) b.texts.push({kind:"text", layer:tl, comp:id, x:MM(P0[0]), y:MM(P0[1]),
+                              h:MM(1.0), rot:0, text:des, isDes:true, isCom:false});
+    if(val && !hasVal) b.texts.push({kind:"text", layer:tl, comp:id,
+                              x:MM(P0[0]), y:MM(P0[1])-MM(1.6), h:MM(0.9), rot:0,
+                              text:val, isDes:false, isCom:true});
+  }
+  if(missPkg) b.warn.push(T("eagleNoPkg", missPkg));
+
+  /* ---- 走线 / 过孔 / 覆铜（真正带网络的部分） ---- */
+  for(const s of sigs){
+    for(const c of s.node.kids){
+      if(c.tag==="wire"){
+        addWireMm(num(c.att.x1), num(c.att.y1), num(c.att.x2), num(c.att.y2),
+                  num(c.att.width), c.att.layer, num(c.att.curve), s.id);
+      }else if(c.tag==="via"){
+        const drill=num(c.att.drill);
+        let dia=num(c.att.diameter);
+        if(!(dia>0)) dia=Math.max(drill*2, drill+0.4);
+        if(!(drill>0) && !(dia>0)) continue;
+        b.vias.push({kind:"via", layer:74, net:s.id,
+          x:MM(num(c.att.x)), y:MM(num(c.att.y)),
+          dia:MM(dia), hole:MM(drill), start:1, end:32});
+      }else if(c.tag==="polygon"){
+        addPoly(c, s.id, null);
+      }
+    }
+  }
+
+  if(!b.tracks.length && !b.pads.length)
+    b.warn.push(T("eagleEmpty"));
+
+  finish(b);
+  b.__isBoard=true;
+  return b;
+}
+
 function parseAny(buf,name){
   if(looksKicad(buf)){
     const txt=new TextDecoder("utf-8").decode(new Uint8Array(buf));
@@ -4457,6 +4923,10 @@ function parseAny(buf,name){
   if(looksEasyEda(buf)){
     const txt=new TextDecoder("utf-8").decode(new Uint8Array(buf));
     return parseEasyEda(txt);
+  }
+  if(looksEagle(buf)){
+    const txt=new TextDecoder("utf-8").decode(new Uint8Array(buf));
+    return parseEagle(txt);
   }
   return parseBoard(buf);
 }
@@ -4536,10 +5006,14 @@ const LAYER_COLORS={
   1:"#e2504f", 2:"#c9622f", 3:"#b8853a", 4:"#8f9f3f", 5:"#5aa87a",
   6:"#3fa9a0", 7:"#4a8ee8", 8:"#7b6ce0", 9:"#b45ec9", 10:"#d4537e"
 };
+/* 内层不再是"一律紫色"：四层板里两个内层、六层板里四个内层，全是同一个颜色时
+   根本分不清哪条线走哪一层。按序号循环取色，冷暖交替，相邻两层差得开。 */
+const INNER_COLORS=["#b07ad8","#c96f9a","#c99a4a","#5fae86","#5a9bc8","#9a7ad0",
+                    "#d08050","#6fae6f","#7f9fd8","#c070c0","#b0a050","#40a0a0"];
 function layerColor(n){
   if(n===32) return "#4a8ee8";                 // 底层：蓝（和顶层红配成一套）
-  if(n>=2 && n<=31) return "#9a7ad0";
-  if(n>=39 && n<=54) return "#9a7ad0";
+  if(n>=2 && n<=31) return INNER_COLORS[(n-2)%INNER_COLORS.length];
+  if(n>=39 && n<=54) return INNER_COLORS[(n-39)%INNER_COLORS.length];
   if(n===1) return "#e2504f";
   if(n===74) return "#b9c2d0";
   if(n===33||n===34) return "#8a8a8a";
@@ -4547,7 +5021,9 @@ function layerColor(n){
   return "#5c6373";
 }
 function layerLabel(n){
-  const nm=(B&&B.layers&&B.layers[n])||"";
+  /* 老设计把层别名存在 B.layers，新解析器（KiCad / Eagle / 立创）存 B.layerNames，
+     两边都要认 —— Eagle 的内层就叫 GND、PWR，比"内层 1"有用得多。 */
+  const nm=(B&&((B.layers&&B.layers[n])||(B.layerNames&&B.layerNames[n])))||"";
   let s;
   if(n===1) s=T("layTop");
   else if(n===32) s=T("layBottom");
@@ -4928,9 +5404,18 @@ function drawLayer(ly,arr){
     /* 透明度要压得很低：上千片、六层叠在一起，每片哪怕只有 8%
        累积下来也是一块实心色，走线全被埋掉。0.028 叠六层才勉强算"底纹"。 */
     if(pourPath(false)){
-      ctx.globalAlpha=0.028*DIM; ctx.fillStyle=col;
+      /* 浓度按"这一层有多少片覆铜"自适应：
+         立创专业版的一块覆铜会拆成上千片，每片哪怕只有百分之几，叠起来也是实心色，
+         所以那种板子必须压到 0.028；Eagle 一块 GND 平面就是一整片轮廓，
+         同样 0.028 在深色底上几乎看不见 —— 这种就该反过来提亮。 */
+      let nPoly=0;
+      for(let k=0;k<arr.length;k++) if(arr[k].kind==="polygon") nPoly++;
+      /* 三档：一整片（Eagle / 多数 KiCad 板）要看得出来是一片铜；几十片取中间；
+         上千片（立创专业版那种）必须压回 0.028，否则层层叠成实心色。 */
+      const aFill = nPoly<=6? 0.20 : (nPoly<=80? 0.075 : 0.028);
+      ctx.globalAlpha=aFill*DIM; ctx.fillStyle=col;
       ctx.fill("nonzero");
-      ctx.globalAlpha=0.16*DIM; ctx.strokeStyle=col; ctx.lineWidth=0.6;
+      ctx.globalAlpha=(nPoly<=80? 0.30 : 0.16)*DIM; ctx.strokeStyle=col; ctx.lineWidth=0.6;
       ctx.stroke();
     }
     if(pourPath(true)){
@@ -6644,7 +7129,7 @@ async function uploadToServer(f){
   const nm=f.name||"board.pcb";
   /* 后缀只是一道粗筛：板厂给的 Gerber 包常常没后缀，光看名字会把好东西挡在门外。
      真正的判断交给 exe 那侧（它按内容嗅 + 按 zip 内部结构认工程包）。 */
-  if(!/\.(pcb|ddb|kicad_pcb|json|epro|epro2|zip)$/i.test(nm) && !GER_EXT.test(nm)){
+  if(!/\.(pcb|ddb|kicad_pcb|brd|json|epro|epro2|zip)$/i.test(nm) && !GER_EXT.test(nm)){
     toast(T("noPcb")); return;
   }
   toast(T("reading"));
@@ -6811,7 +7296,7 @@ async function openFiles(list){
     const solo=[], ger=[], zips=[], easy=[];
     for(const f of arr){
       const n=f.name||"";
-      if(/\.(pcb|ddb|kicad_pcb)$/i.test(n)){ solo.push(f); continue; }
+      if(/\.(pcb|ddb|kicad_pcb|brd)$/i.test(n)){ solo.push(f); continue; }
       /* 立创EDA 专业版的工程包就是 zip，只是后缀改成 .epro / .epro2 */
       if(/\.(zip|epro|epro2)$/i.test(n)){ zips.push(f); continue; }
       if(GER_EXT.test(n)){ ger.push(f); continue; }
@@ -6860,7 +7345,7 @@ async function openFiles(list){
         for(const e of ents){
           if(/\/$/.test(e.name)) continue;
           const base=e.name.split(/[\\/]/).pop();
-          if(!GER_EXT.test(base) && !/\.(pcb|ddb|kicad_pcb)$/i.test(base)) continue;
+          if(!GER_EXT.test(base) && !/\.(pcb|ddb|kicad_pcb|brd)$/i.test(base)) continue;
           let ab;
           if(e.method===0){
             ab=e.data.buffer.slice(e.data.byteOffset, e.data.byteOffset+e.data.byteLength);
@@ -6870,8 +7355,8 @@ async function openFiles(list){
           if(!ab){ toast(T("zipNeedUnzip")); break; }
           inner.push({n:base, buf:ab});
         }
-        const g2=inner.filter(x=>!/\.(pcb|ddb|kicad_pcb)$/i.test(x.n));
-        const s2=inner.filter(x=>/\.(pcb|ddb|kicad_pcb)$/i.test(x.n));
+        const g2=inner.filter(x=>!/\.(pcb|ddb|kicad_pcb|brd)$/i.test(x.n));
+        const s2=inner.filter(x=>/\.(pcb|ddb|kicad_pcb|brd)$/i.test(x.n));
         for(const x of s2){
           openDoc([{n:x.n, d:null, buf:x.buf}], x.n);
           await new Promise(r=>setTimeout(r,300));
@@ -6879,6 +7364,12 @@ async function openFiles(list){
         if(g2.length){
           const base=zf.name.replace(/\.[^.]+$/,"");
           openDoc([{n:base, d:null, buf:null, g:g2}], base);
+        }else if(!s2.length){
+          /* 既没有 Gerber 也没有板文件。ODB++ 包正好长这样：顶层一个 matrix/，
+             下面 steps/<板名>/layers/… —— 板厂给的就是它，得说清楚而不是"没反应"。 */
+          const odb = ents.some(e=>/matrix\/matrix$/i.test(e.name)) ||
+                      ents.some(e=>/\/steps\//i.test(e.name));
+          toast(T(odb? "odbNo" : "zipEmpty"));
         }
       }
     }
