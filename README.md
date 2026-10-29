@@ -568,6 +568,8 @@ _build32.py               打包脚本（须用 32 位 Python，保证 x86）
 COPYING-GPL-2.0.txt        mdbtools 工具的 GPL 全文
 COPYING-LGPL-2.1.txt       libmdb / libiconv 的 LGPL 全文
 LICENSE-CERN-OHL-1.2.txt   预览截图所涉开源硬件的 CERN-OHL v1.2 全文
+                           （CC BY 3.0 与 CC BY-NC-SA 4.0 无需随附全文，
+                             按协议要求给出作者、作品名与协议链接即可）
 CHANGELOG.md              逐版改动记录
 预览_*.png                 界面预览
 ```
@@ -598,7 +600,7 @@ GPL-2.0 §3(b) 的三年书面源码要约写在 `第三方组件与许可.txt` 
 | 4 | 免责声明里写明"无隶属关系、商标归各自所有者" | ✅ 已做 | 免责声明第 5 节 + 关于 |
 | 5 | mdbtools（GPL-2.0-or-later + LGPL）随附许可证 + 源码书面要约 | ✅ 已做 | 发行包内 `第三方组件与许可.txt` + `COPYING-GPL-2.0.txt` + `COPYING-LGPL-2.1.txt`。GPL-2.0 §3(b) 的三年 written offer 已写进 `第三方组件与许可.txt` 第 1 节 |
 | 6 | 代码里不留任何第三方项目名 / 厂商名 | ✅ 已做 | 注释里原有的外部参考已删除，改为「由本人对样本文件做二进制差分实测得出」（这本来也是实际做法） |
-| 7 | **PCB 设计文件一个都不分发** | ✅ 已做 | 预览截图用的两块板都来自开源硬件项目：PC-Henshin（© René Richard 2017, CERN-OHL v1.2）与立创·泰山派 1F（© 立创开发板 LCKFB, CC BY-NC-SA 4.0）。**这些文件一个都不进发行包、不进仓库、不进 Release** —— 不发出就不产生再分发义务。截图已随附 `LICENSE-CERN-OHL-1.2.txt` + 双重署名，并在 `第三方组件与许可.txt` 第 2 节写明（CC BY-NC-SA 的署名/非商业/相同方式共享三项义务逐条对应）。对外演示可换自画板 |
+| 7 | **PCB 设计文件一个都不分发** | ✅ 已做 | 预览截图用的板子全部来自公开项目：PC-Henshin（© René Richard 2017, CERN-OHL v1.2）、立创·泰山派 1F（© 立创开发板 LCKFB, CC BY-NC-SA 4.0）、LimeSDR-Mini（© Myriad RF / Lime Microsystems, **CC BY 3.0**），以及 PADS 那张用的 KiCad 官方 QA 测试数据（GPL-2.0-or-later）。**这些文件一个都不进发行包、不进仓库、不进 Release** —— 不发出就不产生再分发义务。截图已随附 `LICENSE-CERN-OHL-1.2.txt`，四个来源各自署名，并在 `第三方组件与许可.txt` 第 2 节逐条写明履行了哪些义务（CERN-OHL 的保留声明、CC BY 3.0 的署名/注明改动/不暗示背书、CC BY-NC-SA 4.0 的署名/非商业/相同方式共享）。对外演示可换自画板 |
 | 8 | 不要把公司真实板子 / 客户资料放进仓库 | ⚠️ 自己把关 | 生产板的 PCB 文件属公司资产，示例请用开源板或纯自制 |
 | 9 | 免责声明写清"仅供参考、不得作生产依据、维修自负" | ✅ 已做 | 免责声明第 1/3/4 节，中英各一份 |
 | 10 | 签名 / 证书 | — | 无代码签名，SmartScreen 可能提示"未知发布者"；内部分发属正常，对外分发可忽略或自行签 |
@@ -1186,7 +1188,7 @@ Checked before any distribution (colleague, chat group, intranet share, GitHub):
 | 4 | Disclaimer states non-affiliation and trademark ownership | ✅ | Disclaimer section 5 + About |
 | 5 | mdbtools (GPL-2.0-or-later + LGPL) ships with licences and a written offer | ✅ | `第三方组件与许可.txt` + `COPYING-GPL-2.0.txt` + `COPYING-LGPL-2.1.txt`; GPL-2.0 §3(b) offer in section 1 |
 | 6 | No third-party project names left in the code | ✅ | Original external references removed; the offsets were derived by binary diffing sample files, which is what was actually done |
-| 7 | **No PCB design files are distributed at all** | ✅ | Both boards in the previews come from open-hardware projects: PC-Henshin (© René Richard 2017, CERN-OHL v1.2) and the LCKFB Taishan Pi 1F (© 立创开发板 LCKFB, CC BY-NC-SA 4.0). **None of those files are in the release package, the repo or any release asset** — not shipping them creates no redistribution obligation. Previews ship with `LICENSE-CERN-OHL-1.2.txt` and dual attribution, noted in section 2 of `第三方组件与许可.txt` (BY / NC / SA each addressed) |
+| 7 | **No PCB design files are distributed at all** | ✅ | Every board shown in the previews comes from a public project: PC-Henshin (© René Richard 2017, CERN-OHL v1.2), the LCKFB Taishan Pi 1F (© 立创开发板 LCKFB, CC BY-NC-SA 4.0), LimeSDR-Mini (© Myriad RF / Lime Microsystems, **CC BY 3.0**), and, for the PADS shot, KiCad's official QA test data (GPL-2.0-or-later). **None of those files are in the release package, the repo or any release asset** — not shipping them creates no redistribution obligation. Previews ship with `LICENSE-CERN-OHL-1.2.txt` and an attribution for each of the four sources, itemised in section 2 of `第三方组件与许可.txt` (the CERN-OHL notice retention, CC BY 3.0's BY / indicate-changes / no-endorsement, and CC BY-NC-SA 4.0's BY / NC / SA) |
 | 8 | No real company boards or customer data in the repo | ⚠️ | Production PCB files belong to the employer; use open-hardware or self-made sample boards |
 | 9 | Disclaimer: reference only, not for production, repair at your own risk | ✅ | Disclaimer sections 1 / 3 / 4, in both languages |
 | 10 | Signing / certificate | — | Unsigned; SmartScreen may warn. Normal for internal use |
