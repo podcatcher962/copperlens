@@ -57,7 +57,8 @@
 2. 预览截图所涉及的开源硬件
 ────────────────────────────────────────────────────────────────
 本程序**不附带任何 PCB 设计文件**。发行包里的 .png 预览截图，是
-在一套开源硬件设计上运行本程序截取的：
+在下面几套公开设计上运行本程序截取的。每一套都注明作者、来源与许可，
+并逐条说明履行了哪些义务：
 
     作品名 ：PC-Henshin（TG16 / PC Engine 区域制式转换器）
     作  者 ：Copyright © René Richard, 2017
@@ -105,6 +106,52 @@
 
 如需自行试用本程序，请用你自己的 PCB 文件（.pcb / .ddb / .kicad_pcb /
 立创 .json / 立创 .epro2）或板厂给的 Gerber 包。
+
+
+    作品名 ：LimeSDR-Mini（软件定义无线电开发板，v1.0 / v1.2 硬件）
+    作  者 ：Myriad RF 社区项目（硬件设计方 Lime Microsystems）
+    来  源 ：https://github.com/myriadrf/LimeSDR-Mini
+              README 的 Licensing 一节原文：
+              "The hardware designs are licensed under a Creative Commons
+               Attribution 3.0 Unported licence."
+    许  可 ：CC BY 3.0 Unported（Creative Commons 署名 3.0 未本地化版本）
+              协议全文 https://creativecommons.org/licenses/by/3.0/
+
+截图（预览_Altium.png，以及视频号短片中引用该图的画面）是把该工程公开发布
+的 Altium 设计（hardware/1v0、1v2 下的 .PcbDoc）用本程序打开后截取的。
+该工程是 8 层铜的板子，正好用来演示本程序读 Altium 多层板与层名的能力。
+
+按 CC BY 3.0 履行的义务（该许可只要求署名，不限制商用与修改）：
+
+  · 署名（BY）      —— 上述作品名、作者、来源、协议即署名。截图中的位号
+                       （C183 等）、型号（100pF, 50V）、网络名（NetC11_2）、
+                       层名（Top / L2 … L7 / Bottom）全部保留原样，未作改动。
+  · 注明改动        —— 未对设计作任何改动；截图只是渲染显示，属复制而非改编。
+  · 不暗示背书      —— 本程序与该设计、Myriad RF、Lime Microsystems 之间
+                       不存在隶属、授权、合作或背书关系。截图不构成对该硬件
+                       的推荐、担保或再制造建议。
+
+本程序**不附带该设计的任何工程文件或设计数据**：截图是一次性运行结果，
+程序本身既不含也不解析任何预置的板卡数据。
+
+如需自行试用本程序，请用你自己的 PCB 文件（.pcb / .ddb / .PcbDoc 等）。
+
+
+    作品名 ：KiCad 官方 QA 测试数据中的 PADS 板文件
+    作  者 ：KiCad E.D.A. 开发团队（kicad.org）
+    来  源 ：KiCad 源码树的测试数据目录（PADS ASCII 解析器的回归用例）
+    许  可 ：GPL-2.0-or-later（随 KiCad 一同公开分发）
+
+截图（预览_PADS.png，以及短片中引用该图的画面）用的是这份公开的回归测试
+数据，不是任何客户的板子、也不是从维修资料里取的。选用它的原因很简单：
+它是公开的、带完整段结构（走线 / 覆铜 / 圆弧 / 文字 / 阻焊开窗都有），
+适合演示 PADS .asc 的解析。
+
+本程序**不分发该测试文件本身**，只发布运行结果的截图。该数据自身的许可
+仍归 KiCad 项目，此处按 GPL-2.0-or-later 的要求注明来源与作者。
+
+如需自行试用本程序，请用你自己的 PADS .asc 文件。
+
 
 ────────────────────────────────────────────────────────────────
 3. 本程序自带的说明
