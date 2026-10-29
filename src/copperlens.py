@@ -37,7 +37,7 @@ from ctypes import wintypes
 from pathlib import Path
 
 APP_TITLE = "PCB 看板 CopperLens"
-VERSION = "1.17"
+VERSION = "1.18"
 
 _APPDIR = "CopperLens"
 _LOG = Path(tempfile.gettempdir()) / _APPDIR / "last-run.log"
@@ -377,23 +377,25 @@ def ask_file():
     except Exception:
         pass
     buf = ctypes.create_unicode_buffer(32768)
-    filt = L("所有板文件 (*.pcb;*.ddb;*.kicad_pcb;*.json;*.epro2;*.gbr;*.zip)"
-             "\0*.pcb;*.ddb;*.kicad_pcb;*.json;*.epro;*.epro2;*.gbr;*.gtl;*.gbl;"
+    filt = L("所有板文件 (*.pcb;*.ddb;*.kicad_pcb;*.brd;*.json;*.epro2;*.gbr;*.zip)"
+             "\0*.pcb;*.ddb;*.kicad_pcb;*.brd;*.json;*.epro;*.epro2;*.gbr;*.gtl;*.gbl;"
              "*.gko;*.drl;*.zip\0"
              "设计库 (*.ddb)\0*.ddb\0"
              "板文件 (*.pcb)\0*.pcb\0"
              "KiCad 板文件 (*.kicad_pcb)\0*.kicad_pcb\0"
+             "Eagle 板文件 (*.brd)\0*.brd\0"
              "立创EDA 标准版 (*.json)\0*.json\0"
              "立创EDA 专业版 (*.epro2;*.epro)\0*.epro2;*.epro\0"
              "Gerber / 钻孔 (*.gbr;*.gtl;*.gbl;*.gko;*.drl;*.xln;*.zip)"
              "\0*.gbr;*.gtl;*.gbl;*.gts;*.gbs;*.gto;*.gbo;*.gko;*.drl;*.xln;*.zip\0"
              "所有文件 (*.*)\0*.*\0\0",
-             "All board files (*.pcb;*.ddb;*.kicad_pcb;*.json;*.epro2;*.gbr;*.zip)"
-             "\0*.pcb;*.ddb;*.kicad_pcb;*.json;*.epro;*.epro2;*.gbr;*.gtl;*.gbl;"
+             "All board files (*.pcb;*.ddb;*.kicad_pcb;*.brd;*.json;*.epro2;*.gbr;*.zip)"
+             "\0*.pcb;*.ddb;*.kicad_pcb;*.brd;*.json;*.epro;*.epro2;*.gbr;*.gtl;*.gbl;"
              "*.gko;*.drl;*.zip\0"
              "Design library (*.ddb)\0*.ddb\0"
              "Board file (*.pcb)\0*.pcb\0"
              "KiCad board (*.kicad_pcb)\0*.kicad_pcb\0"
+             "EAGLE board (*.brd)\0*.brd\0"
              "EasyEDA standard (*.json)\0*.json\0"
              "EasyEDA pro (*.epro2;*.epro)\0*.epro2;*.epro\0"
              "Gerber / drill (*.gbr;*.gtl;*.gbl;*.gko;*.drl;*.xln;*.zip)"
@@ -898,6 +900,26 @@ def _head(p, n=4096):
         return b""
 
 
+def _looks_odb(p):
+    """这个压缩包是不是 ODB++。
+
+    ODB++ 也是 zip，但里面不是一层一个 Gerber，而是一棵目录树：
+        matrix/matrix            层与钻孔的清单
+        steps/<板名>/layers/…    每层的 features（自家的 ASCII 记录格式）
+        eda/data                 网络名
+    本程序还不读它，但用户拖进来得能听懂为什么，而不是"只认 Gerber"。
+    """
+    try:
+        import zipfile
+        with zipfile.ZipFile(p) as z:
+            names = z.namelist()[:800]
+    except Exception:
+        return False
+    low = [n.lower().replace("\\", "/") for n in names]
+    return any(n.endswith("matrix/matrix") for n in low) or \
+           any("/steps/" in n for n in low)
+
+
 def _gerber_auto(p):
     """只选了一层时，把同目录里同一块板的其它层一起带上。
 
@@ -980,6 +1002,22 @@ def _payload_for_path(p):
         return {"boards": [{"n": p.name,
                             "d": base64.b64encode(raw).decode("ascii")}],
                 "ddb": False, "file": p.name, "kicad": True}
+    if ext == ".brd":
+        # Eagle（Autodesk / Fusion 360）的 .brd 是 XML，原样送过去由页面解析。
+        # ⚠ Cadence Allegro 的板文件也叫 .brd，那是二进制 —— 先嗅一下，
+        #   否则用户拖进 Allegro 的文件只会看到一句"读不出来"，不知道为什么。
+        raw = p.read_bytes()
+        head = raw[:8192].decode("utf-8", "replace").lstrip("\ufeff \t\r\n")
+        if "<eagle" not in head and "<board" not in head:
+            return {"error": L("这个 .brd 不是 Eagle 的板文件。\n"
+                               "（Cadence Allegro 的板文件也叫 .brd，但那是二进制格式，"
+                               "本程序读不了。）",
+                               "This .brd is not an EAGLE board. (Cadence Allegro uses "
+                               "the same extension but stores binary data, which this "
+                               "viewer cannot read.)")}
+        return {"boards": [{"n": p.name,
+                            "d": base64.b64encode(raw).decode("ascii")}],
+                "ddb": False, "file": p.name, "eagle": True}
     if ext == ".json":
         # 立创EDA 标准版：同样是纯文本 JSON，原样送过去，页面按内容嗅。
         raw = p.read_bytes()
@@ -1002,7 +1040,17 @@ def _payload_for_path(p):
                                     _raw_deflate(epru)).decode("ascii")}],
                     "pro": True, "file": p.name}
         if ext == ".zip":
-            pass                      # 不是工程包，往下按 Gerber 包处理
+            # 不是立创工程包。先看看是不是 ODB++（板厂的制造数据），
+            # 那种包解开后没有一层一个 gerber，硬报"只认 Gerber"等于没说。
+            if _looks_odb(p):
+                return {"error": L(
+                    "这个压缩包是 ODB++（板厂给的制造数据），本程序还不读这种格式。\n"
+                    "可以让出图方另存一份 Gerber + 钻孔，或者直接给原始的板设计文件"
+                    "（.pcb / .kicad_pcb / .brd）。",
+                    "This archive is ODB++ (fabrication data from a PCB house); this "
+                    "viewer does not read that format yet.\nAsk for Gerber + drill "
+                    "files, or send the original board file (.pcb / .kicad_pcb / .brd).")}
+            # 往下按 Gerber 包处理
         else:
             return {"error": L("这个立创EDA 工程包里没有 .epru 设计日志，读不出板子。\n"
                                "（专业版才有 .epru；标准版导出的是 .json。）",
@@ -1027,8 +1075,8 @@ def _payload_for_path(p):
                                   for n, b in memb]}],
                 "gerber": True, "file": p.name}
 
-    return {"error": L("只认 .pcb / .ddb / .kicad_pcb / 立创 .json / .epro2 / Gerber / .zip。",
-                       "Only .pcb, .ddb, .kicad_pcb, EasyEDA .json / .epro2, "
+    return {"error": L("只认 .pcb / .ddb / .kicad_pcb / Eagle .brd / 立创 .json / .epro2 / Gerber / .zip。",
+                       "Only .pcb, .ddb, .kicad_pcb, EAGLE .brd, EasyEDA .json / .epro2, "
                        "Gerber and .zip are supported.")}
 
 
@@ -1321,6 +1369,23 @@ def handle(path):
         _remember(str(p), {"boards": [{"n": p.name}]})
         return open_viewer(html) is not None
 
+    if ext == ".brd":
+        # Eagle 的板子是纯文本 XML；Cadence Allegro 的板子也叫 .brd，但是二进制。
+        # 光看后缀会把 Allegro 的板子送进 XML 解析器，所以先嗅开头。
+        raw = p.read_bytes()
+        sniff = raw[:8192].decode("utf-8", "replace").lstrip("\ufeff \t\r\n")
+        if "<eagle" not in sniff and "<board" not in sniff:
+            msgbox(L("这个 .brd 不是 Eagle 的板文件。\n"
+                     "（Cadence Allegro 的板文件也叫 .brd，但那是二进制格式，本程序读不了。）",
+                     "This .brd is not an EAGLE board.\n"
+                     "(Cadence Allegro also uses .brd, but it is a binary format "
+                     "this program cannot read.)"))
+            return False
+        log("Eagle 板：%d 字节 XML" % len(raw))
+        html = build_view_html([(p.name, raw)], p.name)
+        _remember(str(p), {"boards": [{"n": p.name}]})
+        return open_viewer(html) is not None
+
     if ext == ".json":
         # 立创EDA 标准版的导出文件。先在这儿粗筛一下，选错文件就给一句人话，
         # 别把随便一个 .json 丢给页面，让它到解析器里报「可能不是 PCB」。
@@ -1376,9 +1441,32 @@ def handle(path):
         _remember(str(p), {"boards": [{"n": label}]})
         return open_viewer(html) is not None
 
-    msgbox(L("只认 .ddb / .pcb / .kicad_pcb / 立创 .json · .epro2 / Gerber / .zip。\n"
+    # Gerber 的压缩包里找不到 Gerber，先分清是「ODB++」还是「压根没板子」。
+    # ODB++ 是另一套格式（matrix/ + steps/<板名>/layers/），本程序不解析，但得说清楚，
+    # 否则用户只会看到一句「压缩包是空的」，完全不知道该怎么办。
+    if not memb and ext == ".zip" and _looks_odb(p):
+        msgbox(L("这是一个 ODB++ 包，不是 Gerber 压缩包。\n\n"
+                 "ODB++ 是另一套格式（matrix/ + steps/<板名>/layers/），本程序暂时不解析。\n"
+                 "想在这里看这块板，请在 CAM 工具里把它导出成 Gerber（RS-274X），再压成 zip 拖进来。",
+                 "This is an ODB++ package, not a Gerber archive.\n\n"
+                 "ODB++ is a different format (matrix/ + steps/<board>/layers/); "
+                 "this program does not parse it yet.\n"
+                 "Export the board as Gerber (RS-274X) from your CAM tool, zip it, "
+                 "and drop that in instead."))
+        return False
+
+    if not memb and ext == ".zip":
+        msgbox(L("这个压缩包里既没有 Gerber 文件，也不是 ODB++ 包。\n\n"
+                 "· Gerber 一般是 .gbr / .gtl / .gbl / .gts / .gbs / .drl 这类后缀；\n"
+                 "· 有些厂家给的包里只有 .pdf 和说明，那就没法看。",
+                 "This archive contains no Gerber files and is not an ODB++ package.\n\n"
+                 "Gerber files usually end in .gbr / .gtl / .gbl / .gts / .gbs / .drl. "
+                 "Some fab archives only hold a PDF and a readme, which cannot be viewed."))
+        return False
+
+    msgbox(L("只认 .ddb / .pcb / .kicad_pcb / Eagle .brd / 立创 .json · .epro2 / Gerber / .zip。\n"
              "你选的是：",
-             "Only .ddb, .pcb, .kicad_pcb, EasyEDA .json / .epro2, Gerber and "
+             "Only .ddb, .pcb, .kicad_pcb, EAGLE .brd, EasyEDA .json / .epro2, Gerber and "
              ".zip are supported.\nYou picked: ")
            + p.name)
     return False
@@ -1389,7 +1477,7 @@ def _is_board_arg(a):
     low = a.lower()
     if low.endswith(GER_SUFFIX):
         return True
-    return low.endswith((".ddb", ".pcb", ".kicad_pcb", ".json",
+    return low.endswith((".ddb", ".pcb", ".kicad_pcb", ".brd", ".json",
                          ".epro", ".epro2", ".zip"))
 
 
@@ -1406,8 +1494,8 @@ def main():
 
     # 一堆 Gerber 一起拖到图标上：合成一块板看，而不是弹一堆窗口
     plain = [t for t in targets
-             if not t.lower().endswith((".ddb", ".pcb", ".kicad_pcb", ".json",
-                                        ".epro", ".epro2", ".zip"))]
+             if not t.lower().endswith((".ddb", ".pcb", ".kicad_pcb", ".brd",
+                                        ".json", ".epro", ".epro2", ".zip"))]
     if len(plain) >= 2:
         memb = []
         for t in plain:
