@@ -309,6 +309,18 @@
   .binfo .r:hover{background:var(--panel2)}
   .binfo .r b{color:var(--fg);font-weight:400;font-variant-numeric:tabular-nums;
     text-align:right;white-space:nowrap}
+  /* ---- 读数与可信度（v1.23）：把解析器记的账摊到界面上 ---- */
+  .binfo.trust{margin-top:2px}
+  .binfo.trust .tg{display:flex;align-items:center;padding:2px 6px 4px}
+  .binfo.trust .chip.ok{background:#4caf7d20;color:#7fd3a8;border:1px solid #4caf7d55;
+    border-radius:4px;padding:1px 7px;font-size:12px}
+  .binfo.trust .r.a b{color:var(--accent)}
+  .binfo.trust .r.w b{color:#f09a99}
+  .binfo.trust .n{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+    overflow:hidden;padding:2px 6px;border-radius:4px;font-size:11px;line-height:1.4;
+    color:var(--fg2);word-break:break-word}
+  .binfo.trust .n:hover{background:var(--panel2)}
+  .binfo.trust .n.w{color:#f09a99}
   /* ===== 量距：光标变成十字，像 Protel 那样量两点 ===== */
   #stage.meas canvas{cursor:crosshair}
   /* ===== 首页「最近打开」 ===== */
@@ -442,6 +454,8 @@
     <div class="layer" id="optDim"><span class="nm" data-i18n="optDim">高亮时其余变暗</span></div>
     <div class="layer" id="optPen"><span class="nm" data-i18n="optPen">按真实线宽</span></div>
     <div class="layer" id="optVal"><span class="nm" data-i18n="optVal">显示型号 / 值</span></div>
+    <h3 data-i18n="asideTrust">读数</h3>
+    <div class="binfo trust" id="trustBox"></div>
     <h3 data-i18n="asideBoard">板子</h3>
     <div class="binfo" id="boardInfo"></div>
   </aside>
@@ -573,6 +587,24 @@ zh:{
   biSize:"外形", biArea:"面积", biCu:"铜层", biComp:"元件",
   biPad:"焊盘", biVia:"过孔", biNet:"网络", biMinW:"最细线", biMinH:"最小孔",
   biPitch:"板厚", biNone:"—",
+  /* ---- 读数与可信度 ---- */
+  asideTrust:"读数", trOk:"解析无告警", trPart:"解析有告警", trBad:"告警较多",
+  trNetK:"网络名", trDesK:"位号", trFrameK:"板框",
+  trAll:"全有", trNa:"—",
+  trNetBad:n=>n+" 个缺", trDesBad:n=>n+" 个缺",
+  trNetAll:"全靠几何推", trNetNoV:"没有", trFrameNoV:"没有，尺寸估的",
+  trNetOkTip:"每个焊盘的网络名都是从文件里直接读出来的，不是猜的。",
+  trNetTip:(b,t)=>"这块板共 "+t+" 个焊盘，其中 "+b+" 个没有网络名"
+    +"（自由焊盘、测试点、过孔盘常常如此）。这些只能按铜皮几何去推，"
+    +"结论请在实物上核对。",
+  trNetAllTip:"这份文件本身不含网络名——Gerber 这类制造文件就是这样。"
+    +"点焊盘时程序只能按铜皮几何判断它和谁连着，查线结论务必在实物上核对。",
+  trDesOkTip:"每个元件的位号都是从文件里读出来的，不是猜的。",
+  trDesTip:"文件里没写位号的元件，只能靠丝印上那串字去认；认不出来就留空，"
+    +"不硬凑一个错的。",
+  trFrameTip:"没有板框（KeepOut）时，「外形尺寸」是按全部图形元素的外包矩形算的，"
+    +"图例和尺寸标注也会算进去，比实物大。",
+  trMore:n=>"还有 "+n+" 条…",
   btnMeas:"量距", btnMeasTip:"快捷键 D：点第一个点，再点第二个点，量出两点距离（同时给 mil 和 mm）",
   measPick:"量距：点第一个点（Esc 退出）",
   measPick2:"量距：再点第二个点",
@@ -743,6 +775,23 @@ zh:{
   fnameLine:(nm,ddb,n,polys)=>nm+(ddb?"（从设计库里直接提取）":"")+
     " · "+n+" 个对象"+(polys?" · 覆铜 "+polys+" 块":""),
   segWarn:"部分段读取有异常：",
+  segWarn2:n=>"有 "+n+" 条读数提示，详见左侧「读数」",
+  /* ---- 认不出的文件 ---- */
+  errIsEmpty:"这个文件是空的（0 字节）。",
+  errIsZip:"这是个压缩包。里面若是 Gerber 或 ODB++ 的整包，直接把 .zip 拖进来就行；\n"
+    +"若是别的，先解压，再把里面那批文件一起拖进来。",
+  errIsGz:"这是个 gzip 包（.gz / .tgz）。ODB++ 的老派打包就是 .tgz，可以直接拖；\n"
+    +"别的格式请先解开。",
+  errIsRar:"这是 RAR 压缩包，本程序不解 RAR。先解压，再拖里面那批文件。",
+  errIs7z:"这是 7z 压缩包，本程序不解 7z。先解压，再拖里面那批文件。",
+  errIsPdf:"这是 PDF，不是板文件。图纸可以用看图软件打开；要查线得拖板文件本身。",
+  errIsImg:k=>"这是 "+k+" 图片，不是板文件。",
+  errIsCfb:"这是个复合文档容器（和 .ddb / Altium .PcbDoc 同一个壳），但里面既没有设计库、\n"
+    +"也没有 Altium 的板数据。\n"
+    +"常见于 Excel / Word 改了扩展名，或者本程序还不认识的 EDA 格式。",
+  errIsText:h=>"这是个纯文本文件，但里面没有 KiCad、Eagle、立创、PADS 任何一家的特征。\n"
+    +"开头是这样的：\n"+h,
+  errIsBin:h=>"这是二进制文件，认不出是什么格式。\n文件头："+h,
   openFail:"打不开这个文件：",
   deskGone:"和后台断了（程序已经关掉）。请关掉这个窗口，重新双击 PCB看板.exe。",
   embedFail:"内嵌数据读取失败：",
@@ -849,6 +898,26 @@ zh:{
       · <b>ODB++</b> —— 板厂给的制造数据，<b>.zip</b> 或老派的 <b>.tgz</b>，
         连解开成目录也能直接拖。它比 Gerber 多了<b>网络名和层名</b>，
         所以焊盘能对上"这颗料第几脚"</p>
+
+    <h3>读数：这块板的数据能不能信</h3>
+    <p>打开一块板，左侧栏会多出一节<b>读数</b> —— 把"程序到底读到了什么"摆出来。
+       维修最怕的不是读不出来，是<b>少读了一部分却照样画得像模像样</b>，
+       然后照着这张图去测点。</p>
+    <ul>
+      <li><b>网络名</b>：有名字的焊盘多少、没名字的多少。没名字的那些（自由焊盘、
+          测试点、过孔盘）点下去只能按铜皮几何去推，结论得在实物上核对。</li>
+      <li><b>位号</b>：多少颗元件读到了位号。文件里本来就没写的，清单里显示成
+          <code>?</code>，不硬凑一个错的。</li>
+      <li><b>板框</b>：文件里真有 KeepOut 边框才算有。没有的话，"外形尺寸"是按全部
+          图形元素（含图例、尺寸标注）的外框估的，会偏大。</li>
+      <li>最后那几行 <b>⚠</b> 是解析时真遇到的事，例如"有 3 片覆铜坐标对不上，已跳过"。
+          以前它只在角落闪一下就没了，现在留在面板上，随时能看。</li>
+    </ul>
+    <p>面板顶上那枚小标签是总评：<b>解析无告警</b>表示解析过程没碰到问题；<b>解析有告警</b>
+       表示底下有 ⚠ 值得看一眼。Gerber 这类制造文件本身不带网络名，会直接写
+       <b>全靠几何推</b> —— 那不是读坏了，是这种格式本来就没有。</p>
+    <p>要是拖进来一个根本不认识的文件，程序会说清<b>它到底是什么</b>：
+       "这是 PDF"、"这是 Excel 改了扩展名"、"这是个纯文本文件，开头是这样的：……"。</p>
 
     <h3>同时看几块板</h3>
     <p>每打开一个文件就多一个<b>页签</b>：可以一边看这块板、一边翻另一块，像 Protel 那样
@@ -1001,8 +1070,10 @@ zh:{
     <p>一个<b>只看不改</b>的线路板查线工具。为产线维修、售后排查这类
        "只想看看这块板子上的线通到哪儿"的场合而做。</p>
     <p>免安装的单文件程序，不联网、不写注册表、不装任何运行库。
-       <b>支持 x86 与 64 位 Windows 系统</b>，从 Windows 7 到 Windows 11 双击即用。</p>
-    <p class="dim">已在 Windows 10 x86 与 Windows 11 64 位上实测通过。</p>
+       <b>Windows 10 / 11，32 位与 64 位系统都支持</b>，双击即用。</p>
+    <p class="dim">程序本身编成 32 位，是为了让 32 位系统也能直接跑；在 64 位 Windows 上
+       走系统的 WoW64 兼容层照常运行，<b>不需要另找 64 位版本</b>。
+       已在 Windows 10 x86 与 Windows 11 64 位上实测通过。</p>
     <h3>能做什么</h3>
     <ul>
       <li>打开 .pcb 单板、.ddb 设计库（自动列出里面所有板）、KiCad 的 .kicad_pcb、
@@ -1030,7 +1101,7 @@ zh:{
       <li><b>最近打开</b>：首页列出上次开过的文件，点一下直接再打开</li>
     </ul>
     <h3>版本</h3>
-    <p>v1.22　·　支持 x86 与 64 位系统　·　单文件便携版</p>
+    <p>v1.23　·　Windows 10 / 11，32 位 64 位都支持　·　单文件便携版</p>
     <div class="sig">© 永远的兰兰　·　Lanlan Eternal</div>`
 },
 en:{
@@ -1053,6 +1124,25 @@ en:{
   biSize:"Size", biArea:"Area", biCu:"Copper", biComp:"Parts",
   biPad:"Pads", biVia:"Vias", biNet:"Nets", biMinW:"Min trace", biMinH:"Min hole",
   biPitch:"Thickness", biNone:"—",
+  /* ---- readout & confidence ---- */
+  asideTrust:"Readout", trOk:"No warnings", trPart:"Warnings", trBad:"Many warnings",
+  trNetK:"Nets", trDesK:"Refdes", trFrameK:"Outline",
+  trAll:"all", trNa:"—",
+  trNetBad:n=>n+" bare", trDesBad:n=>n+" bare",
+  trNetAll:"geometry only", trNetNoV:"none", trFrameNoV:"none, est.",
+  trNetOkTip:"Every pad net name was read straight from the file — not guessed.",
+  trNetTip:(b,t)=>b+" of "+t+" pads carry no net name (free pads, test points and "
+    +"via pads often do not). Those can only be inferred from copper geometry — "
+    +"verify on the real board.",
+  trNetAllTip:"This file carries no net names at all — normal for Gerber and other "
+    +"manufacturing data. Pads are traced by copper geometry only, so verify the "
+    +"result on the real board.",
+  trDesOkTip:"Every refdes was read from the file — not guessed.",
+  trDesTip:"A part with no refdes in the file can only be matched by the silk text "
+    +"near it. Unmatched parts are left blank rather than guessed.",
+  trFrameTip:"Without a board outline (KeepOut) the size is the bounding box of every "
+    +"graphic element — legends and dimension notes included — larger than the board.",
+  trMore:n=>"and "+n+" more…",
   btnMeas:"Measure", btnMeasTip:"Shortcut D — click two points to measure (mil and mm)",
   measPick:"Measure: click the first point (Esc to exit)",
   measPick2:"Measure: click the second point",
@@ -1214,6 +1304,24 @@ en:{
   fnameLine:(nm,ddb,n,polys)=>nm+(ddb?"  (extracted from library)":"")+
     " · "+n+" objects"+(polys?" · "+polys+" pours":""),
   segWarn:"Some sections could not be read cleanly: ",
+  segWarn2:n=>n+" readout note(s) — see Readout on the left",
+  /* ---- unrecognised files ---- */
+  errIsEmpty:"This file is empty (0 bytes).",
+  errIsZip:"This is an archive. If it holds a Gerber or ODB++ package, drop the .zip in as-is;\n"
+    +"otherwise unzip it first, then drag the files in together.",
+  errIsGz:"This is a gzip archive (.gz / .tgz). Old ODB++ packages ship as .tgz and open directly;\n"
+    +"anything else needs unzipping first.",
+  errIsRar:"This is a RAR archive — RAR is not supported. Unzip it first, then drag the files in.",
+  errIs7z:"This is a 7z archive — 7z is not supported. Unzip it first, then drag the files in.",
+  errIsPdf:"This is a PDF, not a board file. Use a document viewer for drawings; "
+    +"tracing needs the board file itself.",
+  errIsImg:k=>"This is a "+k+" image, not a board file.",
+  errIsCfb:"This is a compound-document container (the same wrapper as .ddb and Altium .PcbDoc),\n"
+    +"but it holds neither a design database nor Altium board data.\n"
+    +"Usually an Excel/Word file renamed, or an EDA format this program does not know yet.",
+  errIsText:h=>"This is a plain-text file, but it carries none of the KiCad, EAGLE, LCEDA or "
+    +"PADS markers.\nIt starts like this:\n"+h,
+  errIsBin:h=>"Binary file of unknown format.\nHeader: "+h,
   openFail:"Cannot open this file: ",
   deskGone:"Lost the back end — the program has closed. Close this window and start "+
            "PCB看板.exe again.",
@@ -1317,6 +1425,32 @@ en:{
       · <b>.json</b> — EasyEDA (LCEDA) <b>standard</b> board file, the plain-text JSON it exports<br>
       · <b>.epro2 / .epro</b> — EasyEDA (LCEDA) <b>pro</b> project file; drop it as-is and the
         .epru design log inside is unpacked for you</p>
+
+    <h3>Readout: how far to trust what you see</h3>
+    <p>Open a board and the left panel gains a <b>Readout</b> section — what the parser
+       actually managed to read. The dangerous case is not a file that fails outright,
+       it is <b>one that half-reads and still draws convincingly</b> — and then you probe
+       against that picture.</p>
+    <ul>
+      <li><b>Nets</b>: how many pads carry a net name, and how many do not. Pads without
+          one (free pads, test points, via pads) can only be traced by copper geometry —
+          verify the result on the real board.</li>
+      <li><b>Refdes</b>: how many parts have a designator. When the file does not carry
+          one, the list shows <code>?</code> rather than guessing.</li>
+      <li><b>Outline</b>: only a real KeepOut outline counts. Without one, the size is the
+          bounding box of every graphic element — legends and dimension notes included —
+          so it reads larger than the board.</li>
+      <li>The <b>⚠</b> lines at the bottom are things the parser actually ran into, such as
+          "3 pours had mismatched coordinates and were skipped". They used to flash by once
+          in a corner; now they stay in the panel.</li>
+    </ul>
+    <p>The chip at the top is the overall verdict: <b>No warnings</b> means parsing hit no
+       problems; <b>Warnings</b> means there is a ⚠ worth a look. Gerber and other
+       manufacturing data carry no net names at all and say <b>geometry only</b> —
+       that is the format, not a failed read.</p>
+    <p>Drop in a file the program does not recognise and it will tell you <b>what it is</b>:
+       "This is a PDF", "This is an Excel file renamed", "This is a plain-text file, it
+       starts like this: …".</p>
 
     <h3>Several boards at once</h3>
     <p>Every file you open gets its own <b>tab</b> — keep one board open while you look at
@@ -1493,9 +1627,10 @@ en:{
     <p>A <b>read-only</b> board viewer built for repair benches and after-sales
        troubleshooting — the "I just need to see where this trace goes" kind of work.</p>
     <p>Single portable executable. No install, no network access, no registry writes,
-       no runtime dependencies. <b>Supports x86 and 64-bit Windows</b> — double-click and go,
-       from Windows 7 through 11.</p>
-    <p class="dim">Verified on Windows 10 x86 and Windows 11 64-bit.</p>
+       no runtime dependencies. <b>Windows 10 / 11, both 32-bit and 64-bit</b> — double-click and go.</p>
+    <p class="dim">The binary is built as 32-bit so that 32-bit systems can run it directly;
+       on 64-bit Windows it runs through WoW64 as-is — <b>no separate 64-bit build needed</b>.
+       Verified on Windows 10 x86 and Windows 11 64-bit.</p>
     <h3>What it does</h3>
     <ul>
       <li>Opens .pcb files, .ddb design libraries (lists every board inside), KiCad .kicad_pcb,
@@ -1523,7 +1658,7 @@ en:{
       <li><b>Recent files</b>: the home page lists what you opened last; one click reopens it</li>
     </ul>
     <h3>Version</h3>
-    <p>v1.22　·　supports x86 and 64-bit Windows　·　portable single file</p>
+    <p>v1.23　·　Windows 10 / 11, 32-bit and 64-bit　·　portable single file</p>
     <div class="sig">© Lanlan Eternal　·　永远的兰兰</div>`
 }
 };
@@ -1626,7 +1761,98 @@ function boardBox(){
   return B.bounds;
 }
 
+/* ============ 读数与可信度（v1.23） ============
+   解析器一直在往 B.warn 里记账——"这段没读懂""这条丢掉了""坐标对不上，跳过了"，
+   但以前只在演示模式闪一条 toast 就没了，用户根本看不到。
+
+   这块把账摊开：哪些数字是文件里写着的，哪些是程序推出来的。
+   维修照着一张少读了两成的图去测点，是会烧板的——所以这件事得摆在明面上，
+   而不是让程序悄悄少读、界面照样好看。 */
+function trustOf(){
+  if(!B) return null;
+  const pads=B.pads||[], nets=B.nets||[];
+  let noNet=0;
+  for(const p of pads){
+    const nm = (p.net>0) ? nets[p.net-1] : "";
+    if(!nm) noNet++;
+  }
+  /* 元件总数用焊盘反推最全：既没位号也没型号文字的元件，compInfo 里压根没有记录 */
+  const seen=new Set();
+  for(const p of pads) if(p.comp>=0) seen.add(p.comp);
+  let noDes=0;
+  for(const c of seen){
+    const ci = B.compInfo ? B.compInfo.get(c) : null;
+    if(!ci || !ci.des) noDes++;
+  }
+  /* 板框：56 层（KeepOut）真的有图元，才叫"文件里给了板框"；
+     没有的话，那个"外形尺寸"其实是全部图元的外包矩形，含丝印和图例，偏大 */
+  const ko = B.bucket ? B.bucket.get(56) : null;
+  const hasFrame = !!(ko && ko.length);
+  const wn = (B.warn||[]).length;
+  const pct = pads.length ? noNet/pads.length : 0;
+
+  /* 总评只看"程序自己承认没读懂的地方"，不拿网络名缺失去吓人：
+     Altium 里自由焊盘、测试点、过孔盘本来就不带网络（实测 8 层板约 23%），
+     那是文件的样子，不是读错了。 */
+  let level=0;
+  if(wn>=1 || noDes>0) level=1;
+  if(wn>=3) level=2;
+
+  return {noNet:noNet, pct:pct, noDes:noDes, comps:seen.size, pads:pads.length,
+          hasFrame:hasFrame, warn:(B.warn||[]).slice(0,2), wn:wn, level:level};
+}
+
+function renderTrust(){
+  const box=document.getElementById("trustBox");
+  if(!box) return;
+  if(!B){ box.innerHTML=""; return; }
+  const s=trustOf();
+  if(!s){ box.innerHTML=""; return; }
+
+  const chip = s.level===0 ? '<span class="chip ok">'+esc(T("trOk"))+'</span>'
+             : s.level===1 ? '<span class="chip">'+esc(T("trPart"))+'</span>'
+                           : '<span class="chip warn">'+esc(T("trBad"))+'</span>';
+  /* 左标签 + 右数字，和下面「板子」那一块同样的排版；窄栏里放得下 */
+  const row=(k,v,cls,tip)=>
+    '<div class="r'+(cls?" "+cls:"")+'"'+(tip?' title="'+esc(tip)+'"':'')+'>'+
+    '<span>'+esc(k)+'</span><b>'+v+'</b></div>';
+
+  let h='<div class="tg">'+chip+'</div>';
+
+  /* ---- 网络名 ---- */
+  if(!s.pads){
+    h+=row(T("trNetK"), esc(T("trNa")));
+  }else if(s.noNet===0){
+    h+=row(T("trNetK"), esc(T("trAll")), "", T("trNetOkTip"));
+  }else if(s.pct>0.9){
+    /* 整份文件都没有网络名：Gerber 这类制造文件天生如此，不是读坏了 */
+    h+=row(T("trNetK"), esc(T("trNetAll")), "w", T("trNetAllTip"));
+  }else{
+    h+=row(T("trNetK"), esc(T("trNetBad", s.noNet)),
+           s.pct>0.5?"w":(s.pct>0.1?"a":""), T("trNetTip", s.noNet, s.pads));
+  }
+
+  /* ---- 位号 ---- */
+  if(s.comps>0){
+    h+= s.noDes===0 ? row(T("trDesK"), esc(T("trAll")), "", T("trDesOkTip"))
+                    : row(T("trDesK"), esc(T("trDesBad", s.noDes)), "a", T("trDesTip"));
+  }
+
+  /* ---- 板框（只在缺的时候说，有就别占一行） ---- */
+  if(!s.hasFrame && (s.pads || (B.tracks||[]).length))
+    h+=row(T("trFrameK"), esc(T("trFrameNoV")), "a", T("trFrameTip"));
+
+  /* ---- 解析器自己记的账 ---- */
+  s.warn.forEach(w=>{
+    h+='<div class="n w" title="'+esc(w)+'">⚠ '+esc(w)+'</div>';
+  });
+  if(s.wn>s.warn.length) h+='<div class="n">'+esc(T("trMore", s.wn-s.warn.length))+'</div>';
+
+  box.innerHTML=h;
+}
+
 function renderBoardInfo(){
+  renderTrust();                     /* 读数与可信度：跟着这块板一起换 */
   const box=document.getElementById("boardInfo");
   if(!box) return;
   const R=(k,v)=>'<div class="r"><span>'+esc(T(k))+'</span><b>'+esc(v)+'</b></div>';
@@ -8039,6 +8265,55 @@ function parseAltiumAscii(u8){
   return b;
 }
 
+/* ============ 认不出的文件：先弄清"它到底是什么" ============
+   维修台面上什么文件都有——压缩包、PDF、客户发来的 Excel、别的软件的工程文件。
+   只说一句"读不了"，等于把问题推回给用户；把文件头的特征摆出来，他一眼就知道
+   自己拖错了哪个。
+   返回 [i18n 键, 参数]，由调用方抛错；返回 null 表示没把握，走原来的兜底。 */
+function sniffKind(buf,name){
+  if(!buf || buf.byteLength===0) return ["errIsEmpty"];
+  const u=new Uint8Array(buf);
+  const at=(off,s)=>{
+    for(let i=0;i<s.length;i++)
+      if(off+i>=u.length || u[off+i]!==s.charCodeAt(i)) return false;
+    return true;
+  };
+  const hex=n=>{
+    let s="";
+    for(let i=0;i<n && i<u.length;i++) s+=(u[i]<16?"0":"")+u[i].toString(16).toUpperCase()+" ";
+    return s.replace(/\s+$/,"");
+  };
+
+  /* ---- 压缩包 ---- */
+  if(at(0,"PK\u0003\u0004") || at(0,"PK\u0005\u0006")) return ["errIsZip"];
+  if(u[0]===0x1f && u[1]===0x8b) return ["errIsGz"];
+  if(at(0,"Rar!")) return ["errIsRar"];
+  if(at(0,"7z\u00BC\u00AF")) return ["errIs7z"];
+  /* ---- 文档 / 图片 ---- */
+  if(at(0,"%PDF")) return ["errIsPdf"];
+  if(at(0,"\u0089PNG")) return ["errIsImg","PNG"];
+  if(u[0]===0xff && u[1]===0xd8) return ["errIsImg","JPEG"];
+  if(at(0,"GIF8")) return ["errIsImg","GIF"];
+  if(at(0,"BM")) return ["errIsImg","BMP"];
+  /* ---- 复合文档（和 .ddb / .PcbDoc 同一个壳，但里面没有板） ---- */
+  if(u[0]===0xD0 && u[1]===0xCF && u[2]===0x11 && u[3]===0xE0) return ["errIsCfb"];
+
+  /* ---- 纯文本？那就把开头那几十个字给它看 ---- */
+  const n=Math.min(u.length, 8192);
+  let textOK=true;
+  for(let i=0;i<n;i++){
+    const c=u[i];
+    if(c===0 || c<9 || (c>13 && c<32)){ textOK=false; break; }
+  }
+  if(textOK){
+    let txt="";
+    try{ txt=new TextDecoder("utf-8").decode(u.slice(0, Math.min(u.length, 400))); }catch(_){}
+    const head=txt.replace(/^\uFEFF/,"").replace(/\s+/g," ").trim().slice(0,60);
+    return ["errIsText", head || "(空)"];
+  }
+  return ["errIsBin", hex(12)];
+}
+
 function parseAny(buf,name){
   /* PADS 的 .asc 是纯文本，先认一把 —— 它既不是 KiCad 也不是 Gerber，认错了会当成二进制乱读 */
   if(looksPads(buf)){
@@ -8065,7 +8340,19 @@ function parseAny(buf,name){
   /* 点位图要排在 parseBoard 前面：它们是维修文件，Protel/Gerber 那套认不出来 */
   const bv=looksBv(buf);
   if(bv) return parseBoardView(buf, bv);
-  return parseBoard(buf);
+  /* parseBoard 是最后的兜底 —— 老的 PCB 4.0 二进制就走这里，而它的文件头
+     本身就是"文本 + 一堆 NUL"，跟"认不出的二进制"长得一模一样。
+     所以不能先判后调，必须先调：它自己认不出来（errBadFmt）时，才轮到
+     sniffKind 去弄清"这到底是什么文件"。它要是认出来了，哪怕里头没走线，
+     那种具体错误也比一句"认不出格式"有用得多。 */
+  try{
+    return parseBoard(buf);
+  }catch(e){
+    if(!e || (e.message !== T("errNoSec") && e.message !== T("errBadFmt"))) throw e;
+    const sn=sniffKind(buf, name);
+    if(sn) throw new Error(T(sn[0], sn[1]));
+    throw e;
+  }
 }
 
 function buildIndex(all){
@@ -10168,7 +10455,9 @@ function loadBuffer(buf,name,gerSet){
       }
       runDemo();
     });
-    if(B.warn.length) toast(T("segWarn")+B.warn.join("; "));
+    /* 告警不再一次糊在 toast 里——七秒就没了，长句子根本读不完。
+       完整内容现在挂在左侧「读数」里，这里只点到为止。 */
+    if(B.warn.length) toast(T("segWarn2", B.warn.length));
     else if(B.fmt==="bv") toast(T("bvNoShape"));
   }catch(err){
     B=null;
