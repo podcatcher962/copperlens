@@ -1,4 +1,4 @@
-# PCB 看板 / CopperLens v1.19
+# PCB 看板 / CopperLens v1.20
 
 **中文** ｜ [English](#english) ｜ [版本履历 Changelog](CHANGELOG.md)
 
@@ -31,6 +31,7 @@
 | `.brd`（Eagle） | Autodesk Eagle / Fusion 360 的板文件（纯文本 XML）；内层、覆铜、底面镜像元件都按原样解析。见「v1.18 重点」 |
 | 立创EDA **专业版** `.epro2` / `.epro` | 整个工程包直接拖进来，里面那份 `.epru` 设计日志会自己解开。见「v1.16 重点」 |
 | **维修点位图** `.bvr` `.bv` `.bdv` `.cad` | 手机、笔记本主板维修用的那一族；只有位号、焊盘、网络和板框，没有铜箔图形。见「v1.19 重点」 |
+| **ODB++**（`.zip` / `.tgz` / 一个目录） | 板厂给的制造数据。**带网络名和层名**，所以焊盘能对上"这颗料第几脚"，比 Gerber 能查线。见「v1.20 重点」 |
 | 维修界的 `.brd` | 和 Eagle 同名不同物（Landrex / TestLink 点位图），按内容自动分开 |
 
 明确**不做**：原理图（`.sch`）、`PCB 3.0`（更早的 16 位版本，部分兼容、未逐一验证）。
@@ -64,6 +65,56 @@
 鼠标：滚轮**以指针位置为锚点**缩放；**按住左键拖到画布边缘，画面自己往那个方向走**
 （越靠边越快，松手就停）；放大后**左上角缩略图**里的黄框是当前视野，点一下跳过去；
 板上**右键写一句话**就是一条标记，按板子存档。
+
+## v1.20 重点
+
+**ODB++：板厂给的那包制造数据。**
+
+Gerber 和 ODB++ 是同一件事的两种做法，区别一句话：**Gerber 只有图形，ODB++ 带网络名。**
+所以 Gerber 里"点一颗焊盘问这是哪个网络"只能靠几何连通性去猜，而 ODB++ 里这行字本来就有。
+
+![ODB++](预览_ODB++.png)
+
+### 它长什么样
+
+不是"一层一个文件"，而是一棵目录树，压成 zip / tgz 交出去：
+
+```
+matrix/matrix                              层清单：哪层是铜、哪层在上
+steps/<板名>/layers/<层>/features           每层的几何（P 焊盘 / L 线 / A 弧 / S 面）
+steps/<板名>/layers/comp_+_top/components   位号 + 每个脚的坐标 + 网络号
+steps/<板名>/netlist/cadnet                 网络号 → 网络名
+steps/<板名>/layers/drill/features          钻孔
+```
+
+### 网络是怎么回填的
+
+铜层记录里**一个网络名都没有**。网络在另外两个文件里：`components` 的 `TOP` 记录写着
+"这个元件的这个脚在 (x, y)，属于 3 号网络"，`netlist` 的 `$` 表写着"3 号网络叫 GND"。
+两边按坐标对号，焊盘才有名字。这一步做对了，状态栏才会写出
+`GND　R1-1 / C1-2 / U1-1`；做错了，就只剩一片"未分配网络"。
+
+### 三个到手方式都认
+
+`.zip`、老派的 `.tgz` / `.tar.gz`、以及**用户自己解开之后的那个目录**（直接拖到图标上）。
+包里只挑要用的那几类文件读，`fonts` / `misc` / `user` 不占内存。
+
+### 两个坑
+
+- **单位**：坐标跟 `UNITS=INCH|MM` 走，符号却可能自带 `I` / `M` 后缀，而英制符号
+  爱用 mil、公制符号爱用 micro —— `r6` 是 6 mil、`r150` 可能是 0.15 mm。做法是先按
+  声明换算，再过量级体检：落在 1~600 mil 之外就换个解释重算。
+- **层名**：matrix 只说"这层是 SIGNAL 还是 SILK_SCREEN"，行号顺序各家不一。
+  铜层按"最上 = 1、最下 = 32、中间 39/40…"编号，层名原样显示（`顶层 · top`）；
+  matrix 没写 LAYER 块时按目录名认，`sst` / `smt` 这种三字母叫法要专门排除，
+  否则丝印会被当成铜层。
+
+### 这一版仍不做
+
+面积里的**洞**和**负极性的面**不挖空（大面积铺铜会显得偏满，但查线不受影响）；
+`eda/data` 的封装定义没读（位号型号已经从 `components` 拿到）。
+
+---
 
 ## v1.19 重点
 
@@ -561,6 +612,31 @@ Mouse: the wheel zooms **anchored at the pointer**; **drag to the edge of the ca
 view keeps moving that way** (faster the closer you get, stops when you let go); once zoomed
 in, the **mini-map in the top-left** shows your viewport as a yellow box — click to jump;
 **right-click on the board writes a note**, saved per board.
+
+## What's new in v1.20
+
+**ODB++ — the fabrication package a PCB house actually hands you.**
+
+Gerber and ODB++ describe the same thing in two ways. The difference in one line:
+**Gerber is geometry only; ODB++ carries net names.** So in Gerber, asking a pad "which net
+are you on?" can only be guessed from copper continuity — in ODB++, that line is written down.
+
+It is a directory tree (zipped, or the classic `.tgz`) rather than one file per layer:
+`matrix/matrix` lists the layers, `steps/<board>/layers/<layer>/features` holds the geometry,
+`components` holds each pin's coordinates plus its net number, and `netlist` maps net numbers
+to names. Copper records carry **no** net name at all — the pad only gets its name when the two
+files are joined by coordinate. Get that right and the status bar reads
+`GND  R1-1 / C1-2 / U1-1`; get it wrong and everything is "no net".
+
+All three delivery shapes work: `.zip`, `.tgz` / `.tar.gz`, and a plain **folder** you already
+unzipped (drop it on the icon). Only the files that matter are read; `fonts` / `misc` / `user`
+are skipped.
+
+Still not done: holes and negative-polarity surfaces inside a copper area are not cut out
+(large pours look fuller than they are, tracing is unaffected), and `eda/data` package
+definitions are not read — refdes and part numbers already come from `components`.
+
+---
 
 ## What's new in v1.19
 
