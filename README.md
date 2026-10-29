@@ -1,4 +1,4 @@
-# PCB 看板 / CopperLens v1.20
+# PCB 看板 / CopperLens v1.22
 
 **中文** ｜ [English](#english) ｜ [版本履历 Changelog](CHANGELOG.md)
 
@@ -33,6 +33,7 @@
 | **维修点位图** `.bvr` `.bv` `.bdv` `.cad` | 手机、笔记本主板维修用的那一族；只有位号、焊盘、网络和板框，没有铜箔图形。见「v1.19 重点」 |
 | **ODB++**（`.zip` / `.tgz` / 一个目录） | 板厂给的制造数据。**带网络名和层名**，所以焊盘能对上"这颗料第几脚"，比 Gerber 能查线。见「v1.20 重点」 |
 | **PADS** `.asc`（Layout / PowerPCB 导出） | Mentor / Siemens PADS 的 ASCII 板文件（纯文本、分段式）。**带网络名、位号、脚号**；阻焊/钢网/通孔焊盘栈、覆铜弧、内层都认。见「v1.21 重点」 |
+| **Altium** `.PcbDoc` | Altium Designer 的板文件。默认保存是二进制（复合文档），另存时也能存成 ASCII（File → Save Copy As），**两种都认**；层名用设计者自己起的（`L2` / `GND` / `PWR`）。见「v1.22 重点」 |
 | 维修界的 `.brd` | 和 Eagle 同名不同物（Landrex / TestLink 点位图），按内容自动分开 |
 
 明确**不做**：原理图（`.sch`）、`PCB 3.0`（更早的 16 位版本，部分兼容、未逐一验证）。
@@ -66,6 +67,40 @@
 鼠标：滚轮**以指针位置为锚点**缩放；**按住左键拖到画布边缘，画面自己往那个方向走**
 （越靠边越快，松手就停）；放大后**左上角缩略图**里的黄框是当前视野，点一下跳过去；
 板上**右键写一句话**就是一条标记，按板子存档。
+
+## v1.22 重点
+
+**Altium 的 `.PcbDoc`。** 国内画板子用得最多的软件，落到维修台上的机会也就最多。
+
+![Altium](预览_Altium.png)
+
+### 一个后缀，两种存法
+
+| 存法 | 怎么来的 | 本程序 |
+|---|---|---|
+| 二进制（默认） | 平时的保存 | 读（复合文档，里面 `Board6` / `Pads6` / `Tracks6` 一串子流） |
+| ASCII | File → Save Copy As → PCB ASCII | 读（一行一条 `\|RECORD=Track\|…`） |
+
+顺带解决一个老问题：`.ddb` 和 `.PcbDoc` 的开头都是复合文档的魔数，
+现在靠里面的流名分（有 `MSysObjects` 的是 `.ddb`，是设计库不是单块板），
+不会再出现"把整个设计库当成一块板"。
+
+### 打开之后能看到的
+
+- 走线、焊盘、过孔、圆弧、覆铜（新版 Altium 的 Region 也认）、板框、丝印；
+- **真网络名和位号**（`C183` 配 `100pF, 50V`，焊盘写 `NetC11_2`），不是靠几何猜；
+- **层名用你自己的**：8 层板就显示 `Top / L2 / L3 / L4 / L5 / L6 / L7 / Bottom`，
+  跟 Altium 图层面板一模一样；
+- 机械层只画机械 1（多数板的板框在这层），装配图、尺寸标注、3D 外形不画 ——
+  一块板上这类线常有几千条，全画出来就什么也看不见了。
+
+### 两个容易画错的坑
+
+- **Board 记录里那圈顶点常常不是板框，是设计图纸的外框。** 照它画，屏幕上就是
+  一个空荡的大方框套着一小块板。现在只要文件里有 Keep-Out / 机械 1 的线，
+  就信那些线，不信 Board 记录。
+- **ASCII 版的位号不跟元件绑。** 它把 `R7` 画成一条独立文字，只能靠"离哪颗元件最近 +
+  长得像位号 + 在丝印层上"认回来；认不回来就留空，不硬凑一个错的。
 
 ## v1.21 重点
 
@@ -634,6 +669,7 @@ double-click and go.
 | **Repair boardview** `.bvr` `.bv` `.bdv` `.cad` | What phone and laptop motherboard work uses: refdes, pads, nets and outline only — no copper shapes. See "What's new in v1.19" |
 | **ODB++** (`.zip` / `.tgz` / a folder) | The fabrication package from a board house. **Carries net names and layer names**, so a pad can be traced to "which pin of which part" — Gerber cannot. See "What's new in v1.20" |
 | **PADS** `.asc` (Layout / PowerPCB export) | The ASCII board file from Mentor / Siemens PADS (plain text, section-based). **Net names, refdes and pin numbers included**; solder-mask / paste / through-hole pad stacks, poured arcs and inner layers all read. See "What's new in v1.21" |
+| **Altium** `.PcbDoc` | Altium Designer boards. The default save is binary (a compound document) and you can also save ASCII (File > Save Copy As); **both are read**, with the designer's own layer names (`L2` / `GND` / `PWR`). See "What's new in v1.22" |
 | A repair-world `.brd` | Same extension as EAGLE, different thing (Landrex / TestLink boardview); told apart by content |
 
 Explicitly **not supported**: schematics (`.sch`), and `PCB 3.0` (the earlier 16-bit
@@ -671,6 +707,41 @@ Mouse: the wheel zooms **anchored at the pointer**; **drag to the edge of the ca
 view keeps moving that way** (faster the closer you get, stops when you let go); once zoomed
 in, the **mini-map in the top-left** shows your viewport as a yellow box — click to jump;
 **right-click on the board writes a note**, saved per board.
+
+## What's new in v1.22
+
+**Altium `.PcbDoc`.**
+
+![Altium](预览_Altium.png)
+
+### One extension, two storage formats
+
+| Format | How you get it | This app |
+|---|---|---|
+| Binary (default) | Just saving | Read (a compound document holding `Board6` / `Pads6` / `Tracks6` streams) |
+| ASCII | File > Save Copy As > PCB ASCII | Read (one `\|RECORD=Track\|…` per line) |
+
+It also settles an old ambiguity: `.ddb` and `.PcbDoc` both start with the compound-document
+magic, so they are now told apart by the stream names inside (`MSysObjects` means a `.ddb`
+design database, not a single board).
+
+### What you get
+
+- Tracks, pads, vias, arcs, pours (including the newer Region-based ones), outline, silkscreen;
+- **Real net names and refdes** (`C183` with `100pF, 50V`, pad net `NetC11_2`) rather than geometry guesses;
+- **Your own layer names**: an 8-layer board reads `Top / L2 / L3 / L4 / L5 / L6 / L7 / Bottom`,
+  exactly like the Altium layer panel;
+- Only mechanical layer 1 is drawn (it usually carries the outline); assembly drawings,
+  dimensions and 3D bodies are skipped — a board can hold thousands of those lines.
+
+### Two traps worth knowing
+
+- **The vertices in the Board record are often the drawing sheet, not the board.** Drawing
+  them gives you a big empty frame around a small board. If the file already has Keep-Out /
+  mechanical-1 lines, those win and the Board record is ignored.
+- **ASCII exports do not bind the refdes to its component.** `R7` is just a free-standing
+  text, so it is claimed by "nearest + looks like a refdes + on a silkscreen layer";
+  when nothing matches, the field stays empty rather than being filled with a wrong guess.
 
 ## What's new in v1.21
 
