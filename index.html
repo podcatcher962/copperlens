@@ -404,7 +404,7 @@
     <div class="hrow">
       <button class="btn primary" id="open" data-i18n="btnOpen"
               data-i18n-title="btnOpenTip">打开文件</button>
-      <input type="file" id="file" accept=".pcb,.PCB,.ddb,.DDB,.kicad_pcb,.KICAD_PCB,.brd,.BRD,.bvr,.BVR,.bv,.BV,.bdv,.BDV,.cad,.CAD,.gbr,.GBR,.gtl,.gbl,.gts,.gbs,.gto,.gbo,.gko,.drl,.xln,.zip,.ZIP,.json,.JSON,.epro,.EPRO,.epro2,.EPRO2" multiple>
+      <input type="file" id="file" accept=".pcb,.PCB,.ddb,.DDB,.kicad_pcb,.KICAD_PCB,.brd,.BRD,.bvr,.BVR,.bv,.BV,.bdv,.BDV,.cad,.CAD,.gbr,.GBR,.gtl,.gbl,.gts,.gbs,.gto,.gbo,.gko,.drl,.xln,.zip,.ZIP,.json,.JSON,.epro,.EPRO,.epro2,.EPRO2,.PcbDoc,.PCBDOC,.pcbdoc" multiple>
       <select id="boards" style="display:none"></select>
       <div class="sep"></div>
       <button class="btn" id="fit" data-i18n="btnFit" data-i18n-title="btnFitTip">适合窗口</button>
@@ -692,6 +692,13 @@ zh:{
   fmtOdb:"（ODB++ 制造数据）",
   errOdbEmpty:"这个 ODB++ 包里没读到铜层。\n"
     +"正常应该有 matrix/matrix 和 steps/<板名>/layers/<层>/features。",
+  /* Altium（.PcbDoc，二进制复合文档与 ASCII 两种皮）*/
+  fmtAlt:"（Altium 板文件）",
+  errAltEmpty:"这份 Altium 板文件里没读到焊盘，也没读到走线。\n"
+    +"如果原件是 Protel 99SE 的 .ddb，请先在 Altium 里另存为 .PcbDoc 再打开。",
+  errAltAsciiEmpty:"这份 Altium 的 ASCII 导出里没有走线也没有焊盘 ——\n"
+    +"大概只导出了板框。请在 Altium 里 File → Save Copy As → PCB ASCII，\n"
+    +"并且确认导出范围是整块板（不是只选了几个器件）。",
   noNet:"(未分配网络)",
   padNo:n=>"焊盘 "+n,
   feetTitle:"这次点亮的全部元件脚",
@@ -755,7 +762,7 @@ zh:{
     +"　解析 "+o.ms+"ms",
   objs:n=>n+" 个对象",
   pourN:n=>"　覆铜 "+n+" 块",
-  noPcb:"认不出这个文件。支持 .pcb / .ddb / .kicad_pcb / Eagle .brd / 维修点位图 (.bvr .bv .bdv .cad) / 立创 .json / .epro2，或 Gerber / ODB++ 一包。",
+  noPcb:"认不出这个文件。支持 .pcb / .ddb / .kicad_pcb / Altium .PcbDoc / Eagle .brd / 维修点位图 (.bvr .bv .bdv .cad) / 立创 .json / .epro2，或 Gerber / ODB++ 一包。",
   badFile:"这个文件读不出来：",
   multiBoard:"这个文件里有多块板，按修改时间从新到旧排：",
   latest:"★最新",
@@ -778,6 +785,7 @@ zh:{
       <div style="margin-top:8px;color:var(--fg3)">
         Protel 99SE：单板 <b>.pcb</b> 或设计库 <b>.ddb</b>　·　KiCad：<b>.kicad_pcb</b><br>
         Eagle：<b>.brd</b>（Autodesk EAGLE / Fusion 360 的 XML）<br>
+        Altium：<b>.PcbDoc</b>（二进制与 ASCII 两种存法都认）<br>
         立创EDA：标准版 <b>.json</b>　·　专业版 <b>.epro2</b> / <b>.epro</b>（整个工程包直接拖）<br>
         维修点位图：<b>.bvr</b> / <b>.bv</b> / <b>.bdv</b> / <b>.cad</b>（手机、笔记本维修用的就是这一族）<br>
         Gerber：一堆 <b>.gbr / .gtl / .gbl / .gko</b> 连钻孔 <b>.drl</b> 一起拖进来（或直接给 <b>.zip</b>）<br>
@@ -817,13 +825,16 @@ zh:{
     <h3>打开文件</h3>
     <p>双击程序图标，先看到一段<b>海报</b>（几秒后自动进首页），然后是<b>首页</b>——
        没带文件也能先把程序打开看界面：<b>点「打开文件」挑文件</b>，
-       或者把 <code>.pcb</code> / <code>.ddb</code> / <code>.kicad_pcb</code> / <code>.brd</code> 直接拖进窗口。</p>
+       或者把 <code>.pcb</code> / <code>.ddb</code> / <code>.kicad_pcb</code> / <code>.PcbDoc</code> / <code>.brd</code> 直接拖进窗口。</p>
     <p>这些文件在同一个对话框里，直接挑就行，也可以拖到窗口里：</p>
     <p style="color:var(--fg3)">
       · <b>.pcb</b> —— Protel / Altium 的老式二进制单板<br>
       · <b>.ddb</b> —— 老式设计库，里面可能有好几块板，一次全带出来<br>
       · <b>.kicad_pcb</b> —— KiCad 6 / 7 / 8 / 9 / 10 的板文件（纯文本 S 表达式），
         4、5 版的老格式也认<br>
+      · <b>.PcbDoc</b> —— Altium Designer 的板文件。默认保存是<b>二进制</b>（复合文档），
+        另存时也能存成 <b>ASCII</b>（File → Save Copy As → PCB ASCII），两种都认；
+        层名用的是设计者自己起的（L2 / GND / PWR），不是"内层 3"这种默认名<br>
       · <b>.brd</b> —— Eagle（Autodesk EAGLE / Fusion 360）的板文件，纯文本 XML；
         内层、覆铜、底面镜像元件都按原样解析<br>
       · <b>.bvr / .bv / .bdv / .cad</b> —— <b>维修点位图</b>（手机、笔记本主板维修用的那种）；
@@ -995,7 +1006,8 @@ zh:{
     <h3>能做什么</h3>
     <ul>
       <li>打开 .pcb 单板、.ddb 设计库（自动列出里面所有板）、KiCad 的 .kicad_pcb、
-          Eagle 的 .brd，以及立创EDA 标准版 .json 与专业版 .epro2 工程包</li>
+          Altium 的 .PcbDoc（二进制 / ASCII 两种）、Eagle 的 .brd，以及立创EDA
+          标准版 .json 与专业版 .epro2 工程包</li>
       <li><b>PADS 的 .asc</b>（Layout / PowerPCB 导出的 ASCII 板文件）和板厂给的
           <b>ODB++ 制造包</b>（.zip / .tgz / 解开的小文件夹）也能直接打开 ——
           这两种都带真网络名，查线比 Gerber 省事</li>
@@ -1018,7 +1030,7 @@ zh:{
       <li><b>最近打开</b>：首页列出上次开过的文件，点一下直接再打开</li>
     </ul>
     <h3>版本</h3>
-    <p>v1.21　·　支持 x86 与 64 位系统　·　单文件便携版</p>
+    <p>v1.22　·　支持 x86 与 64 位系统　·　单文件便携版</p>
     <div class="sig">© 永远的兰兰　·　Lanlan Eternal</div>`
 },
 en:{
@@ -1224,7 +1236,7 @@ en:{
     +"　parsed in "+o.ms+"ms",
   objs:n=>n+" objects",
   pourN:n=>"　"+n+" pours",
-  noPcb:"Unrecognised file. Supports .pcb / .ddb / .kicad_pcb / EAGLE .brd / repair boardview (.bvr .bv .bdv .cad) / EasyEDA .json / .epro2, or a Gerber / ODB++ set.",
+  noPcb:"Unrecognised file. Supports .pcb / .ddb / .kicad_pcb / Altium .PcbDoc / EAGLE .brd / repair boardview (.bvr .bv .bdv .cad) / EasyEDA .json / .epro2, or a Gerber / ODB++ set.",
   badFile:"Cannot read this file: ",
   multiBoard:"Several boards in this file, newest first:",
   latest:"★latest",
@@ -1246,7 +1258,7 @@ en:{
       <div class="big">Drop a board file here</div>
       <div style="margin-top:8px;color:var(--fg3)">
         Protel 99SE: single board <b>.pcb</b> or design library <b>.ddb</b>　·　KiCad: <b>.kicad_pcb</b><br>
-        EAGLE: <b>.brd</b> (Autodesk EAGLE / Fusion 360 XML)<br>        Boardview: <b>.bvr</b> / <b>.bv</b> / <b>.bdv</b> / <b>.cad</b> — what phone and laptop repair uses<br>        EasyEDA: standard <b>.json</b>　·　pro <b>.epro2</b> / <b>.epro</b> (drop the whole project file)<br>
+        EAGLE: <b>.brd</b> (Autodesk EAGLE / Fusion 360 XML)　·　Altium: <b>.PcbDoc</b> (binary or ASCII)<br>        Boardview: <b>.bvr</b> / <b>.bv</b> / <b>.bdv</b> / <b>.cad</b> — what phone and laptop repair uses<br>        EasyEDA: standard <b>.json</b>　·　pro <b>.epro2</b> / <b>.epro</b> (drop the whole project file)<br>
         Gerber: drop the whole <b>.gbr / .gtl / .gbl / .gko</b> set plus the <b>.drl</b> drill file together (or just a <b>.zip</b>)<br>
         ODB++ fabrication data: drop the <b>.zip</b> / <b>.tgz</b> as-is (it carries net names, so tracing works)
       </div>
@@ -1284,13 +1296,17 @@ en:{
     <h3>Opening a file</h3>
     <p>Double-click the exe: a short <b>splash</b> appears for a few seconds, then the <b>home page</b>.
        You can open the program without a board — click <b>Open File</b>, or drag a
-       <code>.pcb</code> / <code>.ddb</code> / <code>.kicad_pcb</code> / <code>.brd</code> into the window.</p>
+       <code>.pcb</code> / <code>.ddb</code> / <code>.kicad_pcb</code> / <code>.PcbDoc</code> / <code>.brd</code> into the window.</p>
     <p>All formats share one dialog — no second button needed. You can also drag a file in:</p>
     <p style="color:var(--fg3)">
       · <b>.pcb</b> — legacy Protel / Altium binary single board<br>
       · <b>.ddb</b> — legacy design library; all boards inside come along at once<br>
       · <b>.kicad_pcb</b> — KiCad 6 / 7 / 8 / 9 / 10 boards (plain-text S-expressions);
         the older 4 and 5 formats work too<br>
+      · <b>.PcbDoc</b> — Altium Designer boards. The default save is <b>binary</b>
+        (a compound document) and you can also save <b>ASCII</b>
+        (File > Save Copy As > PCB ASCII); both are read, and layer names are the
+        designer's own (L2 / GND / PWR) rather than "Mid-Layer 3"<br>
       · <b>.brd</b> — EAGLE (Autodesk EAGLE / Fusion 360) boards, plain-text XML; inner
         layers, copper pours and bottom-side mirrored parts are all read as-is<br>
       · <b>.bvr / .bv / .bdv / .cad</b> — <b>repair boardview</b> files (the ones phone and
@@ -1482,7 +1498,8 @@ en:{
     <p class="dim">Verified on Windows 10 x86 and Windows 11 64-bit.</p>
     <h3>What it does</h3>
     <ul>
-      <li>Opens .pcb files, .ddb design libraries (lists every board inside), KiCad .kicad_pcb and EAGLE .brd</li>
+      <li>Opens .pcb files, .ddb design libraries (lists every board inside), KiCad .kicad_pcb,
+          Altium .PcbDoc (binary or ASCII) and EAGLE .brd</li>
       <li><b>PADS .asc</b> exports (Layout / PowerPCB) and fab-house <b>ODB++</b> packages
           (.zip / .tgz / an unzipped folder) open directly too — both carry real net names,
           which beats Gerber for tracing</li>
@@ -1506,7 +1523,7 @@ en:{
       <li><b>Recent files</b>: the home page lists what you opened last; one click reopens it</li>
     </ul>
     <h3>Version</h3>
-    <p>v1.21　·　supports x86 and 64-bit Windows　·　portable single file</p>
+    <p>v1.22　·　supports x86 and 64-bit Windows　·　portable single file</p>
     <div class="sig">© Lanlan Eternal　·　永远的兰兰</div>`
 }
 };
@@ -1578,7 +1595,8 @@ function refreshFileLine(){
                        : (B.fmt==="eagle" ? T("fmtEagle")
                        : (B.fmt==="bv" ? T("fmtBv")
                        : (B.fmt==="pads" ? T("fmtPads")
-                       : (B.fmt==="odb" ? T("fmtOdb") : "")))));
+                       : (B.fmt==="odb" ? T("fmtOdb")
+                       : (B.fmt==="alt" ? T("fmtAlt") : ""))))));
   document.getElementById("stStats").textContent = T("stats", {
     t:B.tracks.length, p:B.pads.length, v:B.vias.length,
     f:B.fills.length, po:B.polys.length, n:B.nets.length,
@@ -6968,12 +6986,1070 @@ function padsShape(s){
   return 1;
 }
 /* ==PADS-BLOCK-END== */
+/* ==================== Altium .PcbDoc ==================== */
+/* ==================== Altium .PcbDoc（Altium Designer 的板文件） ====================
+   两种皮，同一个后缀：
+
+     1) 二进制（默认保存格式）—— 一个 OLE2 / 复合文档（老 Office 那种"文件里的
+        文件系统"），里面按名字挂着几十个子流：Board6 / Pads6 / Tracks6 / Vias6 /
+        Nets6 / Components6 / Texts6 / Polygons6 / Regions6 …，每个子流再挂一个
+        Data（记录本体）和一个 Header（记录条数，四字节，可以不理）。
+     2) ASCII（File → Save Copy As → PCB ASCII）—— 一行一条 `|RECORD=Track|…|`，
+        同样是 .PcbDoc，只把记录摊成了文本。
+
+   两条路在本文件里汇到同一个出口：都往 b.pads / b.tracks / … 里塞同样形状的对象。
+
+   ★ 二进制里的坐标：有符号 i32，单位是 **1/10000 mil**（也就是 2.54 nm）。
+     Y 轴朝上，跟本程序画布一致，**不用翻**（KiCad 那边要翻是因为它自己 Y 朝下）。
+   ★ 网络号 / 元件号是 u16 下标，0xFFFF 表示"没有"。下标 0 起算，本程序 1 起算。
+   ★ 属性串：u32 长度（最高字节是"这是二进制块"的标志，要抹掉）后面跟
+     `|键=值|键=值|`，末尾那个 NUL 算在长度里。
+   ★ 二进制记录：1 字节记录类型，随后是若干"子记录"，每个子记录前面一个 u32 长度。
+     每种流的子记录条数是固定的（焊盘 6 条、过孔 1 条、走线 1 条、文字 2 条…）。
+
+   ⚠ 机械层只画"机械 1"（多数板的板框在这层），其余机械层（装配图、尺寸、
+     拼板 V 割、3D 外形）一律不画 —— 一块板子上这类线常有几千条，全画出来
+     就是一锅粥，查线的时候什么也看不见。板框另外从 Board6 的轮廓顶点取一份，
+     两份都在也无所谓，位置是重合的。
+*/
+const ALT_MAGIC = [0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1];
+
+function altHasUtf16(u8, s){
+  /* 在字节里找 UTF-16LE 的流名（目录项里的名字就是这么存的）。
+     目录一定在文件前半段，只在头部 256 KB 里找就够了。 */
+  const lim = Math.min(u8.length, 262144) - s.length * 2;
+  outer:
+  for(let p = 0; p <= lim; p += 2){
+    for(let i = 0; i < s.length; i++){
+      if(u8[p + i * 2] !== s.charCodeAt(i) || u8[p + i * 2 + 1] !== 0) continue outer;
+    }
+    return true;
+  }
+  return false;
+}
+
+function looksAltium(buf){
+  if(!buf) return "";
+  const u8 = new Uint8Array(buf);
+  if(u8.length < 520) return "";
+  for(let i = 0; i < 8; i++) if(u8[i] !== ALT_MAGIC[i]) return "";
+  /* .ddb（Protel 99SE）也是 CFB，得靠流名分：
+     Altium 板一定有 Board / Pads / Tracks 这套；.ddb 是个 Jet 数据库，有 MSysObjects */
+  if(altHasUtf16(u8, "MSysObjects")) return "";
+  if(altHasUtf16(u8, "Board6") || altHasUtf16(u8, "Pads6") || altHasUtf16(u8, "Tracks6")) return "pcb";
+  if(altHasUtf16(u8, "Board") && (altHasUtf16(u8, "Pads") || altHasUtf16(u8, "Tracks"))) return "pcb";
+  return "";
+}
+
+function looksAltiumAscii(buf){
+  if(!buf) return "";
+  const u8 = new Uint8Array(buf);
+  if(u8.length < 16) return "";
+  for(let i = 0; i < 8; i++) if(u8[i] !== "|RECORD=".charCodeAt(i)) return "";
+  let head = "";
+  for(let i = 0; i < Math.min(u8.length, 20000); i++) head += String.fromCharCode(u8[i]);
+  return /RECORD=Board\b/i.test(head) ? "pcb" : "";
+}
+
+/* ---------- 复合文档（CFB / OLE2）---------- */
+function altCfb(u8){
+  const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+  const ssz  = 1 << dv.getUint16(0x1E, true);
+  const mssz = 1 << dv.getUint16(0x20, true);
+  const nfat = dv.getUint32(0x2C, true);
+  const dirS = dv.getUint32(0x30, true);
+  const cut  = dv.getUint32(0x38, true);
+  const mfS  = dv.getUint32(0x3C, true);
+  const nmf  = dv.getUint32(0x40, true);
+  const dfS  = dv.getUint32(0x44, true);
+  const ndf  = dv.getUint32(0x48, true);
+  const FILL = 0xFFFFFFFA;
+  const soff = s => 512 + s * ssz;
+
+  /* DIFAT：头里 109 个，后面接着一串扇区，每扇区末 4 字节指向下一个 */
+  const difat = [];
+  for(let i = 0; i < 109; i++){
+    const v = dv.getUint32(0x4C + i * 4, true);
+    if(v < FILL) difat.push(v);
+  }
+  let sec = dfS, guard = 0;
+  const per = ssz / 4 - 1;
+  while(sec < FILL && guard++ < ndf + 8 && soff(sec) + ssz <= u8.length){
+    const o = soff(sec);
+    for(let i = 0; i < per; i++){
+      const v = dv.getUint32(o + i * 4, true);
+      if(v < FILL) difat.push(v);
+    }
+    sec = dv.getUint32(o + per * 4, true);
+  }
+
+  const fat = [];
+  for(let i = 0; i < nfat && i < difat.length; i++){
+    const o = soff(difat[i]);
+    if(o + ssz > u8.length) break;
+    for(let j = 0; j < ssz / 4; j++) fat.push(dv.getUint32(o + j * 4, true));
+  }
+  const chain = start => {
+    const out = [];
+    let s = start, g = 0;
+    while(s < FILL && g++ < 400000){
+      out.push(s);
+      s = (s < fat.length) ? fat[s] : FILL;
+    }
+    return out;
+  };
+  const readBig = (start, size) => {
+    const parts = [];
+    let got = 0;
+    for(const s of chain(start)){
+      const o = soff(s);
+      if(o >= u8.length) break;
+      const n = Math.min(ssz, u8.length - o);
+      parts.push(u8.subarray(o, o + n));
+      got += n;
+      if(size && got >= size) break;
+    }
+    let total = 0;
+    for(const p of parts) total += p.length;
+    const out = new Uint8Array(size ? Math.min(size, total) : total);
+    let at = 0;
+    for(const p of parts){
+      if(at >= out.length) break;
+      const n = Math.min(p.length, out.length - at);
+      out.set(p.subarray(0, n), at);
+      at += n;
+    }
+    return out;
+  };
+
+  /* 目录项 128 字节一条：名字 UTF-16（64 字节）、类型、左右兄弟、子节点、起始扇区、长度 */
+  const dir = readBig(dirS, 0);
+  const ents = [];
+  for(let i = 0; i + 128 <= dir.length; i += 128){
+    const e = dir.subarray(i, i + 128);
+    const edv = new DataView(e.buffer, e.byteOffset, 128);
+    const nl = edv.getUint16(0x40, true);
+    const typ = e[0x42];
+    if(typ === 0){ ents.push(null); continue; }
+    let name = "";
+    for(let k = 0; k + 1 < Math.max(0, nl - 2); k += 2)
+      name += String.fromCharCode(edv.getUint16(k, true));
+    ents.push({name: name, type: typ,
+               left: edv.getUint32(0x44, true), right: edv.getUint32(0x48, true),
+               child: edv.getUint32(0x4C, true),
+               start: edv.getUint32(0x74, true), size: edv.getUint32(0x78, true)});
+  }
+  while(ents.length && !ents[ents.length - 1]) ents.pop();
+
+  /* 小流（< cutoff）挤在根目录项的流里，另有一套 MiniFAT */
+  const root = ents[0];
+  const mini = root ? readBig(root.start, root.size) : new Uint8Array(0);
+  const mfat = [];
+  if(root){
+    let s = mfS, g = 0;
+    while(s < FILL && g++ < nmf + 8 && soff(s) + ssz <= u8.length){
+      const o = soff(s);
+      for(let j = 0; j < ssz / 4; j++) mfat.push(dv.getUint32(o + j * 4, true));
+      s = dv.getUint32(o + ssz - 4, true);
+    }
+  }
+  const readMini = (start, size) => {
+    const out = new Uint8Array(size);
+    let at = 0, s = start, g = 0;
+    while(at < size && s < FILL && g++ < 400000){
+      const o = s * mssz;
+      if(o >= mini.length) break;
+      const n = Math.min(mssz, size - at, mini.length - o);
+      out.set(mini.subarray(o, o + n), at);
+      at += n;
+      s = (s < mfat.length) ? mfat[s] : FILL;
+    }
+    return out;
+  };
+
+  const kids = ent => {
+    const out = [];
+    const stack = (ent.child < FILL) ? [ent.child] : [];
+    let g = 0;
+    while(stack.length && g++ < 8192){
+      const i = stack.pop();
+      const e = ents[i];
+      if(!e) continue;
+      stack.push(e.left); stack.push(e.right);
+      out.push(e);
+    }
+    return out;
+  };
+
+  function find(path){
+    const parts = path.split("/");
+    let cur = root;
+    for(let k = 0; k < parts.length; k++){
+      let hit = null;
+      for(const e of kids(cur)) if(e.name === parts[k]){ hit = e; break; }
+      if(!hit) return null;
+      cur = hit;
+    }
+    return cur;
+  }
+  function read(ent){
+    if(!ent) return null;
+    if(ent.size < cut) return readMini(ent.start, ent.size);
+    return readBig(ent.start, ent.size);
+  }
+  /* 老版本的流名不带 6（Pads / Tracks / Nets），两套都试 */
+  function pick(base){
+    let e = find(base + "6/Data");
+    if(!e) e = find(base + "/Data");
+    if(!e) e = find(base + "6");
+    if(!e) e = find(base);
+    return read(e);
+  }
+  return {find: find, read: read, pick: pick};
+}
+
+/* ---------- 读记录用的游标 ---------- */
+function altCur(u8){
+  const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+  let p = 0;
+  const ok = n => (p + n <= u8.length);
+  return {
+    left(){ return u8.length - p; },
+    u8(){ if(!ok(1)){ p = u8.length; return 0; } return u8[p++]; },
+    u16(){ if(!ok(2)){ p = u8.length; return 0; } const v = dv.getUint16(p, true); p += 2; return v; },
+    i32(){ if(!ok(4)){ p = u8.length; return 0; } const v = dv.getInt32(p, true); p += 4; return v; },
+    u32(){ if(!ok(4)){ p = u8.length; return 0; } const v = dv.getUint32(p, true); p += 4; return v; },
+    f64(){ if(!ok(8)){ p = u8.length; return 0; } const v = dv.getFloat64(p, true); p += 8; return v; },
+    skip(n){ p = Math.min(u8.length, p + n); },
+    bytes(n){ const a = u8.subarray(p, Math.min(u8.length, p + n)); p += n; return a; },
+    str8(){
+      const n = this.u8();
+      if(!n) return "";
+      const a = this.bytes(n);
+      let s = "";
+      for(let i = 0; i < a.length; i++) if(a[i]) s += String.fromCharCode(a[i]);
+      return s;
+    }
+  };
+}
+
+/* ---------- 属性串 ---------- */
+function altProps(u8, pos){
+  if(pos + 4 > u8.length) return null;
+  const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+  let n = dv.getUint32(pos, true);
+  pos += 4;
+  const binary = (n & 0xFF000000) !== 0;
+  n &= 0x00FFFFFF;
+  if(n === 0 || pos + n > u8.length)
+    return {kv: {}, pos: Math.min(u8.length, pos + n), binary: binary};
+  let raw = u8.subarray(pos, pos + n);
+  pos += n;
+  const kv = {};
+  if(!binary){
+    if(raw.length && raw[raw.length - 1] === 0) raw = raw.subarray(0, raw.length - 1);
+    let s = "";
+    try{
+      s = new TextDecoder("utf-8", {fatal: true}).decode(raw);
+    }catch(_){
+      /* 老文件里可能是本地代码页（GBK），按 UTF-8 解不干净就退回单字节，
+         至少数字和 ASCII 键名不会错 —— 中文会变乱码，但不至于把整块板读废 */
+      for(let i = 0; i < raw.length; i++) s += String.fromCharCode(raw[i]);
+    }
+    for(const t of s.split("|")){
+      const q = t.indexOf("=");
+      if(q < 1) continue;
+      const k = t.slice(0, q).trim().toUpperCase();
+      if(!k || k.length > 64) continue;
+      kv[k] = t.slice(q + 1).trim();
+    }
+  }
+  return {kv: kv, pos: pos, binary: binary};
+}
+
+/* 属性里带单位的坐标："1234.5mil" / "20mm" / "0.1in" */
+function altMil(v, def){
+  if(v === undefined || v === null || v === "") return def === undefined ? 0 : def;
+  const m = /^([-+0-9.eE]+)\s*([a-zA-Z]*)$/.exec(String(v).trim());
+  if(!m) return def === undefined ? 0 : def;
+  const x = parseFloat(m[1]);
+  if(!isFinite(x)) return def === undefined ? 0 : def;
+  const u = (m[2] || "mil").toLowerCase();
+  if(u === "mm") return x * 39.37007874015748;
+  if(u === "in" || u === "inch") return x * 1000;
+  if(u === "um") return x * 0.039370078740157;
+  return x;                                    /* mil / 无单位 */
+}
+function altNum(kv, k, def){
+  const s = kv[k];
+  if(s === undefined) return def;
+  const x = parseFloat(s);
+  return isFinite(x) ? x : def;
+}
+function altM(kv, k, def){
+  const s = kv[k];
+  if(s === undefined) return def === undefined ? 0 : def;
+  return altMil(s, def);
+}
+
+/* ---------- 层号换算 ----------
+   本程序的层号跟 Altium 的老编号基本是一套：1 顶、32 底、2~31 内层、33/34 丝印、
+   35/36 钢网、37/38 阻焊、39 起是内电层、56 板框、74 多层。
+   新版本还会另给一个 0x01xxxxxx 的层号（V7/V8），优先用它，因为老的那一格在
+   新文件里有时只写个 0。 */
+function altLayer(n, n7){
+  const V7CU = 0x01000000, V7ME = 0x01020000, V8OT = 0x01030000;
+  if(n7 && n7 >= V8OT){
+    const k = n7 - V8OT;
+    if(k === 6) return 33;
+    if(k === 7) return 34;
+    if(k === 8) return 35;
+    if(k === 9) return 36;
+    if(k === 10) return 37;
+    if(k === 11) return 38;
+    if(k === 13) return 56;
+    if(k === 15) return 74;
+    return 0;
+  }
+  if(n7 && n7 >= V7ME){
+    const k = n7 - V7ME;
+    return k === 1 ? 56 : 0;
+  }
+  if(n7 && n7 >= V7CU){
+    const k = n7 - V7CU;
+    if(k === 1) return 1;
+    if(k >= 65535) return 32;
+    if(k >= 2 && k <= 31) return k;
+    return 0;
+  }
+  if(n === 1) return 1;
+  if(n === 32) return 32;
+  if(n >= 2 && n <= 31) return n;
+  if(n >= 33 && n <= 38) return n;
+  if(n >= 39 && n <= 54) return 39 + (n - 39);
+  if(n === 56) return 56;
+  if(n === 57) return 56;                      /* 机械 1 */
+  if(n === 74) return 74;
+  return 0;
+}
+
+/* 层名 → 层号（属性里的 LAYER 常常是 "TOP" / "BOTTOMOVERLAY" 这样的词） */
+function altLayerFromName(s){
+  const t = String(s || "").trim().toUpperCase().replace(/[\s_\-.]/g, "");
+  if(!t) return 0;
+  if(/^\d+$/.test(t)) return altLayer(parseInt(t, 10), 0);
+  if(t === "TOP" || t === "TOPLAYER" || t === "FCU") return 1;
+  if(t === "BOTTOM" || t === "BOTTOMLAYER" || t === "BCU") return 32;
+  let m = /^(MID|INNER|INTERNAL)(?:LAYER|PLANE)?(\d+)$/.exec(t);
+  if(m){
+    const k = parseInt(m[2], 10);
+    if(/PLANE/.test(t) || /INTERNAL/.test(t)) return 39 + Math.max(0, k - 1);
+    return Math.min(31, Math.max(2, k + 1));
+  }
+  if(/^TOPSILK|^TOPOVERLAY/.test(t)) return 33;
+  if(/^BOTSILK|^BOTTOMOVERLAY|^BOTTOMSILK/.test(t)) return 34;
+  if(/^TOPPASTE/.test(t)) return 35;
+  if(/^BOTPASTE|^BOTTOMPASTE/.test(t)) return 36;
+  if(/^TOPSOLDER|^TOPMASK/.test(t)) return 37;
+  if(/^BOTSOLDER|^BOTMASK|^BOTTOMSOLDER/.test(t)) return 38;
+  if(/^KEEPOUT|^BOARD/.test(t)) return 56;
+  if(t === "MECHANICAL1") return 56;
+  if(/^MULTI/.test(t)) return 74;
+  return 0;
+}
+
+/* 焊盘外形：1 圆、2 方、3 八角 */
+function altShape(s){
+  if(s === 2) return 2;
+  if(s === 3) return 3;
+  return 1;
+}
+
+/* ---------- 顶点串（覆铜 / 板框共用）----------
+   属性里第 i 个顶点是 VX<i>/VY<i>，还带 KIND<i>（0 直点、1 圆弧）、R<i> 半径、
+   CX/CY 圆心、SA/EA 起止角。圆弧只给了圆心和两个角，得自己摊成折线。 */
+function altVerts(kv){
+  const out = [];
+  for(let i = 0; i < 20000; i++){
+    const kx = "VX" + i, ky = "VY" + i;
+    if(kv[kx] === undefined || kv[ky] === undefined) break;
+    const x = altM(kv, kx, 0), y = altM(kv, ky, 0);
+    if(!isFinite(x) || !isFinite(y)) continue;
+    if(altNum(kv, "KIND" + i, 0) !== 0){
+      const cx = altM(kv, "CX" + i, 0), cy = altM(kv, "CY" + i, 0);
+      const r = altM(kv, "R" + i, 0);
+      let a0 = altNum(kv, "SA" + i, 0), a1 = altNum(kv, "EA" + i, 0);
+      if(r > 0){
+        if(a1 <= a0) a1 += 360;
+        a1 = Math.min(a1, a0 + 360);
+        const n = Math.max(2, Math.min(48, Math.ceil((a1 - a0) / 10)));
+        for(let k = 0; k <= n; k++){
+          const t = (a0 + (a1 - a0) * k / n) * Math.PI / 180;
+          out.push([cx + r * Math.cos(t), cy + r * Math.sin(t)]);
+        }
+        continue;
+      }
+    }
+    out.push([x, y]);
+  }
+  return out;
+}
+
+/* 把一圈点变成板框用的线段（本程序画板框一律用 56 层上的线，跟别的格式一致） */
+function altOutline(b, pts, w){
+  if(!pts || pts.length < 2) return;
+  for(let i = 0; i < pts.length; i++){
+    const a = pts[i], c = pts[(i + 1) % pts.length];
+    if(a[0] === c[0] && a[1] === c[1]) continue;
+    b.tracks.push({kind:"track", layer:56, net:0, comp:-1,
+                   x1:a[0], y1:a[1], x2:c[0], y2:c[1],
+                   w:w || 6, poly:-1});
+  }
+}
+
+/* Board 记录里那圈顶点，有时候画的不是板子，而是设计图纸的外框。
+   ASCII 导出尤其常见：真正的板框画在 Keep-Out 层（上面那 4 条线），
+   Board 记录里却存着一张比板子大三四倍的图纸。
+   所以先拿"铜皮多大"当尺子量一量，差得离谱就当它没画 ——
+   一块板上凭空多出一个大方框，比没有板框更让人看不懂。 */
+function altFrame(b, pts, w){
+  if(!pts || pts.length < 3) return false;
+  /* 文件里已经有 56 层的线了（Keep-Out 那圈 / 机械 1 那圈），那就是真的板框，
+     Board 记录这圈不用再画 —— 它十有八九是同一圈的重影，或者是图纸外框。 */
+  for(const t of b.tracks) if(t.layer === 56) return false;
+  let fx1 = Infinity, fy1 = Infinity, fx2 = -Infinity, fy2 = -Infinity;
+  for(const p of pts){
+    if(p[0] < fx1) fx1 = p[0]; if(p[0] > fx2) fx2 = p[0];
+    if(p[1] < fy1) fy1 = p[1]; if(p[1] > fy2) fy2 = p[1];
+  }
+  let cx1 = Infinity, cy1 = Infinity, cx2 = -Infinity, cy2 = -Infinity, n = 0;
+  const eat = o => {
+    const x1 = (o.x1 !== undefined) ? o.x1 : o.x, x2 = (o.x2 !== undefined) ? o.x2 : o.x;
+    const y1 = (o.y1 !== undefined) ? o.y1 : o.y, y2 = (o.y2 !== undefined) ? o.y2 : o.y;
+    if(!isFinite(x1) || !isFinite(y1)) return;
+    n++;
+    if(x1 < cx1) cx1 = x1; if(x1 > cx2) cx2 = x1;
+    if(x2 < cx1) cx1 = x2; if(x2 > cx2) cx2 = x2;
+    if(y1 < cy1) cy1 = y1; if(y1 > cy2) cy2 = y1;
+    if(y2 < cy1) cy1 = y2; if(y2 > cy2) cy2 = y2;
+  };
+  for(const t of b.tracks) if(t.layer !== 56) eat(t);
+  for(const p of b.pads) eat(p);
+  if(n >= 8){
+    const fw = fx2 - fx1, fh = fy2 - fy1, cw = cx2 - cx1, ch = cy2 - cy1;
+    if(cw > 0 && ch > 0 && (fw > cw * 3 || fh > ch * 3)) return false;
+  }
+  altOutline(b, pts, w);
+  return true;
+}
+
+/* ==================== 主入口 ==================== */
+function parseAltium(buf){
+  const u8 = new Uint8Array(buf);
+  if(looksAltiumAscii(buf)) return parseAltiumAscii(u8);
+  return parseAltiumBin(u8);
+}
+
+function altBlank(fmt){
+  return {layers:{}, copper:[], nets:[], tracks:[], pads:[], vias:[], arcs:[],
+          fills:[], texts:[], comps:[], polys:[], sections:[], warn:[],
+          fmt:fmt || "alt", fromDdb:false, boardCount:1, layerNames:{}};
+}
+function altNames(b){
+  b.layerNames[1] = "Top";
+  b.layerNames[32] = "Bottom";
+  b.layerNames[33] = "TopOverlay";  b.layerNames[34] = "BottomOverlay";
+  b.layerNames[35] = "TopPaste";    b.layerNames[36] = "BottomPaste";
+  b.layerNames[37] = "TopSolder";   b.layerNames[38] = "BottomSolder";
+  b.layerNames[56] = "BoardOutline";
+}
+
+/* 层名用设计者自己的：Board6 / Board 记录里 LAYER<n>NAME 存的就是 Altium
+   图层面板上显示的那串字。LimeSDR 是 L2/L3/L4/L5/L6/L7，有些板直接写
+   GND / PWR / SIG —— 比"内层 3"有用得多。
+
+   只抄层叠链（LAYER1 → NEXT → NEXT → … → 32）上那些。板子里还有一堆
+   "没用到的层"，它们的名字往往是 MidLayer11 这种默认值，甚至是从别处
+   拷来的旧名（LimeSDR 的 LAYER11NAME 也叫 L7，照抄就会出现两个 L7）。
+   链子断了（老导出的 ASCII 版只给 1→32）就退回"挨个看、跳过默认名"。 */
+function altBoardNames(b, kv){
+  if(!kv) return;
+  const isDefault = nm => /^mid-?\s*layer\s*\d+$/i.test(nm);
+  const use = n => {
+    const nm = kv["LAYER" + n + "NAME"];
+    if(!nm || isDefault(nm)) return;
+    b.layerNames[n] = nm;
+  };
+  if(kv.LAYER1NEXT === undefined){
+    for(let n = 1; n <= 32; n++) use(n);
+    return;
+  }
+  let cur = 1, guard = 0;
+  const seen = new Set();
+  while(cur > 0 && guard++ < 64 && !seen.has(cur)){
+    seen.add(cur);
+    use(cur);
+    cur = parseInt(kv["LAYER" + cur + "NEXT"], 10) || 0;
+  }
+}
+
+/* 位号认领：ASCII 版把位号画成一条独立的 Text，不跟元件绑；二进制版偶尔也会
+   出现元件那栏没写 SOURCEDESIGNATOR。按"离得最近 + 长得像位号 + 在丝印层"认回来，
+   不然查线的时候点开一颗电阻，只看到封装不知道是 R 几。 */
+function altLinkDes(b){
+  const DES = /^[A-Z]{1,3}[0-9]{1,4}[A-Z]?$/;
+  const used = new Set();
+  for(const t of b.texts) if(t.isDes && t.comp > 0) used.add(t);
+  for(const c of b.comps){
+    if(c.ref && c.ref !== "?") continue;
+    let best = null, bd = 1e9;
+    for(const t of b.texts){
+      if(t.comp > 0 || used.has(t)) continue;
+      if(t.layer !== 33 && t.layer !== 34) continue;
+      if(!DES.test(t.text)) continue;
+      const d = Math.hypot(t.x - c.x, t.y - c.y);
+      if(d < bd){ bd = d; best = t; }
+    }
+    if(best && bd < 400){
+      best.comp = c.id; best.isDes = true;
+      c.ref = best.text;
+      used.add(best);
+    }
+  }
+}
+
+/* ==================== 二进制 ==================== */
+function parseAltiumBin(u8){
+  const cfb = altCfb(u8);
+  const b = altBlank("alt");
+  const ids = new Map();
+  const stats = {streams:0, nets:0, comps:0, pads:0, tracks:0, vias:0, arcs:0,
+                 texts:0, polys:0, regions:0};
+
+  /* --- 网络：Nets6 的下标就是网络号（0 起算） --- */
+  const netsRaw = [];
+  const netsBuf = cfb.pick("Nets");
+  if(netsBuf){
+    let pos = 0, g = 0;
+    while(pos + 4 <= netsBuf.length && g++ < 200000){
+      const r = altProps(netsBuf, pos);
+      if(!r) break;
+      netsRaw.push(r.kv.NAME || "");
+      if(r.pos <= pos) break;
+      pos = r.pos;
+    }
+  }
+  for(const nm of netsRaw) bvNet(b, ids, nm);
+  stats.nets = netsRaw.length;
+  const netId = i => (i === undefined || i === 0xFFFF) ? 0
+      : (netsRaw[i] ? bvNet(b, ids, netsRaw[i]) : 0);
+
+  /* --- 元件 --- */
+  const compBuf = cfb.pick("Components");
+  const compsRaw = [];
+  if(compBuf){
+    let pos = 0, g = 0;
+    while(pos + 4 <= compBuf.length && g++ < 200000){
+      const r = altProps(compBuf, pos);
+      if(!r) break;
+      compsRaw.push(r.kv);
+      if(r.pos <= pos) break;
+      pos = r.pos;
+    }
+  }
+  for(const kv of compsRaw){
+    const low = String(kv.LAYER || "").toUpperCase();
+    const bot = /BOT/.test(low);
+    b.comps.push({id: b.comps.length + 1, layer: bot ? 32 : 1,
+                  x: altM(kv, "X", 0), y: altM(kv, "Y", 0),
+                  rot: altNum(kv, "ROTATION", 0),
+                  lib: String(kv.PATTERN || kv.SOURCEFOOTPRINTLIBRARY || ""),
+                  ref: String(kv.SOURCEDESIGNATOR || ""),
+                  value: String(kv.COMMENT || kv.VALUE || "")});
+  }
+  stats.comps = b.comps.length;
+  const compId = i => (i === undefined || i === 0xFFFF) ? -1 : (i + 1);
+
+  /* --- 记录拆包：1 字节类型 + N 个子记录（每个 u32 长度）--- */
+  function recs(name, nsub){
+    const buf = cfb.pick(name);
+    if(!buf || !buf.length) return [];
+    stats.streams++;
+    const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+    const out = [];
+    let pos = 0, g = 0;
+    while(pos < buf.length && g++ < 500000){
+      const type = buf[pos++];
+      const subs = [];
+      let bad = false;
+      for(let k = 0; k < nsub; k++){
+        if(pos + 4 > buf.length){ bad = true; break; }
+        const ln = dv.getUint32(pos, true);
+        pos += 4;
+        if(pos + ln > buf.length){ bad = true; pos = buf.length; break; }
+        subs.push(buf.subarray(pos, pos + ln));
+        pos += ln;
+      }
+      if(subs.length) out.push({type: type, subs: subs});
+      if(bad) break;
+    }
+    return out;
+  }
+
+  /* --- 走线 --- */
+  for(const r of recs("Tracks", 1)){
+    const s = r.subs[0];
+    if(!s || s.length < 30) continue;
+    const c = altCur(s);
+    const lay6 = c.u8();
+    c.u8(); c.u8();
+    const net = c.u16(); c.u16(); const comp = c.u16();
+    c.skip(4);
+    const x1 = c.i32() / 10000, y1 = c.i32() / 10000;
+    const x2 = c.i32() / 10000, y2 = c.i32() / 10000;
+    const w = c.i32() / 10000;
+    c.u16();                                      /* 子多边形序号 */
+    c.skip(1);
+    /* 子记录还有 9 字节尾巴：union 号 + 一个字节 + 新式层号（V7）。
+       每多久一格没读，那个"新式层号"就读到别处去了，整块板的层全错。 */
+    let lay7 = 0;
+    if(c.left() >= 9){ c.u32(); c.skip(1); lay7 = c.u32(); }
+    const lay = altLayer(lay6, lay7);
+    if(!lay) continue;
+    if(!(w > 0) && lay !== 56) continue;          /* 零宽线是笔尖抬起，不是铜 */
+    b.tracks.push({kind:"track", layer:lay, net:netId(net), comp:compId(comp),
+                   x1:x1, y1:y1, x2:x2, y2:y2,
+                   w:Math.max(w, lay === 56 ? 3 : 0.1), poly:-1});
+  }
+  stats.tracks = b.tracks.length;
+
+  /* --- 圆弧 --- */
+  for(const r of recs("Arcs", 1)){
+    const s = r.subs[0];
+    if(!s || s.length < 45) continue;
+    const c = altCur(s);
+    const lay6 = c.u8();
+    c.u8(); c.u8();
+    const net = c.u16(); c.u16(); const comp = c.u16();
+    c.skip(4);
+    const cx = c.i32() / 10000, cy = c.i32() / 10000;
+    const rad = c.i32() / 10000;
+    const a0 = c.f64(), a1 = c.f64();
+    const w = c.i32() / 10000;
+    c.u16();
+    let lay7 = 0;
+    if(c.left() >= 9){ c.skip(1); c.u32(); lay7 = c.u32(); }
+    const lay = altLayer(lay6, lay7);
+    if(!lay) continue;
+    if(!(rad > 0)) continue;
+    /* Altium 给的是圆心 + 起始角 / 终止角（度，逆时针），本程序画弧也是这套 */
+    b.arcs.push({kind:"arc", layer:lay, net:netId(net), comp:compId(comp),
+                 x:cx, y:cy, radius:rad, a1:a0, a2:a1,
+                 w:Math.max(w, 0.1), poly:-1});
+  }
+  stats.arcs = b.arcs.length;
+
+  /* --- 过孔 --- */
+  for(const r of recs("Vias", 1)){
+    const s = r.subs[0];
+    if(!s || s.length < 26) continue;
+    const c = altCur(s);
+    c.skip(1); c.u8(); c.u8();
+    const net = c.u16(); c.u16(); const comp = c.u16();
+    c.skip(4);
+    const x = c.i32() / 10000, y = c.i32() / 10000;
+    const dia = c.i32() / 10000, hole = c.i32() / 10000;
+    const l1 = c.u8(), l2 = c.u8();
+    if(!(dia > 0) && !(hole > 0)) continue;
+    b.vias.push({kind:"via", layer:74, net:netId(net), comp:compId(comp),
+                 x:x, y:y, dia:Math.max(dia, hole * 1.5, 4), hole:hole,
+                 start:altLayer(l1, 0) || 1, end:altLayer(l2, 0) || 32});
+  }
+  stats.vias = b.vias.length;
+
+  /* --- 焊盘 ---
+     第 5 条子记录是本体（前 106 字节固定，后面按长度追加）。
+     通孔焊盘的层号是 74（多层），本程序把 74 当"所有铜层"。 */
+  for(const r of recs("Pads", 6)){
+    const name = r.subs[0] ? altCur(r.subs[0]).str8() : "";
+    const s = r.subs[4];
+    if(!s || s.length < 49) continue;
+    const c = altCur(s);
+    const lay6 = c.u8();
+    c.u8(); c.u8();
+    const net = c.u16(); c.skip(2); const comp = c.u16();
+    c.skip(4);
+    const x = c.i32() / 10000, y = c.i32() / 10000;
+    const tx = c.i32() / 10000, ty = c.i32() / 10000;
+    const mx = c.i32() / 10000, my = c.i32() / 10000;
+    const bx = c.i32() / 10000, by = c.i32() / 10000;
+    const hole = c.i32() / 10000;
+    const ts = c.u8();
+    c.u8(); c.u8();
+    const rot = c.f64();
+    const plated = c.u8() !== 0;
+    const lay = altLayer(lay6, 0);
+    const layer = (lay6 === 74 || lay === 74) ? 74 : (lay || (lay6 === 32 ? 32 : 1));
+    let xs = tx, ys = ty;
+    if(!(xs > 0) && !(ys > 0)){ xs = mx > 0 ? mx : bx; ys = my > 0 ? my : by; }
+    if(!(xs > 0) && !(ys > 0)){ xs = Math.max(hole * 1.8, 8); ys = xs; }
+    if(!(xs > 0)) xs = ys;
+    if(!(ys > 0)) ys = xs;
+    b.pads.push({kind:"pad", layer:layer, net:netId(net), comp:compId(comp),
+                 x:x, y:y, xs:xs, ys:ys,
+                 xm:mx > 0 ? mx : xs, ym:my > 0 ? my : ys,
+                 xb:bx > 0 ? bx : xs, yb:by > 0 ? by : ys,
+                 stack:false, hole:hole, shape:altShape(ts),
+                 name:String(name || ""), rot:rot || 0, plated:plated});
+  }
+  stats.pads = b.pads.length;
+
+  /* --- 板框：Board6 里那条 KIND / VX / VY 的闭合折线就是板子轮廓 ---
+     顺手把这份 Board 记录留着，收尾时拿它的 LAYER<n>NAME 当层名。 */
+  let boardKv = null;
+  const boardBuf = cfb.pick("Board");
+  if(boardBuf){
+    const r = altProps(boardBuf, 0);
+    if(r){
+      boardKv = r.kv;
+      altFrame(b, altVerts(r.kv), 6);
+    }
+  }
+
+  /* --- 覆铜轮廓（Polygons6）--- */
+  const polyBuf = cfb.pick("Polygons");
+  if(polyBuf){
+    let pos = 0, g = 0;
+    while(pos + 4 <= polyBuf.length && g++ < 20000){
+      const r = altProps(polyBuf, pos);
+      if(!r) break;
+      if(!r.binary){
+        const kv = r.kv;
+        const lay = altLayerFromName(kv.LAYER_V7 || kv.LAYER || "");
+        const pts = altVerts(kv);
+        if(lay && pts.length >= 3){
+          b.polys.push({kind:"polygon", layer:lay,
+                        net:netId(altNum(kv, "NET", 0xFFFF)),
+                        pid:b.polys.length + 1, pts:pts, closed:true});
+        }
+      }
+      if(r.pos <= pos) break;
+      pos = r.pos;
+    }
+  }
+
+  /* --- 覆铜实体（Regions6）---
+     新版 Altium 把"浇出来的铜"存成 Region，不再是一堆小线段。每个 Region 就是
+     一圈顶点（f64 x, f64 y，单位还是 1/10000 mil）：KIND=0 是铜、KIND=1 是挖空。
+     挖空先不画 —— 本程序的覆铜面只有一圈外轮廓，画不了内洞。 */
+  const regBuf = cfb.pick("Regions");
+  if(regBuf){
+    const dv = new DataView(regBuf.buffer, regBuf.byteOffset, regBuf.byteLength);
+    let pos = 0, g = 0;
+    while(pos + 5 <= regBuf.length && g++ < 20000){
+      const type = regBuf[pos++];
+      const ln = dv.getUint32(pos, true);
+      pos += 4;
+      if(pos + ln > regBuf.length) break;
+      const body = regBuf.subarray(pos, pos + ln);
+      pos += ln;
+      if(type !== 11 || body.length < 26) continue;
+      const bdv = new DataView(body.buffer, body.byteOffset, body.byteLength);
+      const lay6 = body[0];
+      const net = bdv.getUint16(3, true);
+      let p = 18;
+      const pr = altProps(body, p);
+      if(!pr) continue;
+      p = pr.pos;
+      const kv = pr.kv;
+      const lay = altLayerFromName(kv.V7_LAYER || "") || altLayer(lay6, 0);
+      if(!lay) continue;
+      if((parseInt(kv.KIND, 10) || 0) === 1) continue;
+      if(p + 4 > body.length) continue;
+      const n = bdv.getUint32(p, true);
+      p += 4;
+      if(n < 3 || p + n * 16 > body.length) continue;
+      const pts = [];
+      for(let i = 0; i < n; i++){
+        pts.push([bdv.getFloat64(p, true) / 10000, bdv.getFloat64(p + 8, true) / 10000]);
+        p += 16;
+      }
+      if(lay === 56){ altOutline(b, pts, 6); stats.regions++; continue; }
+      b.polys.push({kind:"polygon", layer:lay, net:netId(net),
+                    pid:b.polys.length + 1, pts:pts, closed:true});
+      stats.regions++;
+    }
+  }
+  stats.polys = b.polys.length;
+
+  /* --- 宽字符串表：新版文字走这张表（UTF-16），旧的直接存在第二条子记录里 --- */
+  const wide = new Map();
+  const wbuf = cfb.pick("WideStrings");
+  if(wbuf){
+    const dv = new DataView(wbuf.buffer, wbuf.byteOffset, wbuf.byteLength);
+    let p = 0;
+    while(p + 8 <= wbuf.length){
+      const idx = dv.getUint32(p, true);
+      const len = dv.getUint32(p + 4, true);
+      p += 8;
+      if(len <= 2){ wide.set(idx, ""); continue; }
+      if(p + len > wbuf.length) break;
+      let s = "";
+      for(let i = 0; i + 1 < len - 2; i += 2)
+        s += String.fromCharCode(dv.getUint16(p + i, true));
+      wide.set(idx, s);
+      p += len;
+    }
+  }
+
+  /* --- 文字 --- */
+  for(const r of recs("Texts", 2)){
+    const s = r.subs[0];
+    if(!s || s.length < 26) continue;
+    const c = altCur(s);
+    const lay6 = c.u8();
+    c.skip(6);
+    const comp = c.u16();
+    c.skip(4);
+    const x = c.i32() / 10000, y = c.i32() / 10000;
+    const h = c.i32() / 10000;
+    c.u16();
+    const rot = c.f64();
+    const mirror = c.u8() !== 0;
+    c.i32();
+    let isDes = false, isCom = false, widx = 0, lay7 = 0;
+    if(s.length >= 123){
+      isCom = c.u8() !== 0;
+      isDes = c.u8() !== 0;
+      c.skip(1);
+      c.u8(); c.u8(); c.u8();              /* 字体类型 / 粗体 / 斜体 */
+      c.skip(64);                          /* 字体名 */
+      c.u8();
+      c.i32();
+      widx = c.u32();
+      c.skip(4);
+      c.u8();
+      c.i32(); c.i32(); c.u8(); c.i32();
+      if(c.left() >= 93){
+        c.skip(24); c.u8(); c.u8(); c.u8(); c.u8(); c.skip(64); c.u8();
+        lay7 = c.u32();
+      }
+    }
+    const lay = altLayer(lay6, lay7);
+    if(!lay) continue;
+    let txt = wide.get(widx);
+    if(txt === undefined) txt = r.subs[1] ? altCur(r.subs[1]).str8() : "";
+    txt = String(txt || "").replace(/\r\n/g, "\n").trim();
+    if(!txt) continue;
+    b.texts.push({kind:"text", layer:lay, comp:compId(comp), x:x, y:y,
+                  h:Math.max(h, 4), rot:rot || 0, text:txt,
+                  isDes:isDes, isCom:isCom, mirror:mirror});
+  }
+  stats.texts = b.texts.length;
+
+  if(!b.pads.length && !b.tracks.length && !b.polys.length) throw new Error(T("errAltEmpty"));
+
+  altNames(b);
+  altBoardNames(b, boardKv);
+  altLinkDes(b);
+  b.__alt = stats;
+  finish(b);
+  b.__isBoard = true;
+  return b;
+}
+
+/* ==================== ASCII（PCB ASCII 导出） ====================
+   一行一条记录，`|RECORD=Track|LAYER=TOP|X1=100mil|…`。字段就是二进制里那些字段的
+   文字版，单位统一写成 "xx mil"（个别老字段光秃秃一个数是 mil）。
+   文字比较特别：正文放在 `WIDESTRING` 里，是一串逗号隔开的字符码。 */
+function parseAltiumAscii(u8){
+  const b = altBlank("alt");
+  const ids = new Map();
+  const text = new TextDecoder("utf-8", {fatal: false}).decode(u8);
+  const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+
+  const bucket = new Map();                     /* 记录类型 → 记录数组 */
+  for(const ln of lines){
+    if(ln.indexOf("|") < 0) continue;
+    const kv = {};
+    for(const t of ln.split("|")){
+      const q = t.indexOf("=");
+      if(q < 1) continue;
+      kv[t.slice(0, q).trim().toUpperCase()] = t.slice(q + 1).trim();
+    }
+    const rec = (kv.RECORD || "").toLowerCase();
+    if(!rec) continue;
+    if(!bucket.has(rec)) bucket.set(rec, []);
+    bucket.get(rec).push(kv);
+  }
+  const got = k => bucket.get(k) || [];
+
+  /* 网络：ASCII 里 Net 记录带 ID，焊盘里的 NET 就是这个 ID */
+  const netById = [];
+  for(const kv of got("net")){
+    const id = altNum(kv, "ID", -1);
+    const nm = kv.NAME || "";
+    if(id >= 0) netById[id] = nm;
+  }
+  const netId = v => {
+    const i = parseInt(v, 10);
+    if(!isFinite(i) || i < 0) return 0;
+    const nm = netById[i];
+    return nm ? bvNet(b, ids, nm) : 0;
+  };
+  const byName = new Map();
+  for(let i = 0; i < netById.length; i++) if(netById[i]) byName.set(netById[i], i + 1);
+
+  /* 元件：ASCII 的 COMPONENT 是 0 起的 ID，本程序 1 起 */
+  const compById = new Map();
+  for(const kv of got("component")){
+    const id = altNum(kv, "ID", compById.size);
+    if(compById.has(id)) continue;
+    const low = String(kv.LAYER || "").toUpperCase();
+    compById.set(id, b.comps.length + 1);
+    b.comps.push({id: b.comps.length + 1, layer: /BOT/.test(low) ? 32 : 1,
+                  x: altM(kv, "X", 0), y: altM(kv, "Y", 0),
+                  rot: altNum(kv, "ROTATION", 0),
+                  lib: String(kv.PATTERN || ""),
+                  ref: String(kv.SOURCEDESIGNATOR || ""),
+                  value: String(kv.COMMENT || "")});
+  }
+  const compId = v => {
+    const i = parseInt(v, 10);
+    if(!isFinite(i) || i < 0) return -1;
+    const r = compById.get(i);
+    return r === undefined ? (i + 1) : r;
+  };
+
+  /* 板框：先记下来，等走线焊盘都齐了再画 —— 要拿铜皮的大小当尺子
+     （这份 Board 记录同时也是层名的来源） */
+  let boardKv = null, boardPts = null;
+  for(const kv of got("board")){
+    const pts = altVerts(kv);
+    if(pts.length >= 3){ boardPts = pts; boardKv = kv; break; }
+  }
+
+  /* 走线 */
+  for(const kv of got("track")){
+    const lay = altLayerFromName(kv.LAYER || "");
+    if(!lay) continue;
+    const w = altM(kv, "WIDTH", 0);
+    if(!(w > 0) && lay !== 56) continue;
+    b.tracks.push({kind:"track", layer:lay, net:netId(kv.NET), comp:compId(kv.COMPONENT),
+                   x1:altM(kv, "X1", 0), y1:altM(kv, "Y1", 0),
+                   x2:altM(kv, "X2", 0), y2:altM(kv, "Y2", 0),
+                   w:Math.max(w, lay === 56 ? 3 : 0.1), poly:-1});
+  }
+
+  /* 圆弧 */
+  for(const kv of got("arc")){
+    const lay = altLayerFromName(kv.LAYER || "");
+    if(!lay) continue;
+    const rad = altM(kv, "RADIUS", 0);
+    if(!(rad > 0)) continue;
+    b.arcs.push({kind:"arc", layer:lay, net:netId(kv.NET), comp:compId(kv.COMPONENT),
+                 x:altM(kv, "LOCATION.X", altM(kv, "X", 0)),
+                 y:altM(kv, "LOCATION.Y", altM(kv, "Y", 0)),
+                 radius:rad,
+                 a1:altNum(kv, "STARTANGLE", 0), a2:altNum(kv, "ENDANGLE", 360),
+                 w:Math.max(altM(kv, "WIDTH", 10) || 10, 0.1), poly:-1});
+  }
+
+  /* 过孔 */
+  for(const kv of got("via")){
+    const s1 = altLayerFromName(kv.STARTLAYER || "TOP") || 1;
+    const s2 = altLayerFromName(kv.ENDLAYER || "BOTTOM") || 32;
+    const dia = altM(kv, "DIAMETER", altM(kv, "TOPLAYERSIZE", 24));
+    const hole = altM(kv, "HOLESIZE", 12);
+    b.vias.push({kind:"via", layer:74, net:netId(kv.NET),
+                 x:altM(kv, "X", 0), y:altM(kv, "Y", 0),
+                 dia:Math.max(dia, hole * 1.5, 4), hole:hole, start:s1, end:s2});
+  }
+
+  /* 焊盘 */
+  const SHAPE_TXT = {RECTANGLE: 2, ROUND: 1, OCTAGONAL: 3, ROUNDRECTANGLE: 2};
+  for(const kv of got("pad")){
+    const low = String(kv.LAYER || "TOP").toUpperCase();
+    const layer = /MULTI/.test(low) ? 74 : (altLayerFromName(low) || 1);
+    const xs = altM(kv, "XSIZE", 0), ys = altM(kv, "YSIZE", 0);
+    const hole = altM(kv, "HOLESIZE", 0);
+    if(!(xs > 0) && !(ys > 0) && !(hole > 0)) continue;
+    b.pads.push({kind:"pad", layer:layer, net:netId(kv.NET), comp:compId(kv.COMPONENT),
+                 x:altM(kv, "X", 0), y:altM(kv, "Y", 0),
+                 xs:xs > 0 ? xs : Math.max(hole * 1.8, 8),
+                 ys:ys > 0 ? ys : Math.max(hole * 1.8, 8),
+                 xm:xs, ym:ys, xb:xs, yb:ys, stack:false, hole:hole,
+                 shape:SHAPE_TXT[String(kv.SHAPE || "").toUpperCase()] || 1,
+                 name:String(kv.NAME || ""),
+                 rot:altNum(kv, "ROTATION", 0),
+                 plated:!/^false$/i.test(kv.PLATED || "true")});
+  }
+
+  /* 覆铜：Polygon 与 Region 都是"一圈顶点"，Region 的 KIND=1 是挖空 */
+  for(const key of ["polygon", "region"]){
+    for(const kv of got(key)){
+      if((parseInt(kv.KIND, 10) || 0) === 1 && key === "region") continue;
+      const lay = altLayerFromName(kv.LAYER || "");
+      const pts = altVerts(kv);
+      if(!lay || pts.length < 3) continue;
+      if(lay === 56){ altOutline(b, pts, 6); continue; }
+      b.polys.push({kind:"polygon", layer:lay, net:netId(kv.NET),
+                    pid:b.polys.length + 1, pts:pts, closed:true});
+    }
+  }
+
+  /* 文字 */
+  for(const kv of got("text")){
+    const lay = altLayerFromName(kv.LAYER || "");
+    if(!lay) continue;
+    let txt = kv.TEXT || "";
+    if(!txt && kv.WIDESTRING){
+      /* 逗号隔开的字符码，比如 "79,112,101,110" = Open */
+      const cs = kv.WIDESTRING.split(",");
+      for(const c of cs){
+        const n = parseInt(c, 10);
+        if(isFinite(n) && n > 0) txt += String.fromCharCode(n);
+      }
+    }
+    txt = String(txt || "").replace(/\r\n/g, "\n").trim();
+    if(!txt) continue;
+    b.texts.push({kind:"text", layer:lay, comp:compId(kv.COMPONENT),
+                  x:altM(kv, "X", 0), y:altM(kv, "Y", 0),
+                  h:Math.max(altM(kv, "HEIGHT", 40), 4),
+                  rot:altNum(kv, "ROTATION", 0), text:txt,
+                  /* ASCII 版不给"这是位号 / 这是型号"的标志位，
+                     交给 finish() 按文字形态（U5 / R3 / 104）去认 */
+                  isDes:false, isCom:false,
+                  mirror:/true/i.test(kv.MIRROR || "")});
+  }
+
+  if(!b.pads.length && !b.tracks.length && !b.polys.length)
+    throw new Error(T("errAltAsciiEmpty"));
+
+  if(boardPts) altFrame(b, boardPts, 6);
+
+  altNames(b);
+  altBoardNames(b, boardKv);
+  altLinkDes(b);
+  b.__alt = {nets:netById.length, comps:b.comps.length, pads:b.pads.length,
+             tracks:b.tracks.length, arcs:b.arcs.length, vias:b.vias.length,
+             texts:b.texts.length, polys:b.polys.length, ascii:true};
+  finish(b);
+  b.__isBoard = true;
+  return b;
+}
+
 function parseAny(buf,name){
   /* PADS 的 .asc 是纯文本，先认一把 —— 它既不是 KiCad 也不是 Gerber，认错了会当成二进制乱读 */
   if(looksPads(buf)){
     const txt=new TextDecoder("utf-8").decode(new Uint8Array(buf));
     return parsePads(txt);
   }
+  /* Altium .PcbDoc 也是两种皮：二进制（CFB 复合文档）和 ASCII（一行一条 RECORD=）。
+     CFB 那个魔数很独特，但要排除掉 .ddb —— Protel 99SE 的 Jet 数据库同样是 CFB，
+     里面装的是原理图 / 封装库 / 板子好几个文档，不是一块板。 */
+  if(looksAltium(buf) || looksAltiumAscii(buf))
+    return parseAltium(buf);
   if(looksKicad(buf)){
     const txt=new TextDecoder("utf-8").decode(new Uint8Array(buf));
     return parseKicad(txt);
