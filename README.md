@@ -1,4 +1,4 @@
-# PCB 看板 / CopperLens v1.18
+# PCB 看板 / CopperLens v1.19
 
 **中文** ｜ [English](#english) ｜ [版本履历 Changelog](CHANGELOG.md)
 
@@ -30,6 +30,8 @@
 | 立创EDA **标准版** `.json` | 立创EDA 导出的板文件（纯文本 JSON）。见「v1.16 重点」 |
 | `.brd`（Eagle） | Autodesk Eagle / Fusion 360 的板文件（纯文本 XML）；内层、覆铜、底面镜像元件都按原样解析。见「v1.18 重点」 |
 | 立创EDA **专业版** `.epro2` / `.epro` | 整个工程包直接拖进来，里面那份 `.epru` 设计日志会自己解开。见「v1.16 重点」 |
+| **维修点位图** `.bvr` `.bv` `.bdv` `.cad` | 手机、笔记本主板维修用的那一族；只有位号、焊盘、网络和板框，没有铜箔图形。见「v1.19 重点」 |
+| 维修界的 `.brd` | 和 Eagle 同名不同物（Landrex / TestLink 点位图），按内容自动分开 |
 
 明确**不做**：原理图（`.sch`）、`PCB 3.0`（更早的 16 位版本，部分兼容、未逐一验证）。
 宁可明确报错，也不给一张假图 —— 照假图查线是要出事的。
@@ -62,6 +64,55 @@
 鼠标：滚轮**以指针位置为锚点**缩放；**按住左键拖到画布边缘，画面自己往那个方向走**
 （越靠边越快，松手就停）；放大后**左上角缩略图**里的黄框是当前视野，点一下跳过去；
 板上**右键写一句话**就是一条标记，按板子存档。
+
+## v1.19 重点
+
+**点位图（BoardView）：维修现场真正天天在用的那一族。**
+
+### 为什么这一版重要
+
+前面几版读的都是"工程师的板文件"。但手机、笔记本主板维修的师傅手里没有设计工程，
+他们用的是**点位图** —— 只存位号、焊盘坐标、网络名和板框，没有铜箔图形。
+
+而这四样，恰好是我们查线、找脚、测点、孔表全部功能所依赖的：点一个焊盘要能亮起
+整条网络，靠的就是网络名；要能说"E5 那颗电容"，靠的就是位号。所以缺的从来不是
+渲染能力，只是一个能读进来的解析器。
+
+### 一次补齐五种写法
+
+| 来源 | 认法 | 坐标单位 |
+|---|---|---|
+| `BVRAW_FORMAT_3` | 一行一个 KEY VALUE | mil |
+| `BVRAW_FORMAT_1` | 制表符分隔，`<<Layout>>` / `<<Pin>>` / `<<Nail>>` | 英寸 |
+| BDV | `<<format.asc>>` / `<<pins.asc>>` / `<<nails.asc>>` | 英寸 |
+| BRD（Landrex / TestLink） | `str_length:` / `var_data:` / `Format:` / `Parts:` / `Pins:` / `Nails:` | mil |
+| CAD | `COMP` / `C_PIN` / `NET` / `N_VIA` | 英寸 |
+
+对外就是四个扩展名：`.bvr` / `.bv` / `.bdv` / `.cad`。拖进来就行，不用先转格式。
+
+### 两种是被混淆过的
+
+BDV 每行一个滚动密钥（从 `0xA0` 起，每见一个换行加 1，超过 285 归 159）；
+BRD 整篇做一次"循环左移 2 位再取反"。都不加密钥，所以能解开 —— 但认的时候
+得靠内容：BDV 看明文标记，BRD 看开头 4 字节 `23 E2 63 28`。
+
+![点位图](预览_点位图.png)
+
+### 打开之后长什么样
+
+只有焊盘（30 mil 的圆点）、位号、板框和测试点，**没有走线** —— 因为文件里本来就没有。
+打开时会提示一句，免得你以为没渲染出来。
+
+但查线照样能用：点一个焊盘，同一条网络的所有脚一起亮；找位号、量距、孔表、测点清单
+全部正常。这些功能本来就只依赖网络名和坐标。
+
+### `.brd` 现在有三家
+
+Eagle（XML）、Landrex / TestLink 点位图（六段文本）、Cadence Allegro（二进制）。
+前两家都支持，按内容自动分开；第三家读不了，但会明确告诉你"这是 Allegro"，
+而不是笼统报"只认…"。
+
+---
 
 ## v1.18 重点
 
@@ -472,6 +523,8 @@ double-click and go.
 | **Gerber + drill** (`.gbr` `.gtl` `.gbl` `.gko` `.drl` `.xln` …) | The fabrication set your board house sends: **one file per layer, drop the whole set in and it becomes one board**. A `.zip` works too. See "What's new in v1.15" |
 | EasyEDA **standard** `.json` | The board file EasyEDA exports (plain-text JSON). See "What's new in v1.16" |
 | EasyEDA **pro** `.epro2` / `.epro` | Drop the whole project file; the `.epru` design log inside is unpacked for you. See "What's new in v1.16" |
+| **Repair boardview** `.bvr` `.bv` `.bdv` `.cad` | What phone and laptop motherboard work uses: refdes, pads, nets and outline only — no copper shapes. See "What's new in v1.19" |
+| A repair-world `.brd` | Same extension as EAGLE, different thing (Landrex / TestLink boardview); told apart by content |
 
 Explicitly **not supported**: schematics (`.sch`), and `PCB 3.0` (the earlier 16-bit
 format) is only partially compatible and not verified case by case. A clear error beats a
@@ -508,6 +561,47 @@ Mouse: the wheel zooms **anchored at the pointer**; **drag to the edge of the ca
 view keeps moving that way** (faster the closer you get, stops when you let go); once zoomed
 in, the **mini-map in the top-left** shows your viewport as a yellow box — click to jump;
 **right-click on the board writes a note**, saved per board.
+
+## What's new in v1.19
+
+**Boardview files — what repair benches actually work with.**
+
+Earlier versions read the files engineers hand over. Phone and laptop motherboard work
+does not have those: technicians use *boardview* files, which hold **refdes, pad
+coordinates, net names and the outline** — and no copper at all.
+
+Those four things happen to be exactly what net tracing, pin lookup, probe lists and the
+hole table run on. Clicking a pad to light up a whole net needs net names; saying "that
+cap at E5" needs refdes. The missing piece was never rendering — just a parser.
+
+| Source | How it is recognised | Units |
+|---|---|---|
+| `BVRAW_FORMAT_3` | one `KEY VALUE` per line | mil |
+| `BVRAW_FORMAT_1` | tab-separated, `<<Layout>>` / `<<Pin>>` / `<<Nail>>` | inch |
+| BDV | `<<format.asc>>` / `<<pins.asc>>` / `<<nails.asc>>` | inch |
+| BRD (Landrex / TestLink) | `str_length:` / `var_data:` / `Format:` / `Parts:` / `Pins:` / `Nails:` | mil |
+| CAD | `COMP` / `C_PIN` / `NET` / `N_VIA` | inch |
+
+Outwardly that is four extensions — `.bvr`, `.bv`, `.bdv`, `.cad` — drop one in, no
+conversion step.
+
+Two of them are obfuscated: BDV uses a rolling key per line (starts at `0xA0`, +1 on
+every newline, wraps to 159 past 285); BRD applies "rotate left 2, then invert" to every
+byte. No key involved, so both are reversible — BDV is recognised by its plaintext
+markers, BRD by the leading `23 E2 63 28`.
+
+A boardview board shows pads (30 mil dots), refdes, outline and test points, and
+**no traces** — the file never had them. A one-line notice says so when it opens. Net
+tracing still works: click a pad and every pin on that net lights up; refdes search,
+measuring, the hole table and the probe list all behave normally, because they only ever
+needed net names and coordinates.
+
+`.brd` now has three owners: EAGLE (XML), Landrex / TestLink boardview (six text
+sections) and Cadence Allegro (binary). The first two are supported and told apart by
+content; the third is not readable, but the message now says it is Allegro instead of a
+generic "unsupported".
+
+---
 
 ## What's new in v1.18
 
