@@ -1,18 +1,18 @@
-# PCB 看板 / CopperLens v1.22
+# PCB 看板 / CopperLens v1.23
 
 **中文** ｜ [English](#english) ｜ [版本履历 Changelog](CHANGELOG.md)
 
 维修查线路用的 **只读** 看板工具。点一下走线或焊盘 → 整条网络亮黄，状态栏直接写出
 `U100-4 / C102-1` 这样的具体脚位。不装任何 EDA 软件，不联网。
 
-单个 exe，**支持 x86 与 64 位 Windows**，Windows 7 / 8 / 10 / 11 双击即用，不用另装东西。
+单个 exe，**Windows 10 / 11，32 位与 64 位系统都能跑**，双击即用，不用另装东西。
 
 ## 直接用
 
 | | 地址 | 适合 |
 |---|---|---|
 | **在线版**（推荐先试） | <https://podcatcher962.github.io/copperlens/> | 浏览器直接打开，把板文件拖进去。**文件只在本机读取，不上传服务器**。读不了设计库（`.ddb`） |
-| **桌面版 exe** | [Releases](../../releases) 里下载，约 9 MB | **支持 x86 与 64 位系统**，Win7 / 8 / 10 / 11 双击即用。**能读设计库 `.ddb`**（自动抽出里面所有板子） |
+| **桌面版 exe** | [Releases](../../releases) 里下载，约 9 MB | **Win 10 / 11，32 位 64 位都能跑**。**能读设计库 `.ddb`**（自动抽出里面所有板子） |
 
 ![查线](预览_查线.png)
 
@@ -48,6 +48,9 @@
 点一下走线或焊盘 → 与之电气相连的整条铜亮黄，状态栏写出具体脚位。
 **按 <kbd>H</kbd>（或顶栏「覆铜」按钮）→ 一键收起所有铺铜，细走线立刻看清。**
 
+左侧栏的「**读数**」会告诉你这块板的数据能不能信：多少焊盘没有网络名、多少元件没有位号、
+是不是整份文件都不带网络名、解析时跳过了什么。见「v1.23 重点」。
+
 ### 快捷键
 
 | 键 | 作用 |
@@ -67,6 +70,79 @@
 鼠标：滚轮**以指针位置为锚点**缩放；**按住左键拖到画布边缘，画面自己往那个方向走**
 （越靠边越快，松手就停）；放大后**左上角缩略图**里的黄框是当前视野，点一下跳过去；
 板上**右键写一句话**就是一条标记，按板子存档。
+
+## v1.23 重点
+
+**一个格式都没加。这一版加的是「让你知道程序读到了什么」。**
+
+v1.18 到 v1.22 五天补了五家格式，入口已经够宽；剩下的都是低频、高逆向成本的长尾
+（Allegro 二进制 `.brd`、PADS 原生 `.pcb`、GenCAD）。而打开一块板时，心里真正的问题是
+**「你读全了吗」**，不是「你还能读别的吗」。
+
+![读数](预览_读数.png)
+
+### 左侧栏多了「读数」
+
+以前只有「板子」那一块，全是**数量**：外形、铜层、元件、焊盘、过孔、网络。
+数量对不代表数据对 —— 这 1644 个焊盘里有多少真带网络名？那 371 颗元件的位号是
+文件里写的，还是从丝印猜的？以前看不出来。
+
+现在给四行：
+
+| 行 | 说明 |
+|---|---|
+| **网络名** | 有名字的焊盘多少、没名字的多少。没名字的那些（自由焊盘、测试点、过孔盘）点下去只能按铜皮几何去推，结论得在实物上核对 |
+| **位号** | 多少颗元件读到了位号。文件里本来没写的不硬凑，清单里显示 `?` |
+| **板框** | 真有 KeepOut 边框才算有；没有的话，"外形尺寸"按全部图形元素（含图例、尺寸标注）的外框估，会偏大 |
+| **⚠ …** | 解析器自己记的账（"有 3 片覆铜坐标对不上，已跳过"这类） |
+
+顶上那枚标签是解析总评：`解析无告警` / `解析有告警` / `告警较多`。
+
+**为什么这件事重要**：照着一张少读了两成的图去测点，是会烧板的。程序以前是
+**静默地少读** —— 界面照样好看，用户完全不知道哪里不能信。
+
+两个刻意的取舍：
+
+- **总评不拿网络名缺失去吓人。** Altium 的 8 层真板（LimeSDR-Mini）有 380/1644 个焊盘
+  没有网络名，占 23% —— 那是文件的样子，不是读错了。都判成"有缺项"，等于每块板都黄着。
+- **整份文件都没有网络名时话不一样。** Gerber 这类制造文件天生不带网络名，
+  会直接写「全靠几何推」，而不是「1644 个缺」—— 后者会让人以为程序坏了。
+
+面板上的 `⚠` 以前只在演示模式闪一条 toast，几秒就没，长句子根本读不完；现在挂在面板上，
+打开时只提示一句「有 N 条读数提示，详见左侧「读数」」。
+
+### 认不出的文件，说清它是什么
+
+以前拖错文件一律得到同一句 *"文件里没有可读的 PCB 数据段"*。现在先认文件头：
+
+| 拖进来的是 | 说的是 |
+|---|---|
+| `.zip` / `.tgz` / `.rar` / `.7z` | 是压缩包；Gerber 或 ODB++ 整包直接拖 `.zip` 就行，别的先解开 |
+| PDF / PNG / JPEG / GIF / BMP | 这是文档 / 图片，不是板文件 |
+| 复合文档（Excel、Word 改了扩展名） | 和 `.ddb` / `.PcbDoc` 同一个壳，但里面没有板数据 |
+| 纯文本但不是任何一家的格式 | **把开头那 60 个字打出来** |
+| 认不出的二进制 | 打出前 12 个字节 |
+
+最后两条最有用 —— 用户一眼就知道自己拖错了哪个。
+
+> **差点踩进去的坑**：最初写成"调 parseBoard 之前先嗅类型"，但老 Protel 的 `.pcb`
+> 文件头就是 `\x13PCB 4.0 Binary File\x00\x00…`，**文本 + 一堆 NUL**，
+> 跟"认不出的二进制"长得一模一样 —— 那样写会让所有 `.pcb` 全部打不开。
+> 改成先调 `parseBoard`，只有它自己报"没有数据段"时才轮到嗅探。
+> `_t/_fmt_regress.js` 就是为盯这事写的：十一种格式各真开一遍。
+
+### 系统要求改了口径
+
+以前写「从 Windows 7 到 Windows 11 双击即用」，**这句是不实的**：本程序由 32 位
+Python 3.12 打包，`python312.dll` 导入表里有 `api-ms-win-core-path-l1-1-0.dll`，
+这个 API set 从 Win8 才有，Win7 上双击是直接报"丢失 DLL"。
+
+要支持 Win7 只能换 Python 3.8（已停止维护）。**决定：不做。**
+一律改成 **Windows 10 / 11，32 位与 64 位都支持**。
+
+程序编成 32 位是为了让 32 位系统也能直接跑；在 64 位 Windows 上走 WoW64，
+**不需要另找 64 位版本**。（`CopperLens-win32.exe` 这个资产名是 GitHub 上传 API
+强制的 ASCII 名，不代表只给 32 位用。）
 
 ## v1.22 重点
 
@@ -522,7 +598,7 @@ Gerber 是**制造文件**，不是设计文件：它只描述形状，不写哪
 
 | 项 | 值 |
 |---|---|
-| 目标系统 | Windows 7 / 8 / 8.1 / 10 / 11，**x86 与 64 位都可** |
+| 目标系统 | Windows 10 / 11，**32 位与 64 位都可**（8.1 能跑，但不对外承诺） |
 | exe PE 头 | `0x014c` = i386（32 位） |
 | exe Subsystem | `2` = Windows GUI（无控制台窗口） |
 | 运行库依赖 | 仅系统 DLL（comdlg32 / user32 / kernel32 + UCRT），无 tcl/tk、无 WebView2 |
@@ -642,15 +718,14 @@ A **read-only** PCB viewer for repair work. Click a trace or a pad and the whole
 up in yellow, with the actual pin names right there in the status bar — `U100-4 / C102-1`,
 not just "some copper". No EDA suite required. No network access.
 
-One portable exe, **runs on both x86 and 64-bit Windows** — Windows 7 / 8 / 10 / 11,
-double-click and go.
+One portable exe, **Windows 10 / 11, 32-bit and 64-bit** — double-click and go.
 
 ## Quick start
 
 | | Where | Good for |
 |---|---|---|
 | **Web version** (try this first) | <https://podcatcher962.github.io/copperlens/> | Open in a browser, drop a `.pcb` in. **The file is read locally, never uploaded.** Cannot read design databases (`.ddb`) |
-| **Desktop exe** | Download from [Releases](../../releases), ~9 MB | **x86 and 64-bit**, Windows 7–11, no install. **Reads `.ddb` design databases** (all boards inside, automatically) |
+| **Desktop exe** | Download from [Releases](../../releases), ~9 MB | **Win 10 / 11, 32-bit and 64-bit**, no install. **Reads `.ddb` design databases** (all boards inside, automatically) |
 
 ![Tracing a net](预览_查线.png)
 
@@ -1129,7 +1204,7 @@ Design decisions worth knowing (details in the [CHANGELOG](CHANGELOG.md)):
 
 | Item | Value |
 |---|---|
-| Target | Windows 7 / 8 / 8.1 / 10 / 11, **x86 and 64-bit** |
+| Target | Windows 10 / 11, **32-bit and 64-bit** (8.1 runs, not promised) |
 | exe PE machine | `0x014c` = i386 (32-bit) |
 | exe subsystem | `2` = Windows GUI (no console window) |
 | Runtime deps | System DLLs only (comdlg32 / user32 / kernel32 + UCRT); no tcl/tk, no WebView2 |
