@@ -32,6 +32,7 @@
 | 立创EDA **专业版** `.epro2` / `.epro` | 整个工程包直接拖进来，里面那份 `.epru` 设计日志会自己解开。见「v1.16 重点」 |
 | **维修点位图** `.bvr` `.bv` `.bdv` `.cad` | 手机、笔记本主板维修用的那一族；只有位号、焊盘、网络和板框，没有铜箔图形。见「v1.19 重点」 |
 | **ODB++**（`.zip` / `.tgz` / 一个目录） | 板厂给的制造数据。**带网络名和层名**，所以焊盘能对上"这颗料第几脚"，比 Gerber 能查线。见「v1.20 重点」 |
+| **PADS** `.asc`（Layout / PowerPCB 导出） | Mentor / Siemens PADS 的 ASCII 板文件（纯文本、分段式）。**带网络名、位号、脚号**；阻焊/钢网/通孔焊盘栈、覆铜弧、内层都认。见「v1.21 重点」 |
 | 维修界的 `.brd` | 和 Eagle 同名不同物（Landrex / TestLink 点位图），按内容自动分开 |
 
 明确**不做**：原理图（`.sch`）、`PCB 3.0`（更早的 16 位版本，部分兼容、未逐一验证）。
@@ -65,6 +66,62 @@
 鼠标：滚轮**以指针位置为锚点**缩放；**按住左键拖到画布边缘，画面自己往那个方向走**
 （越靠边越快，松手就停）；放大后**左上角缩略图**里的黄框是当前视野，点一下跳过去；
 板上**右键写一句话**就是一条标记，按板子存档。
+
+## v1.21 重点
+
+**PADS 的 `.asc`：Mentor / Siemens PADS（Layout、PowerPCB）导出的 ASCII 板文件。**
+
+它和 `.kicad_pcb` 一样是纯文本，但结构是"分段"的：段名用 `*名字*` 括起来，
+一段管一件事（`*PARTDECAL*` 封装、`*PART*` 元件、`*NET*` 网络、`*ROUTE*` 布线、
+`*POUR*` 覆铜、`*LINES*` 线表、`*MISC*` 层定义……）。
+
+![PADS](预览_PADS.png)
+
+### 一个 `.asc`，三种东西
+
+同一个导出对话框里还能勾出网络表和原理图，三者都是 `.asc`：
+
+| 第一行 | 是什么 | 程序怎么做 |
+|---|---|---|
+| `!PADS-<产品>-V<版本>-<单位>!` | 板文件 | 正常打开 |
+| `*PADS-PCB*` | 网络表 | 明说"只有连接关系"，教你重导 |
+| `*PADS-LOGIC*` / `*PADS-POWERLOGIC*` | 原理图 | 明说"不是板文件"，教你重导 |
+
+**还有一个更阴的**：文件头是板文件的 `!PADS-`，但里面只有 `*PART*` + `*CONNECTION*`
++ `*SIGNAL*` —— 那是导出时只勾了网络表。这种会明确告诉你"没几何段、重导一次"，
+而不是给你一张空白板。
+
+### 四个不懂就会画错的细节
+
+| 细节 | 真相 |
+|---|---|
+| 单位 | 有 `MILS` / `INCH` / `MM` / **`BASIC`** 四种；BASIC 是 1/38100 英寸，坐标动辄上千万 |
+| Y 轴 | **朝上**，和本程序一致，**不用翻** |
+| 顶点行里的层号 | `0` = 还没布的飞线（不画）、`65` = 这根线到此接上元件脚（不画） |
+| 弧的圆心 | 顶点行只给 `CW`/`CCW`，**带标志的那个点就是圆心** |
+
+线表里的弧角点则是八个数：`x y 起始角×10 扫角×10 包围盒四角`，圆心取包围盒中点。
+当普通点读，板框上就会冒出几条斜穿全板的直线。
+
+### 焊盘栈：阻焊和钢网分开画
+
+PADS 的一个焊盘是"每个层一行"的栈：`-2` 顶层、`-1` 底层、`0` 内层，
+正数则是文件里声明的那些层。有些导出会把**阻焊和钢网**也写进栈里
+（`21 600 R` 表示阻焊层比铜皮放大到 600）。这些现在落到本程序的阻焊层、钢网层，
+所以"这块板哪些脚有钢网"这种事一眼能看出来。
+
+**层 0 是"内层"，不是"所有铜层"** —— 两层板上它等于不存在。早期版本图省事，
+见 0 就给顶底各补一块，结果一个通孔焊盘变成四块。
+
+### 位号放在原厂摆的位置
+
+封装里带着文字记录（`Ref.Des.` / `Part Type`）和它们的偏移、角度、字高。
+照它放，位号就落在原厂摆的地方；不照它放，位号会糊成一坨压住焊盘。
+
+### 首屏按板框取景
+
+PADS 的图框和图例常甩在离板子很远的地方（整份 bounds 能有板子的四倍）。
+现在解析器自己给一个取景框（板框外扩 4%），打开就是板子铺满画面。
 
 ## v1.20 重点
 
@@ -575,6 +632,8 @@ double-click and go.
 | EasyEDA **standard** `.json` | The board file EasyEDA exports (plain-text JSON). See "What's new in v1.16" |
 | EasyEDA **pro** `.epro2` / `.epro` | Drop the whole project file; the `.epru` design log inside is unpacked for you. See "What's new in v1.16" |
 | **Repair boardview** `.bvr` `.bv` `.bdv` `.cad` | What phone and laptop motherboard work uses: refdes, pads, nets and outline only — no copper shapes. See "What's new in v1.19" |
+| **ODB++** (`.zip` / `.tgz` / a folder) | The fabrication package from a board house. **Carries net names and layer names**, so a pad can be traced to "which pin of which part" — Gerber cannot. See "What's new in v1.20" |
+| **PADS** `.asc` (Layout / PowerPCB export) | The ASCII board file from Mentor / Siemens PADS (plain text, section-based). **Net names, refdes and pin numbers included**; solder-mask / paste / through-hole pad stacks, poured arcs and inner layers all read. See "What's new in v1.21" |
 | A repair-world `.brd` | Same extension as EAGLE, different thing (Landrex / TestLink boardview); told apart by content |
 
 Explicitly **not supported**: schematics (`.sch`), and `PCB 3.0` (the earlier 16-bit
@@ -612,6 +671,65 @@ Mouse: the wheel zooms **anchored at the pointer**; **drag to the edge of the ca
 view keeps moving that way** (faster the closer you get, stops when you let go); once zoomed
 in, the **mini-map in the top-left** shows your viewport as a yellow box — click to jump;
 **right-click on the board writes a note**, saved per board.
+
+## What's new in v1.21
+
+**PADS `.asc` — the ASCII board file exported by Mentor / Siemens PADS (Layout, PowerPCB).**
+
+Plain text, but section-based: each section starts with a `*NAME*` header and owns one
+subject (`*PARTDECAL*` footprints, `*PART*` parts, `*NET*` nets, `*ROUTE*` routing,
+`*POUR*` pours, `*LINES*` graphic lines, `*MISC*` layer definitions, …).
+
+![PADS](预览_PADS.png)
+
+### One extension, three different things
+
+The same export dialog can also produce a netlist or a schematic — all `.asc`:
+
+| First line | What it is | What the app does |
+|---|---|---|
+| `!PADS-<product>-V<version>-<unit>!` | a board | opens it |
+| `*PADS-PCB*` | a netlist | says so, tells you to re-export |
+| `*PADS-LOGIC*` / `*PADS-POWERLOGIC*` | a schematic | says so, tells you to re-export |
+
+**And a nastier one**: a board header (`!PADS-...`) whose body only holds `*PART*`,
+`*CONNECTION*` and `*SIGNAL*` — a netlist-only export. That now says "no geometry here,
+re-export", instead of showing a blank board.
+
+### Four details that ruin the picture if you miss them
+
+| Detail | Truth |
+|---|---|
+| Units | `MILS` / `INCH` / `MM` / **`BASIC`**; BASIC is 1/38100 inch, so coordinates look absurd |
+| Y axis | points **up**, same as this viewer — **do not flip** |
+| Layer number in a vertex row | `0` = unrouted airwire (skip), `65` = the trace ends on a pin (skip) |
+| Arc centre | the vertex row only says `CW` / `CCW`; **the vertex carrying that flag is the centre** |
+
+Arc corners in the line tables carry eight numbers — `x y start×10 sweep×10 bbox corners` —
+and the centre is the bbox midpoint. Read as a plain point, the outline grows straight
+lines that cut across the board.
+
+### Pad stacks: mask and paste are separate layers
+
+A PADS pad is a stack with one row per layer: `-2` top, `-1` bottom, `0` inner, positive
+numbers as declared in `*MISC*`. Some exports also list solder mask and paste
+(`21 600 R` = mask enlarged to 600). Those now land on the mask and paste layers, so
+"which pins have paste on this board" is answerable at a glance.
+
+**Layer `0` means "inner layers", not "all copper"** — on a 2-layer board it means nothing
+at all. Treating it as "all copper" turned one through-hole pad into four.
+
+### Reference designators where the library put them
+
+Footprints carry text records (`Ref.Des.` / `Part Type`) with offset, rotation and height.
+Use them and the designators land where the designer left them; ignore them and they pile
+up on top of the pads.
+
+### First view framed on the board
+
+PADS title blocks and legends often sit far from the board (the raw bounds can be four
+times the board). The parser now supplies a fit box (board outline + 4%), so the board
+fills the window on open.
 
 ## What's new in v1.20
 
