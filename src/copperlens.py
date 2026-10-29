@@ -25,6 +25,7 @@ import datetime as _dt
 import http.server
 import json
 import os
+import re
 import secrets
 import socketserver
 import subprocess
@@ -37,7 +38,7 @@ from ctypes import wintypes
 from pathlib import Path
 
 APP_TITLE = "PCB 看板 CopperLens"
-VERSION = "1.19"
+VERSION = "1.20"
 
 _APPDIR = "CopperLens"
 _LOG = Path(tempfile.gettempdir()) / _APPDIR / "last-run.log"
@@ -389,6 +390,7 @@ def ask_file():
              "立创EDA 专业版 (*.epro2;*.epro)\0*.epro2;*.epro\0"
              "Gerber / 钻孔 (*.gbr;*.gtl;*.gbl;*.gko;*.drl;*.xln;*.zip)"
              "\0*.gbr;*.gtl;*.gbl;*.gts;*.gbs;*.gto;*.gbo;*.gko;*.drl;*.xln;*.zip\0"
+             "ODB++ 制造数据 (*.zip;*.tgz;*.tar)\0*.zip;*.tgz;*.tar\0"
              "所有文件 (*.*)\0*.*\0\0",
              "All board files (*.pcb;*.ddb;*.kicad_pcb;*.brd;*.bvr;*.bv;*.bdv;*.cad;*.json;*.gbr;*.zip)"
              "\0*.pcb;*.ddb;*.kicad_pcb;*.brd;*.bvr;*.bv;*.bdv;*.cad;*.json;*.epro;*.epro2;"
@@ -402,6 +404,7 @@ def ask_file():
              "EasyEDA pro (*.epro2;*.epro)\0*.epro2;*.epro\0"
              "Gerber / drill (*.gbr;*.gtl;*.gbl;*.gko;*.drl;*.xln;*.zip)"
              "\0*.gbr;*.gtl;*.gbl;*.gts;*.gbs;*.gto;*.gbo;*.gko;*.drl;*.xln;*.zip\0"
+             "ODB++ fabrication data (*.zip;*.tgz;*.tar)\0*.zip;*.tgz;*.tar\0"
              "All files (*.*)\0*.*\0\0")
     ofn = OPENFILENAMEW()
     ofn.lStructSize = ctypes.sizeof(OPENFILENAMEW)
@@ -903,23 +906,98 @@ def _head(p, n=4096):
 
 
 def _looks_odb(p):
-    """这个压缩包是不是 ODB++。
+    """这个包是不是 ODB++。
 
-    ODB++ 也是 zip，但里面不是一层一个 Gerber，而是一棵目录树：
+    ODB++ 不是"一层一个 Gerber"，而是一棵目录树：
         matrix/matrix            层与钻孔的清单
         steps/<板名>/layers/…    每层的 features（自家的 ASCII 记录格式）
-        eda/data                 网络名
-    本程序还不读它，但用户拖进来得能听懂为什么，而不是"只认 Gerber"。
+        steps/<板名>/netlist/…   网络号 → 网络名
+    打包方式有两种：zip，和老派的 .tgz（tar+gzip）。
     """
     try:
-        import zipfile
-        with zipfile.ZipFile(p) as z:
-            names = z.namelist()[:800]
+        if p.is_dir():
+            return (p / "matrix" / "matrix").exists() or any(p.glob("steps/*"))
+        low_name = p.name.lower()
+        if low_name.endswith((".tgz", ".tar.gz", ".tar")):
+            import tarfile
+            with tarfile.open(p) as tf:
+                names = [m.name for m in tf.getmembers()][:800]
+        else:
+            import zipfile
+            with zipfile.ZipFile(p) as z:
+                names = z.namelist()[:800]
     except Exception:
         return False
     low = [n.lower().replace("\\", "/") for n in names]
     return any(n.endswith("matrix/matrix") for n in low) or \
-           any("/steps/" in n for n in low)
+           any("/steps/" in n or n.startswith("steps/") for n in low)
+
+
+# 解析要用的那几类文件。ODB++ 一棵树里有几十上百个文件，
+# 其余（fonts / misc / user / symbols 里没用到的）都不必读进内存。
+ODB_WANT = re.compile(
+    r"(^|/)(matrix/matrix"
+    r"|steps/[^/]+/profile"
+    r"|steps/[^/]+/netlist/[^/]+"
+    r"|steps/[^/]+/layers/[^/]+/(features|components|tools)"
+    r"|symbols/[^/]+/features)$", re.I)
+
+
+def _odb_members(p, cap=200 * 1024 * 1024):
+    """把 ODB++ 包（zip / tgz / 一个目录）拆成 [(相对路径, 字节)]。"""
+    import tarfile
+    import zipfile
+    out, total = [], 0
+
+    def take(rel, data):
+        nonlocal total
+        rel = rel.replace("\\", "/").lstrip("./")
+        if not ODB_WANT.search(rel):
+            return
+        total += len(data)
+        out.append((rel, data))
+
+    if p.is_dir():
+        for q in sorted(p.rglob("*")):
+            if not q.is_file() or q.stat().st_size > 64 * 1024 * 1024:
+                continue
+            if total > cap:
+                break
+            try:
+                take(q.relative_to(p).as_posix(), q.read_bytes())
+            except OSError:
+                continue
+        return out
+
+    low = p.name.lower()
+    if low.endswith((".tgz", ".tar.gz", ".tar")):
+        try:
+            tf = tarfile.open(p)
+        except Exception:
+            return []
+        with tf:
+            for m in tf.getmembers():
+                if not m.isfile() or m.size > 64 * 1024 * 1024 or total > cap:
+                    continue
+                try:
+                    take(m.name, tf.extractfile(m).read())
+                except Exception:
+                    continue
+        return out
+
+    try:
+        z = zipfile.ZipFile(p)
+    except Exception:
+        return []
+    with z:
+        for info in z.infolist():
+            if info.is_dir() or info.file_size > 64 * 1024 * 1024 or total > cap:
+                continue
+            try:
+                take(info.filename, z.read(info))
+            except Exception:
+                continue
+    return out
 
 
 def _gerber_auto(p):
@@ -1079,16 +1157,14 @@ def _payload_for_path(p):
                                     _raw_deflate(epru)).decode("ascii")}],
                     "pro": True, "file": p.name}
         if ext == ".zip":
-            # 不是立创工程包。先看看是不是 ODB++（板厂的制造数据），
-            # 那种包解开后没有一层一个 gerber，硬报"只认 Gerber"等于没说。
+            # 不是立创工程包。先看看是不是 ODB++（板厂的制造数据）：
+            # 那种包里没有"一层一个 gerber"，硬当 Gerber 报错等于没说。
             if _looks_odb(p):
-                return {"error": L(
-                    "这个压缩包是 ODB++（板厂给的制造数据），本程序还不读这种格式。\n"
-                    "可以让出图方另存一份 Gerber + 钻孔，或者直接给原始的板设计文件"
-                    "（.pcb / .kicad_pcb / .brd）。",
-                    "This archive is ODB++ (fabrication data from a PCB house); this "
-                    "viewer does not read that format yet.\nAsk for Gerber + drill "
-                    "files, or send the original board file (.pcb / .kicad_pcb / .brd).")}
+                memb = _odb_members(p)
+                if memb:
+                    log("ODB++：%d 个文件（%d 字节）" % (len(memb), sum(len(b) for _, b in memb)))
+                    return {"boards": [{"n": p.stem, "g": memb}],
+                            "gerber": True, "file": p.name, "odb": True}
             # 往下按 Gerber 包处理
         else:
             return {"error": L("这个立创EDA 工程包里没有 .epru 设计日志，读不出板子。\n"
@@ -1105,6 +1181,18 @@ def _payload_for_path(p):
                             "d": base64.b64encode(b["bytes"]).decode("ascii")}
                            for b in boards],
                 "ddb": True, "file": p.name}
+    if p.is_dir() or ext in (".tgz", ".tar") or p.name.lower().endswith(".tar.gz"):
+        memb = _odb_members(p)
+        if memb and _looks_odb(p):
+            label = p.stem if p.is_file() else p.name
+            log("ODB++（%s）：%d 个文件" % ("目录" if p.is_dir() else "tgz", len(memb)))
+            return {"boards": [{"n": label, "g": memb}],
+                    "gerber": True, "file": p.name, "odb": True}
+        return {"error": L("这个压缩包里既不是 ODB++，也没有 Gerber。\n"
+                           "ODB++ 的包里应该有 matrix/matrix 和 steps/<板名>/layers/…",
+                           "This archive holds neither ODB++ nor Gerber.\n"
+                           "An ODB++ package has matrix/matrix and steps/<board>/layers/.")}
+
     # Gerber / Excellon：一堆文件合成一块板（浏览器那侧按层拼）
     memb = _gerber_auto(p)
     if memb:
@@ -1115,10 +1203,10 @@ def _payload_for_path(p):
                 "gerber": True, "file": p.name}
 
     return {"error": L("只认 .pcb / .ddb / .kicad_pcb / Eagle .brd / 维修点位图 (.bvr .bv .bdv .cad) / "
-                       "立创 .json / .epro2 / Gerber / .zip。",
+                       "立创 .json / .epro2 / Gerber / ODB++ / .zip。",
                        "Only .pcb, .ddb, .kicad_pcb, EAGLE .brd, boardview "
-                       "(.bvr .bv .bdv .cad), EasyEDA .json / .epro2, Gerber and .zip "
-                       "are supported.")}
+                       "(.bvr .bv .bdv .cad), EasyEDA .json / .epro2, Gerber, ODB++ and "
+                       ".zip are supported.")}
 
 
 def _payload_for_bytes(name, data):
@@ -1495,6 +1583,30 @@ def handle(path):
         _remember(str(p), {"boards": [{"n": b["label"]} for b in boards]})
         return open_viewer(html) is not None
 
+    # ODB++：板厂给的制造数据。三种到手方式 —— zip、老派的 .tgz、或者已经把
+    # 包解开成目录再拖进来。它比 Gerber 多了网络名和层名，认出来就优先走它。
+    if p.is_dir() or ext in (".tgz", ".tar") or p.name.lower().endswith(".tar.gz") \
+            or (ext == ".zip" and _looks_odb(p)):
+        if not _looks_odb(p):
+            msgbox(L("这个包里没有 ODB++ 的目录结构（matrix/ 和 steps/）。\n\n"
+                     "如果它是一包 Gerber，请把里面那堆 .gbr / .drl 一起选中再打开。",
+                     "No ODB++ structure (matrix/ and steps/) in this package.\n\n"
+                     "If it holds Gerber files, select all the .gbr / .drl files "
+                     "together and open those instead."))
+            return False
+        memb = _odb_members(p)
+        if not memb:
+            msgbox(L("这是 ODB++ 包，但里面没找到能用的层数据。\n"
+                     "正常应该有 matrix/matrix 和 steps/<板名>/layers/<层>/features。",
+                     "This is an ODB++ package, but no usable layer data was found.\n"
+                     "It should contain matrix/matrix and steps/<board>/layers/<layer>/features."))
+            return False
+        label = p.stem if p.is_file() else p.name
+        log("ODB++：%d 个文件，%d 字节" % (len(memb), sum(len(b) for _, b in memb)))
+        html = build_view_html([(label, memb)], p.name)
+        _remember(str(p), {"boards": [{"n": label}]})
+        return open_viewer(html) is not None
+
     memb = _gerber_auto(p)
     if memb:
         label = p.stem if ext == ".zip" else p.name
@@ -1502,20 +1614,6 @@ def handle(path):
         html = build_view_html([(label, memb)], p.name)
         _remember(str(p), {"boards": [{"n": label}]})
         return open_viewer(html) is not None
-
-    # Gerber 的压缩包里找不到 Gerber，先分清是「ODB++」还是「压根没板子」。
-    # ODB++ 是另一套格式（matrix/ + steps/<板名>/layers/），本程序不解析，但得说清楚，
-    # 否则用户只会看到一句「压缩包是空的」，完全不知道该怎么办。
-    if not memb and ext == ".zip" and _looks_odb(p):
-        msgbox(L("这是一个 ODB++ 包，不是 Gerber 压缩包。\n\n"
-                 "ODB++ 是另一套格式（matrix/ + steps/<板名>/layers/），本程序暂时不解析。\n"
-                 "想在这里看这块板，请在 CAM 工具里把它导出成 Gerber（RS-274X），再压成 zip 拖进来。",
-                 "This is an ODB++ package, not a Gerber archive.\n\n"
-                 "ODB++ is a different format (matrix/ + steps/<board>/layers/); "
-                 "this program does not parse it yet.\n"
-                 "Export the board as Gerber (RS-274X) from your CAM tool, zip it, "
-                 "and drop that in instead."))
-        return False
 
     if not memb and ext == ".zip":
         msgbox(L("这个压缩包里既没有 Gerber 文件，也不是 ODB++ 包。\n\n"
@@ -1527,20 +1625,27 @@ def handle(path):
         return False
 
     msgbox(L("只认 .ddb / .pcb / .kicad_pcb / Eagle .brd / 维修点位图 (.bvr .bv .bdv .cad) / "
-             "立创 .json · .epro2 / Gerber / .zip。\n你选的是：",
+             "立创 .json · .epro2 / Gerber / ODB++ (.zip .tgz)。\n你选的是：",
              "Only .ddb, .pcb, .kicad_pcb, EAGLE .brd, boardview (.bvr .bv .bdv .cad), "
-             "EasyEDA .json / .epro2, Gerber and .zip are supported.\nYou picked: ")
+             "EasyEDA .json / .epro2, Gerber and ODB++ (.zip .tgz) are supported.\nYou picked: ")
            + p.name)
     return False
 
 
 def _is_board_arg(a):
     """命令行 / 拖到图标上的参数，是不是我们认的板文件。"""
+    try:
+        q = Path(a)
+        if q.is_dir():
+            # 把 ODB++ 包解开之后，用户很可能直接把那个目录拖到图标上
+            return _looks_odb(q)
+    except OSError:
+        pass
     low = a.lower()
     if low.endswith(GER_SUFFIX):
         return True
     return low.endswith((".ddb", ".pcb", ".kicad_pcb", ".brd", ".json",
-                         ".epro", ".epro2", ".zip",
+                         ".epro", ".epro2", ".zip", ".tgz", ".tar", ".tar.gz",
                          ".bvr", ".bv", ".bdv", ".cad"))
 
 
@@ -1559,6 +1664,7 @@ def main():
     plain = [t for t in targets
              if not t.lower().endswith((".ddb", ".pcb", ".kicad_pcb", ".brd",
                                         ".json", ".epro", ".epro2", ".zip",
+                                        ".tgz", ".tar", ".tar.gz",
                                         ".bvr", ".bv", ".bdv", ".cad"))]
     if len(plain) >= 2:
         memb = []
