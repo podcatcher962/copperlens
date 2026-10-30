@@ -16,8 +16,8 @@
 
 ![查线](预览_查线.png)
 
-> 格式名（`PCB 4.0 Binary File`）只出现在"能读什么"里，用来描述兼容性，不作商标使用；
-> 详见文末《发布与合规》。
+> 格式名（`PCB 4.0 Binary File`）只出现在"能读什么"里，用来描述兼容性，不作商标使用。
+> 实现方式与法律依据见下一节《为什么能读别人的格式》，对外分发前的自查见文末《发布与合规》。
 
 ## 能读什么
 
@@ -39,6 +39,36 @@
 
 明确**不做**：原理图（`.sch`）、`PCB 3.0`（更早的 16 位版本，部分兼容、未逐一验证）。
 宁可明确报错，也不给一张假图 —— 照假图查线是要出事的。
+
+### 为什么能读别人的格式
+
+很多人第一反应是：读别家 EDA 的板文件，合法吗？这一节把话说透。
+
+| 要点 | 实际情况 |
+|---|---|
+| **读的是文件，不是软件** | 你把文件拖进来，程序读它的字节。不安装、不调用、不加载任何厂商的程序或 DLL，也不需要任何厂商授权 |
+| **独立分析出来的** | 每种格式都是拿公开样本做二进制差分、观察结构，再自己写解析器。**没有使用任何厂商的代码、SDK、保密文档，也没拿过 NDA 下的格式说明** |
+| **不碰加密** | 文件若设了口令或技术保护，程序直接报错，请你自己在原软件里解除后另存。本程序从不绕过任何保护机制 |
+| **算法全公开** | 解析代码就在 `index.html` 里，GPL-3.0 开源，任何人都能逐行核对上面三条是真是假 |
+
+这样做的法律位置是清楚的：我国《最高人民法院关于审理侵犯商业秘密民事案件适用法律
+若干问题的规定》（法释〔2020〕7 号）**第十四条**明确，通过自行开发研制或者反向工程
+获得技术信息的，**不认定为侵犯商业秘密**；反向工程指对「从公开渠道取得的产品」进行
+拆卸、测绘、分析。文件格式属于思想与方法，不是著作权保护的「表达」；解析文件也不构成
+专利法意义上的「实施」。**IPC-2581 与 Gerber（RS-274X）本身还是公开行业标准**，
+实现公开标准不存在障碍。
+
+有两条前提，本项目自己守着：
+
+1. **样本一律取自公开渠道** —— 开源硬件项目、KiCad 官方测试数据、板厂给的 Gerber。
+   客户板子、维修资料里的东西一律不碰。
+2. **绝不接受厂商的保密文档或 SDK** —— 一旦拿了，「独立开发」的抗辩当场失效。
+   有人来谈合作递资料，先想清楚。
+
+> 本程序与任何 EDA 厂商**无隶属、授权、合作或背书关系**。文中出现的格式名
+> （`PCB 4.0 Binary File`、`.PcbDoc`、`.asc` 等）、软件名与商标归各自所有者，
+> 此处仅用于说明兼容性所必需，属**描述性使用**。第三方组件与逐条许可义务见
+> [`第三方组件与许可.txt`](第三方组件与许可.txt)；对外分发前的自查清单见文末《发布与合规》。
 
 ## 用法
 
@@ -877,6 +907,41 @@ One portable exe, **Windows 10 / 11, 32-bit and 64-bit** — double-click and go
 Explicitly **not supported**: schematics (`.sch`), and `PCB 3.0` (the earlier 16-bit
 format) is only partially compatible and not verified case by case. A clear error beats a
 wrong picture — tracing a fault off a wrong rendering is how people scrap boards.
+
+### Why it can read other tools' formats
+
+The first question people ask: is it legal to read another EDA tool's board file?
+Short answer: you are reading **your own file**, not running their software.
+
+| Point | What actually happens |
+|---|---|
+| **It reads files, not software** | You drop a file in; the program reads its bytes. No vendor program or DLL is installed, called or loaded, and no vendor permission is needed |
+| **Independently worked out** | Every format came from taking public samples, diffing them byte by byte and writing a parser. **No vendor code, SDK, confidential document or NDA-covered format spec was used** |
+| **Nothing is decrypted** | If a file is password- or protection-locked, the program stops and says so — clear it in the original tool and re-save. It never circumvents a protection measure |
+| **The code is public** | Every parser sits in `index.html` under GPL-3.0. Anyone can check the three claims above, line by line |
+
+The legal footing is settled. China's Supreme People's Court interpretation on trade-secret
+cases (Fa Shi [2020] No. 7, **Art. 14**) holds that information obtained through **independent
+development or reverse engineering is not a trade-secret infringement**; reverse engineering
+means dismantling, measuring and analysing a product **lawfully obtained from public channels**.
+A file format is an idea and a method, not the "expression" copyright protects, and parsing a
+file is not "working" a patent. **IPC-2581 and Gerber (RS-274X) are published industry
+standards** in any case.
+
+Two preconditions, which this project keeps:
+
+1. **Samples come only from public sources** — open-hardware projects, KiCad's official test
+   data, fabrication sets from board houses. Customer boards and repair-shop material are
+   never used.
+2. **No vendor confidential document or SDK is ever accepted** — taking one would destroy the
+   independent-development defence on the spot.
+
+> This program has **no affiliation, authorisation, partnership or endorsement** relationship
+> with any EDA vendor. Format names (`PCB 4.0 Binary File`, `.PcbDoc`, `.asc` …), product names
+> and trademarks belong to their respective owners and appear only as descriptive use needed
+> to state compatibility. Per-component licence obligations are listed in
+> [`第三方组件与许可.txt`](第三方组件与许可.txt); the pre-release checklist is under
+> *Compliance* below.
 
 ## Usage
 
