@@ -1,4 +1,4 @@
-# PCB 看板 / CopperLens v1.23
+# PCB 看板 / CopperLens v1.24
 
 **中文** ｜ [English](#english) ｜ [版本履历 Changelog](CHANGELOG.md)
 
@@ -34,6 +34,7 @@
 | **ODB++**（`.zip` / `.tgz` / 一个目录） | 板厂给的制造数据。**带网络名和层名**，所以焊盘能对上"这颗料第几脚"，比 Gerber 能查线。见「v1.20 重点」 |
 | **PADS** `.asc`（Layout / PowerPCB 导出） | Mentor / Siemens PADS 的 ASCII 板文件（纯文本、分段式）。**带网络名、位号、脚号**；阻焊/钢网/通孔焊盘栈、覆铜弧、内层都认。见「v1.21 重点」 |
 | **Altium** `.PcbDoc` | Altium Designer 的板文件。默认保存是二进制（复合文档），另存时也能存成 ASCII（File → Save Copy As），**两种都认**；层名用设计者自己起的（`L2` / `GND` / `PWR`）。见「v1.22 重点」 |
+| **IPC-2581**（`.xml`） | 一种开放交换格式，Allegro / Xpedition / Altium 都能导出。**一份文件带齐层叠、网络、焊盘、走线**，比 ODB++ 那一包好读。见「v1.24 重点」 |
 | 维修界的 `.brd` | 和 Eagle 同名不同物（Landrex / TestLink 点位图），按内容自动分开 |
 
 明确**不做**：原理图（`.sch`）、`PCB 3.0`（更早的 16 位版本，部分兼容、未逐一验证）。
@@ -70,6 +71,54 @@
 鼠标：滚轮**以指针位置为锚点**缩放；**按住左键拖到画布边缘，画面自己往那个方向走**
 （越靠边越快，松手就停）；放大后**左上角缩略图**里的黄框是当前视野，点一下跳过去；
 板上**右键写一句话**就是一条标记，按板子存档。
+
+## v1.24 重点
+
+**三件软件以外的事，两件只有真在修板子时才会想起来要的事。**
+
+### 一、终于有授权了：GPL-3.0-or-later
+
+仓库里一直没有 `LICENSE`。没授权 = 保留所有权利 = 法理上**别人连用都不许用** ——
+可这工具本来就是给人拿去修板子的。
+
+选 GPLv3 而不是 MIT，是要让"用、改、再发"都免费，同时堵住"拿去闭源套壳卖钱"。
+本项目不链接任何 GPL 代码（`mdbtools` 是另起进程调用，不传染），所以授权由我们自己定。
+完整条文见 `LICENSE`，第三方组件各自的许可见 `第三方组件与许可.txt`。
+
+### 二、报错补上后半句
+
+以前认不出文件只说"读不了"。现在每一条都说**接下来怎么办**：
+
+| 打开的是 | 现在会告诉你 |
+|---|---|
+| Allegro 二进制 `.brd` | 在 Allegro 里 File → Export → ODB++ 或 IPC-2581，再拖进来 |
+| `.ddb`/Excel 改名的复合文档 | 这不是板文件；或者进 Protel 99SE 拆出里面的 `.pcb` |
+| 图片 / 压缩包 / 纯文本 | 各自说明它是什么、要先做什么 |
+| 认不出的二进制 | 明说"认不出"，别让人以为是文件坏了 |
+
+### 三、再加一家：IPC-2581（`.xml`）
+
+Allegro、Xpedition、Altium 都能导出的一种开放交换格式。**一份文件带齐层叠、网络、
+焊盘、走线**，比 ODB++ 那一包文件好读。三份真实样本验过，其中一块 1748 个焊盘。
+
+### 四、点一条线，告诉你这是什么线
+
+状态栏在网络名后面挂一枚小标签：**地 / 电源 / 时钟 / 复位 / 总线 / 差分 / 使能**。
+答案全在名字里写着（`VCC3V3` / `GND` / `RST_N` / `TX+`），不联网、不查元件库。
+
+只认名字里写明白的：`PA0`、`NET0042` 这种老实不说 —— **归错一类比不说更糟**。
+`xxx_N` 有歧义（`RESET_N` 是复位，不是差分），所以要看板上有没有配对的 `xxx_P` 才敢认。
+左侧「读数」多一行「网络构成」，一眼看清这块板几路电源、几个地、几对差分。
+
+### 五、「档案」：把量到的数字留下来
+
+修完一块板，真正值钱的不是"换过哪个件"，而是"哪些点测出来是多少"。
+抽屉里新增「档案」页：
+
+- **＋ 记一条**：填网络名或位号 + 读数（`3.31 V` / 对地 `1.2 kΩ`）；
+- 只写备注不填读数也行（`Q3 实际是 SI2302`）；
+- 按**板子**存在本机，不联网、不上传，换板不串；
+- 点一行回到板上那条网络；**导出 CSV** 可以带走。
 
 ## v1.23 重点
 
@@ -643,6 +692,7 @@ _build32.py               打包脚本（须用 32 位 Python，保证 x86）
 第三方组件与许可.txt        第三方组件、示例文件授权、GPL 源码书面要约
 COPYING-GPL-2.0.txt        mdbtools 工具的 GPL 全文
 COPYING-LGPL-2.1.txt       libmdb / libiconv 的 LGPL 全文
+LICENSE                   本项目自身的 GPL-3.0 全文（GPL-3.0-or-later 发布）
 LICENSE-CERN-OHL-1.2.txt   预览截图所涉开源硬件的 CERN-OHL v1.2 全文
                            （CC BY 3.0 与 CC BY-NC-SA 4.0 无需随附全文，
                              按协议要求给出作者、作品名与协议链接即可）
@@ -700,9 +750,38 @@ GPL-2.0 §3(b) 的三年书面源码要约写在 `第三方组件与许可.txt` 
 
 ## 许可与署名
 
-本程序自身的源码作者保留权利（仓库未附本项目级的开源许可）；随附的第三方组件
-仍是各自的许可证 —— mdbtools 的 GPL-2.0-or-later / LGPL-2.1、截图所涉开源硬件的
-CERN-OHL v1.2，全文见仓库根目录。第三方组件的完整清单与授权说明见 `第三方组件与许可.txt`。
+本项目的源码以 **GNU 通用公共许可证第 3 版或更新版本（GPL-3.0-or-later）** 发布，
+全文见仓库根目录 [`LICENSE`](LICENSE)。
+
+著作权 © 永远的兰兰 Lanlan Eternal
+
+这意味着你可以自由地使用、修改、分发它，**包括用在商业场合** —— 拿它接活修板、
+装进公司的维修工位、把它打包进付费服务，都不需要另外征求同意。同时带来两条对等义务：
+
+- **分发时保留版权声明与许可证**，并告诉拿到的人从哪里可以取得源码；
+- **你改过的版本也必须按同一许可开源**。改个名字、闭源套壳拿去卖，做不到 ——
+  买了你东西的人有权向你索取源码。
+
+一句话：**做得更好去竞争是被允许的；把别人的成果锁起来卖是不被允许的。**
+
+### 名称与标识
+
+「CopperLens / PCB 看板」是这个项目的名字。GPL 授权的是**代码**，不包括名称与图标；
+想 Fork 出去单独发，请换一个名字，别让用户误以为是同一个东西。
+（GPL-3.0 第 7(e) 条允许著作权人保留这类署名与来源标识。）
+
+### 免责
+
+程序按原样提供，不附带任何形式的担保。**它只读** —— 不改你的文件、不联网、不替你
+判断故障。读数面板会告诉你哪里是猜的：照着一份少读了两成的图去下探头、去通电，
+后果请自行承担，动手前先用万用表核对。
+
+### 第三方组件
+
+随附的第三方组件仍是它们各自的许可证 —— mdbtools 的 GPL-2.0-or-later / LGPL-2.1、
+截图所涉开源硬件的 CERN-OHL v1.2 与 CC BY-NC-SA 4.0，全文见仓库根目录。本项目自身的
+GPL-3.0 与它们互不影响：mdbtools 是独立进程调用，不属于衍生作品。
+完整清单与授权说明见 `第三方组件与许可.txt`。
 
 **保持只读、不联网、不改原始文件**是这个项目的底线，不接受会破坏这条底线的改动。
 
@@ -784,6 +863,137 @@ Mouse: the wheel zooms **anchored at the pointer**; **drag to the edge of the ca
 view keeps moving that way** (faster the closer you get, stops when you let go); once zoomed
 in, the **mini-map in the top-left** shows your viewport as a yellow box — click to jump;
 **right-click on the board writes a note**, saved per board.
+
+## What's new in v1.24
+
+**Three things outside the code, and two things you only miss while actually repairing a board.**
+
+### A licence at last: GPL-3.0-or-later
+
+The repo had no `LICENSE`, which legally means *all rights reserved* — nobody was even allowed
+to use it. That defeats the point of a tool you hand someone to fix a board with. GPLv3 keeps
+use / modify / redistribute free while blocking closed-source rebadging for profit. No GPL code
+is linked in-process (`mdbtools` runs as a separate process), so the choice was ours to make.
+Full text in `LICENSE`, third-party terms in `第三方组件与许可.txt`.
+
+### Errors now say what to do next
+
+Every "cannot read this" message gained a second half:
+
+| You opened | It now tells you |
+|---|---|
+| Allegro binary `.brd` | In Allegro: File → Export → ODB++ or IPC-2581, then drag that in |
+| A `.ddb`/Excel renamed to something else | It is not a board file — or open it in Protel 99SE and pull the `.pcb` out |
+| An image / archive / plain text | What it actually is, and what to do first |
+| Unknown binary | Says plainly that it cannot tell, instead of implying the file is broken |
+
+### One more vendor: IPC-2581 (`.xml`)
+
+An open exchange format exported by Allegro, Xpedition and Altium. **One file carries the
+stackup, nets, pads and traces**, which beats the folder-of-files that ODB++ hands you.
+Verified against three real exports, one of them with 1,748 pads.
+
+### Click a trace, learn what it is
+
+The status bar now tags the net name with **GND / power / clock / reset / bus / diff pair /
+enable**. The answer was always written in the name (`VCC3V3`, `GND`, `RST_N`, `TX+`) — no
+network, no parts library.
+
+Only names that say so are used: `PA0` and `NET0042` are left alone, because **a wrong label
+is worse than none**. `xxx_N` is ambiguous (`RESET_N` is a reset, not a differential half), so
+it only counts as one half of a pair when the matching `xxx_P` exists on the same board.
+The sidebar readout gained a **Net mix** line: how many rails, grounds and pairs this board has.
+
+### "Log": keep the numbers you measured
+
+What is worth keeping after a repair is not which part you swapped — it is which points read
+what. The drawer has a new **Log** tab:
+
+- **+ New entry**: a net name or designator plus the reading (`3.31 V`, `1.2 kΩ` to ground);
+- a note on its own is fine too (`Q3 is actually a SI2302`);
+- stored **per board**, on this machine only — nothing uploaded, nothing mixed between boards;
+- click a row to jump back to that net on the board; **Export CSV** to carry it elsewhere.
+
+## What's new in v1.23
+
+**Not a single new format. This release is about "do you know what the program actually read".**
+
+From v1.18 to v1.22 the viewer gained five vendor formats in five days; what is left is
+long-tail, high-cost reverse engineering (Allegro binary `.brd`, native PADS `.pcb`,
+GenCAD). The question people actually ask when a board opens is **"did you read all of
+it"**, not "what else can you read".
+
+![Readout](预览_读数.png)
+
+### A readout panel in the sidebar
+
+The "Board" block only ever showed counts — outline, copper layers, components, pads,
+vias, nets. Counts being right does not mean the data is right: of those 1,644 pads, how
+many really carry a net name? Are those 371 designators written in the file, or guessed
+from silkscreen? There was no way to tell.
+
+Now there are four lines:
+
+| Line | What it tells you |
+|---|---|
+| **Net names** | how many pads carry a name and how many do not. Unnamed pads (free pads, test points, via pads) can only be inferred from copper geometry — verify on the real board |
+| **Designators** | how many components have one. Nothing is invented; missing ones show as `?` in the list |
+| **Outline** | only a real KeepOut frame counts. Without one, the size is estimated from *every* graphic element including legends and dimension text, so it reads large |
+| **⚠ …** | the parser's own notes ("3 copper pours had mismatched coordinates and were skipped") |
+
+The badge on top is the overall verdict: `No warnings` / `Warnings` / `Many warnings`.
+
+**Why it matters**: probing a board from a drawing that silently dropped 20% of its data
+is how you burn a board. The program used to under-read **silently** — the screen still
+looked fine, and the user had no way to know which parts were guesses.
+
+Two deliberate trade-offs:
+
+- **Net-name gaps do not decide the verdict.** The 8-layer LimeSDR-Mini has 380 of 1,644
+  pads without a net name — 23%. That is how the file is, not a parsing error. Counting it
+  would paint every board yellow and the warning would stop meaning anything.
+- **A format with no net names at all gets different wording.** Gerber never carries net
+  names, so it says "inferred from geometry" rather than "1,644 missing", which would read
+  like a bug.
+
+Parser notes used to flash as a toast for a few seconds — long sentences were unreadable.
+They now live in the panel, with a one-line toast on load pointing to it.
+
+### Unknown files now say what they are
+
+Dropping the wrong file used to give the same sentence every time: *"no readable PCB data
+section"*. The viewer now sniffs the header first:
+
+| You dropped | It says |
+|---|---|
+| `.zip` / `.tgz` / `.rar` / `.7z` | an archive; a Gerber or ODB++ package can be dropped as `.zip`, anything else unzip first |
+| PDF / PNG / JPEG / GIF / BMP | a document / image, not a board file |
+| A compound document (Excel or Word renamed) | same wrapper as `.ddb` / `.PcbDoc`, but no board data inside |
+| Plain text in no known format | **prints the first 60 characters** |
+| Unrecognised binary | prints the first 12 bytes |
+
+The last two are the useful ones — you can see at a glance which file you grabbed by mistake.
+
+> **A trap that almost shipped**: the first cut sniffed the type *before* calling
+> `parseBoard`. But an old Protel `.pcb` starts with
+> `\x13PCB 4.0 Binary File\x00\x00…` — **text plus a pile of NULs**, indistinguishable
+> from "unknown binary". That version would have made **every** `.pcb` fail to open.
+> The fix: call `parseBoard` first, and only sniff when it reports "no data section"
+> itself. `_t/_fmt_regress.js` exists to guard this: eleven formats each opened for real.
+
+### System requirements corrected
+
+The README used to say "double-click and go, from Windows 7 through 11". **That was not
+true**: the binary is built with 32-bit Python 3.12, and `python312.dll` imports
+`api-ms-win-core-path-l1-1-0.dll`, an API set that only exists from Windows 8 on — on
+Windows 7 it fails with a missing-DLL dialog.
+
+Supporting Windows 7 would mean Python 3.8 (end of life). **Decision: not doing it.**
+Everything now reads **Windows 10 / 11, both 32-bit and 64-bit**.
+
+The 32-bit build exists so that 32-bit systems can run it directly; on 64-bit Windows it
+goes through WoW64 — **no separate 64-bit build needed**. (`CopperLens-win32.exe` is the
+ASCII asset name GitHub's upload API forces; it does not mean 32-bit only.)
 
 ## What's new in v1.22
 
@@ -1281,13 +1491,48 @@ Format interoperability is common practice across many tools, and this program i
 
 ## Licence and credits
 
-The program's own source is published here with all rights reserved by the author; this
-repository carries no project-level open-source licence. Bundled third-party components keep
-their own licences — mdbtools under GPL-2.0-or-later / LGPL-2.1, and the open-hardware design
-shown in the screenshots under CERN-OHL v1.2. Full texts are in the repository root; the
-complete component list and attribution are in `第三方组件与许可.txt` (Chinese).
+This project's source is released under the **GNU General Public License, version 3 or
+later (GPL-3.0-or-later)**. The full text is in [`LICENSE`](LICENSE) at the repository root.
 
-**Read-only, offline, never touching your originals** is the non-negotiable baseline of this
-project.
+Copyright © 永远的兰兰 Lanlan Eternal
+
+You are free to use, modify and redistribute it, **commercially too** — repairing boards
+for paying customers, putting it on a shop-floor workstation, bundling it into a paid
+service all need no further permission. Two reciprocal obligations come with that:
+
+- **Keep the copyright notice and the licence** when you redistribute, and tell recipients
+  where the source can be obtained;
+- **Whatever you modify must be released under the same licence.** Rebranding it and
+  shipping a closed-source build is not possible — whoever bought it from you may demand
+  the source.
+
+In one line: **competing with something better is allowed; locking up someone else's
+work and selling it is not.**
+
+### Name and marks
+
+"CopperLens / PCB 看板" is this project's name. The GPL covers the **code**, not the name
+or the icons. If you fork it and publish separately, please pick a different name so users
+are not misled into thinking it is the same product. (GPL-3.0 §7(e) lets the copyright
+holder withhold permission to use such marks.)
+
+### No warranty
+
+Provided as is, without warranty of any kind. **It only reads** — it does not change your
+files, does not go online, and does not diagnose faults for you. The readout panel tells
+you which parts were inferred: if you probe or power a board based on an incomplete
+readout, that is on you. Check with a meter first.
+
+### Bundled components
+
+Bundled third-party components keep their own licences — mdbtools under
+GPL-2.0-or-later / LGPL-2.1, and the open-hardware designs shown in the screenshots under
+CERN-OHL v1.2 and CC BY-NC-SA 4.0. Full texts are in the repository root. The project's
+own GPL-3.0 does not affect them: mdbtools is invoked as a separate process and is not a
+derivative work. The complete component list and attribution are in
+`第三方组件与许可.txt` (Chinese).
+
+**Read-only, offline, never touching your originals** is the non-negotiable baseline of
+this project.
 
 © 永远的兰兰 Lanlan Eternal
