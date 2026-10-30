@@ -37,6 +37,16 @@
 | **IPC-2581**（`.xml`） | 一种开放交换格式，Allegro / Xpedition / Altium 都能导出。**一份文件带齐层叠、网络、焊盘、走线**，比 ODB++ 那一包好读。见「v1.24 重点」 |
 | 维修界的 `.brd` | 和 Eagle 同名不同物（Landrex / TestLink 点位图），按内容自动分开 |
 
+**这 12 家到此为止。** v1.24.2 之后不再新增格式 —— 清单封版，不加第 13 家。
+
+封版不是偷懒，是让上面这张表可以**当真**：表上写的能开就一定能开，表上没有的，
+按《使用说明》里【打不开 / 显示不对怎么办】那一节导出中转（ODB++ / IPC-2581）走。
+清单一直长下去，"能开什么"反而不确定了。
+
+顺带一句：不新增格式，也意味着取样本这件事到此结束。现在每个解析器的依据
+都是公开来源（开源硬件设计、KiCad 的公开测试数据、板厂 Gerber），
+以后不会再有新的来源要交代。这条线的状态从此是**静态的、可核对的**。
+
 明确**不做**：原理图（`.sch`）、`PCB 3.0`（更早的 16 位版本，部分兼容、未逐一验证）。
 宁可明确报错，也不给一张假图 —— 照假图查线是要出事的。
 
@@ -903,6 +913,17 @@ One portable exe, **Windows 10 / 11, 32-bit and 64-bit** — double-click and go
 | **PADS** `.asc` (Layout / PowerPCB export) | The ASCII board file from Mentor / Siemens PADS (plain text, section-based). **Net names, refdes and pin numbers included**; solder-mask / paste / through-hole pad stacks, poured arcs and inner layers all read. See "What's new in v1.21" |
 | **Altium** `.PcbDoc` | Altium Designer boards. The default save is binary (a compound document) and you can also save ASCII (File > Save Copy As); **both are read**, with the designer's own layer names (`L2` / `GND` / `PWR`). See "What's new in v1.22" |
 | A repair-world `.brd` | Same extension as EAGLE, different thing (Landrex / TestLink boardview); told apart by content |
+
+**That is the whole list.** No formats will be added after v1.24.2 — it is closed at
+twelve, and there will be no thirteenth.
+
+Closing the list is what makes the table trustworthy: whatever is listed will open,
+and nothing beyond it is promised. Anything missing goes through the export route
+(ODB++ or IPC-2581 — both are industry-wide exchange formats most EDA tools can write).
+
+It also closes the sample question for good. Every parser here was built from publicly
+available material, and no further sources will ever be needed — that fact is now
+static and checkable, not an ongoing obligation.
 
 Explicitly **not supported**: schematics (`.sch`), and `PCB 3.0` (the earlier 16-bit
 format) is only partially compatible and not verified case by case. A clear error beats a
