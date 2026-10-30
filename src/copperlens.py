@@ -6,12 +6,16 @@ PCB 看板 / CopperLens（桌面版 / 单 exe）
     · 打开老式 EDA 软件的设计库(.ddb)：自动把里面所有 PCB 抽出来，一次全带上，
       界面上用下拉框切换（★最新 排第一）
     · 打开单个 .pcb 板文件
-    · 打开 KiCad 的 .kicad_pcb 板文件（6~10，含 4/5 的老写法）
+    · 打开 KiCad 的 .kicad_pcb（6~10，含 4/5 的老写法）
+    · 打开 Eagle 的 .brd、立创EDA 的 .json / .epro2、Gerber + Excellon 整包
+    · 打开维修点位图（.bvr / .bv / .bdv / .cad / Landrex .brd）
+    · 打开板厂给的 ODB++ 包、PADS 的 .asc、Altium 的 .PcbDoc（二进制 / ASCII 都认）
     · 抽出来立刻在窗口里显示，可缩放、点一下就能顺着铜皮查整条线路
 
 不需要安装任何 EDA 软件、不需要 Python，也不联网。
-显示用系统里的 Edge（Win10/11 自带；Win7/8 装了 Chrome 也行）。
-程序按 32 位打包，从 Win7 到 Win11、32 位和 64 位系统都能跑。
+显示用系统里的 Edge（Win10/11 自带；更早的系统装了 Chrome 也行）。
+程序按 32 位打包：Windows 10 / 11 的 32 位与 64 位系统都能跑
+（64 位系统走 WoW64，不需要另出一个 64 位版本）。
 
 ⚠ 这里不用 tkinter：32 位 Python 环境经常没装 Tcl/Tk，打进 exe 也缺
    运行库，结果就是"双击没反应"。所有对话框改用 Win32 API（comdlg32/user32），
@@ -38,7 +42,7 @@ from ctypes import wintypes
 from pathlib import Path
 
 APP_TITLE = "PCB 看板 CopperLens"
-VERSION = "1.22"
+VERSION = "1.24"
 
 _APPDIR = "CopperLens"
 _LOG = Path(tempfile.gettempdir()) / _APPDIR / "last-run.log"
@@ -583,11 +587,11 @@ def open_viewer(target):
     msgbox(L("没找到可以显示板子的浏览器。\n\n"
              "这台机器需要装有 Microsoft Edge 或 Google Chrome。\n"
              "Win10 / Win11 自带 Edge，不用另装；\n"
-             "Win7 / Win8 没有自带，请先装一个。\n\n"
+             "这台机器上没有自带，请先装一个。\n\n"
              "详细记录：\n",
              "No browser was found to display the board.\n\n"
              "This program needs Microsoft Edge or Google Chrome.\n"
-             "Windows 10 / 11 ship with Edge; Windows 7 / 8 do not — "
+             "Windows 10 / 11 ship with Edge; this machine has neither — "
              "install one first.\n\n"
              "Log file:\n") + str(_LOG))
     return None
@@ -826,8 +830,8 @@ def extract_pcbs(ddb):
 就需要一条"页面 → 程序"的通道。这里用最朴素的办法：在 127.0.0.1 上起一个只服务
 本机的临时端口（端口随机），URL 里带一次性令牌。不监听网卡、不上外网、不写注册表。
 
-为什么不用 pywebview 那类内嵌浏览器：那需要 WebView2 Runtime，Win7 和一部分 LTSC
-机器没有、离线也装不上，一旦缺了程序就打不开。Edge --app + 本机回环没有这个前提。
+为什么不用 pywebview 那类内嵌浏览器：那需要 WebView2 Runtime，更早的系统和一部分
+LTSC 机器没有、离线也装不上，一旦缺了程序就打不开。Edge --app + 本机回环没有这个前提。
 """
 
 _home_html = [b""]
