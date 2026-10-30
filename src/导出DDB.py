@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+#
+# Copyright (C) 2026 永远的兰兰 (Lanlan Eternal)
+# SPDX-License-Identifier: GPL-3.0-or-later
+# This file is part of CopperLens. See LICENSE in the repository root.
+#
 """
 导出DDB —— 把老式设计库(.ddb)里的 PCB 抽成独立的 .pcb 文件。
 
