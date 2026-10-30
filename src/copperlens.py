@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+#
+# Copyright (C) 2026 永远的兰兰 (Lanlan Eternal)
+# SPDX-License-Identifier: GPL-3.0-or-later
+# This file is part of CopperLens. See LICENSE in the repository root.
+#
 """
 PCB 看板 / CopperLens（桌面版 / 单 exe）
 
@@ -42,7 +47,7 @@ from ctypes import wintypes
 from pathlib import Path
 
 APP_TITLE = "PCB 看板 CopperLens"
-VERSION = "1.24"
+VERSION = "1.24.1"
 
 _APPDIR = "CopperLens"
 _LOG = Path(tempfile.gettempdir()) / _APPDIR / "last-run.log"
