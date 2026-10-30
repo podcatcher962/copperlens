@@ -1123,6 +1123,21 @@ zh:{
        也可能存在解析错误。请勿将其作为设计、生产、检验的唯一依据。
        <b>涉及安全、医疗、交通、电力等关键场合，务必以原厂软件和原始设计文件为准。</b></p>
 
+    <h3>网络归类是按名字猜的</h3>
+    <p>状态栏标出的「地 / 电源 / 时钟 / 复位 / 差分 / 使能」，是从<b>网络名</b>推断出来的，
+       <b>不是电气测量</b>。名字起得随意的板子（<code>PA0</code>、<code>NET0042</code>）
+       程序会明确不标；但标出来的也可能错。<b>是不是地，请用万用表确认，
+       不要凭标签下结论。</b></p>
+
+    <h3>「档案」里是你自己录的数字</h3>
+    <p>「档案」只负责把你录入的电压、阻值、备注原样存下来，<b>不校验、不修正、
+       不判断对错</b>。照抄别人记的档案去下探头，后果由抄的人和记的人承担。
+       导出的 CSV 一旦离开本机，之后怎么使用与作者无关。</p>
+
+    <h3>档案存在本机，会丢</h3>
+    <p>档案保存在本机浏览器数据里（<b>不联网、不上传</b>）。清理浏览器数据、换电脑、
+       重装系统都会让它消失，程序无从恢复。<b>重要的数字请随手导出 CSV 另存一份。</b></p>
+
     <h3>维修作业风险自负</h3>
     <p>依据本程序显示的信息进行焊接、拆装、通电测试等操作，风险由操作者自行承担。
        作者不对由此产生的设备损坏、人身伤害或经济损失负责。</p>
@@ -1180,7 +1195,7 @@ zh:{
        未随本许可授予任何名称或商标的使用权（第 7(e) 条）。Fork 出去单独发布
        请换个名字，避免用户误认。</p>
     <h3>版本</h3>
-    <p>v1.24.1　·　Windows 10 / 11，32 位 64 位都支持　·　单文件便携版</p>
+    <p>v1.24.2　·　Windows 10 / 11，32 位 64 位都支持　·　单文件便携版</p>
     <div class="sig">© 永远的兰兰　·　Lanlan Eternal</div>`
 },
 en:{
@@ -1752,6 +1767,25 @@ en:{
        design, production or inspection. <b>For safety-, medical-, automotive- or
        power-critical work, always rely on the original tool and the original design files.</b></p>
 
+    <h3>Net classification is a guess from the name</h3>
+    <p>The <b>ground / power / clock / reset / diff / enable</b> tag in the status bar is
+       inferred from the <b>net name</b> — <b>it is not a measurement</b>. Boards with
+       arbitrary names (<code>PA0</code>, <code>NET0042</code>) are deliberately left
+       untagged, but a tag that does appear can still be wrong. <b>Confirm ground with a
+       meter; do not act on the tag alone.</b></p>
+
+    <h3>The Log holds numbers you typed in</h3>
+    <p>The Log stores the voltages, resistances and notes <b>exactly as you entered them</b>.
+       It does not validate, correct or judge them. Probing a board based on someone else's
+       logged readings is the responsibility of the person who copied them and the person
+       who recorded them. Once an exported CSV leaves this machine, how it is used is out of
+       the author's hands.</p>
+
+    <h3>Log entries live on this machine, and can be lost</h3>
+    <p>Entries are kept in local browser storage (<b>no network, no upload</b>). Clearing
+       browser data, switching machines or reinstalling the OS erases them, and the program
+       cannot recover them. <b>Export a CSV of anything important.</b></p>
+
     <h3>Repair work is at your own risk</h3>
     <p>Soldering, desoldering and power-on testing based on what this program shows is done
        entirely at your own risk. The author is not liable for damaged equipment, personal
@@ -1813,7 +1847,7 @@ en:{
        "PCB 看板" and the icons come with no name or trademark licence (§7(e)). Please pick
        a different name if you fork and publish separately.</p>
     <h3>Version</h3>
-    <p>v1.24.1　·　Windows 10 / 11, 32-bit and 64-bit　·　portable single file</p>
+    <p>v1.24.2　·　Windows 10 / 11, 32-bit and 64-bit　·　portable single file</p>
     <div class="sig">© Lanlan Eternal　·　永远的兰兰</div>`
 }
 };
