@@ -1,4 +1,4 @@
-# PCB 看板 / CopperLens v1.24
+# PCB 看板 / CopperLens v1.24.1
 
 **中文** ｜ [English](#english) ｜ [版本履历 Changelog](CHANGELOG.md)
 
@@ -73,6 +73,9 @@
 板上**右键写一句话**就是一条标记，按板子存档。
 
 ## v1.24 重点
+
+> **v1.24.1 是补丁版**：不改功能，补的是授权元数据 —— 源文件版权头与 SPDX 标识、
+> 署名保留条款（§7(b)）、名称条款措辞。详见 [CHANGELOG](CHANGELOG.md)。
 
 **三件软件以外的事，两件只有真在修板子时才会想起来要的事。**
 
@@ -754,6 +757,7 @@ GPL-2.0 §3(b) 的三年书面源码要约写在 `第三方组件与许可.txt` 
 全文见仓库根目录 [`LICENSE`](LICENSE)。
 
 著作权 © 永远的兰兰 Lanlan Eternal
+项目地址 <https://github.com/podcatcher962/copperlens>
 
 这意味着你可以自由地使用、修改、分发它，**包括用在商业场合** —— 拿它接活修板、
 装进公司的维修工位、把它打包进付费服务，都不需要另外征求同意。同时带来两条对等义务：
@@ -764,11 +768,41 @@ GPL-2.0 §3(b) 的三年书面源码要约写在 `第三方组件与许可.txt` 
 
 一句话：**做得更好去竞争是被允许的；把别人的成果锁起来卖是不被允许的。**
 
+### 署名保留（GPL-3.0 第 7(b) 条附加条款）
+
+按 GPL-3.0 第 7(b) 条，著作权人在此追加一项条款：
+
+> **分发本程序或其修改版本时，须在用户可见的位置保留原作者署名。**
+
+具体是：
+
+- **位置**：程序内的关于页、启动画面、本 `README` 顶部 —— 三处至少保留一处，
+  且不得放到需要逐层展开目录、或全文搜索才找得到的角落。这三处属于 GPL-3.0
+  第 1 条所说的「适当法律声明」（Appropriate Legal Notices）。
+- **内容**：原作者「永远的兰兰（Lanlan Eternal）」以及项目地址
+  `https://github.com/podcatcher962/copperlens`。
+- **不许怎么做**：删除、缩写、弱化成「基于某开源项目」这类不具名表述，
+  或者换成别人的名字。
+
+这不改变代码层面的四项自由 —— 你照样可以自由使用、研究、修改、再分发，包括商用。
+它只是把第 4 条本来就有的「保留所有声明」义务钉到一个明确位置上，堵住
+「声明还在，但被埋在三千行 NOTICE 的第 47 条」这种形式上合规、实质上抹掉署名的做法。
+
+要把本程序并进一个更大的作品再发布，在该作品的法律声明里保留上述署名即可，
+不必在每个源文件里重复。本条同时记录在本文件与程序内「关于」页，随程序一同分发。
+
 ### 名称与标识
 
-「CopperLens / PCB 看板」是这个项目的名字。GPL 授权的是**代码**，不包括名称与图标；
-想 Fork 出去单独发，请换一个名字，别让用户误以为是同一个东西。
-（GPL-3.0 第 7(e) 条允许著作权人保留这类署名与来源标识。）
+「CopperLens / PCB 看板」是这个项目的名字，GPL 授权的是**代码**，不包括名称与图标。
+
+**本许可不授予任何名称或商标的使用权**（GPL-3.0 第 7(e) 条：著作权人可以拒绝
+在商标法下授予权利）。想 Fork 出去单独发布，请换一个名字，别让用户误以为是
+同一个东西。
+
+需要说清楚的是：这两个名称目前**没有申请商标注册**。所以本条的实际效力是
+「我没有把名字许可给你用」，而不是「我享有商标专用权、可以主动起诉」。
+真遇到明显冒名、让人误认的情形，能援引的是《反不正当竞争法》第六条
+（不得擅自使用他人有一定影响的商品名称），举证门槛比注册商标高。
 
 ### 免责
 
@@ -865,6 +899,10 @@ in, the **mini-map in the top-left** shows your viewport as a yellow box — cli
 **right-click on the board writes a note**, saved per board.
 
 ## What's new in v1.24
+
+> **v1.24.1 is a patch release**: no functional change — source-file copyright headers and
+> SPDX identifiers, the attribution-preservation term (§7(b)), and tighter wording on the
+> name clause. See [CHANGELOG](CHANGELOG.md).
 
 **Three things outside the code, and two things you only miss while actually repairing a board.**
 
@@ -1495,6 +1533,7 @@ This project's source is released under the **GNU General Public License, versio
 later (GPL-3.0-or-later)**. The full text is in [`LICENSE`](LICENSE) at the repository root.
 
 Copyright © 永远的兰兰 Lanlan Eternal
+Project URL: <https://github.com/podcatcher962/copperlens>
 
 You are free to use, modify and redistribute it, **commercially too** — repairing boards
 for paying customers, putting it on a shop-floor workstation, bundling it into a paid
@@ -1509,12 +1548,48 @@ service all need no further permission. Two reciprocal obligations come with tha
 In one line: **competing with something better is allowed; locking up someone else's
 work and selling it is not.**
 
+### Attribution must be preserved (GPL-3.0 §7(b) additional term)
+
+Under §7(b) of GPL-3.0 the copyright holder adds one term:
+
+> **When you distribute this program or a modified version of it, the original
+> author's credit must stay somewhere users can see.**
+
+Concretely:
+
+- **Where**: the in-app About box, a splash screen, or the top of this `README` —
+  at least one of the three, and not tucked into a corner that requires expanding
+  nested folders or searching the whole text. These count as the "Appropriate Legal
+  Notices" defined in §1 of GPL-3.0.
+- **What**: the author, 永远的兰兰 (Lanlan Eternal), plus the project URL
+  `https://github.com/podcatcher962/copperlens`.
+- **What not to do**: delete it, abbreviate it, water it down into an anonymous
+  "based on an open-source project", or replace it with someone else's name.
+
+This does not touch the four freedoms at the code level — you may still use, study,
+modify and redistribute, commercially included. It only pins down *where* the
+"keep the notices" duty of §4 has to land, closing the gap where "the notice is
+still there, in footnote 47 of a 3,000-line NOTICE file" passes as compliance.
+
+If you fold this program into a larger work, keeping the credit in that work's legal
+notices is enough — no need to repeat it in every source file. This term is recorded
+both here and in the in-app About box, so it travels with the program.
+
 ### Name and marks
 
-"CopperLens / PCB 看板" is this project's name. The GPL covers the **code**, not the name
-or the icons. If you fork it and publish separately, please pick a different name so users
-are not misled into thinking it is the same product. (GPL-3.0 §7(e) lets the copyright
-holder withhold permission to use such marks.)
+"CopperLens / PCB 看板" is this project's name. The GPL covers the **code**, not the
+name or the icons.
+
+**This licence grants no right to use the name or any trademark** (GPL-3.0 §7(e): the
+copyright holder may decline to grant rights under trademark law). If you fork it and
+publish separately, please pick a different name so users are not misled into thinking
+it is the same product.
+
+To be clear: neither name is currently registered as a trademark. This clause therefore
+means "I have not licensed this name to you", not "I hold trademark rights and can sue".
+In a clear case of passing off, the provision that applies is Article 6 of China's
+Anti-Unfair Competition Law (no unauthorised use of another's product name that has
+acquired influence) — a higher evidentiary bar than a registered mark.
 
 ### No warranty
 
