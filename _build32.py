@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+#
+# Copyright (C) 2026 永远的兰兰 (Lanlan Eternal)
+# SPDX-License-Identifier: GPL-3.0-or-later
+# This file is part of CopperLens. See LICENSE in the repository root.
+#
 """用 32 位 Python 打包成单文件 exe（x86；32 位系统直接跑，64 位系统向下兼容）。
 
 PyInstaller 装在哪里，按这个顺序找：
