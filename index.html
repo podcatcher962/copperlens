@@ -309,11 +309,26 @@
   .binfo .r:hover{background:var(--panel2)}
   .binfo .r b{color:var(--fg);font-weight:400;font-variant-numeric:tabular-nums;
     text-align:right;white-space:nowrap}
+  /* 值会很长的那几行（网络构成 / 长文件名）：改成上下两行，别挤成一列竖字 */
+  .binfo .r.wrap{flex-direction:column;align-items:flex-start;gap:1px}
+  .binfo .r.wrap b{white-space:normal;text-align:left;line-height:1.45}
   /* ---- 读数与可信度（v1.23）：把解析器记的账摊到界面上 ---- */
   .binfo.trust{margin-top:2px}
   .binfo.trust .tg{display:flex;align-items:center;padding:2px 6px 4px}
   .binfo.trust .chip.ok{background:#4caf7d20;color:#7fd3a8;border:1px solid #4caf7d55;
     border-radius:4px;padding:1px 7px;font-size:12px}
+  /* 网络类别（地 / 电源 / 时钟…）：只作提示，别抢网络名的眼 */
+  .chip.kind{background:transparent;color:var(--fg2);border:1px solid var(--line)}
+  /* 实测档案弹窗：比标记那张多一行读数 + 单位，所以宽一点 */
+  .recpop{width:276px}
+  .recpop .rw{display:flex;gap:6px;margin-top:6px}
+  .recpop .rw input{flex:1;min-width:0}
+  .recpop #recT{margin-bottom:6px}
+  .recpop #recN{margin-top:6px}
+  .recpop select{width:62px;padding:6px 4px;background:var(--bg);
+    border:1px solid var(--line);border-radius:6px;color:var(--fg);
+    font:inherit;font-size:12px;outline:none}
+  .recpop select:focus{border-color:var(--accent)}
   .binfo.trust .r.a b{color:var(--accent)}
   .binfo.trust .r.w b{color:#f09a99}
   .binfo.trust .n{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
@@ -486,6 +501,7 @@
           <button data-dt="holes" data-i18n="drwHoles">孔表</button>
           <button data-dt="tp" data-i18n="drwTp">测点</button>
           <button data-dt="marks" data-i18n="drwMarks">标记</button>
+          <button data-dt="rec" data-i18n="drwRec">档案</button>
         </div>
         <button class="drw-x" id="drawerX" title="收起">×</button>
       </div>
@@ -624,7 +640,7 @@ zh:{
   navCenter:"回到板子中心", navUp:"上移", navDown:"下移",
   navLeft:"左移", navRight:"右移",
   btnLists:"清单", btnListsTip:"快捷键 C / N：按位号或网络名找，点一下直接跳过去",
-  drwParts:"元件", drwNets:"网络", drwPins:"脚位", drwMarks:"标记",
+  drwParts:"元件", drwNets:"网络", drwPins:"脚位", drwMarks:"标记", drwRec:"档案",
   drwHoles:"孔表", drwHoleKind:"种孔径", drwTp:"测点",
   drwTpSmall:"小", drwQPhTp:"筛选网络名",
   tpVia:d=>"过孔 Φ"+d, tpPad:"焊盘",
@@ -655,6 +671,12 @@ zh:{
   drwMkHint:"还没有标记。在板子上点右键就能写一条。",
   csvDone:n=>"已导出："+n,
   mkTitle:"在这块板上做个标记", mkPh:"例如：这里烧过 / 3.3V 正常",
+  recAdd:"＋ 记一条", recAddHint:"记下实测电压、阻值，或认出来的丝印",
+  recTitle:"记一条实测", recPhT:"测哪儿：网络名 / 位号",
+  recPhV:"读数，如 3.31", recPhN:"备注（可选）",
+  recNone:"这块板还没有档案。测到的电压、阻值、认出来的丝印，记在这里下次不用重测。",
+  recNoHit:"板上找不到这个名字",
+  recColT:"对象", recColV:"读数", recColU:"单位", recColN:"备注",
   mkSave:"保存", mkCancel:"取消", mkDel:"删除",
 
   /* 图层名 */
@@ -668,7 +690,9 @@ zh:{
   errNoSec:ddb=>"文件里没有找到 PCB 数据段，可能不是 PCB 4.0 格式"+
     (ddb?"，或这个设计库里只有原理图/元件库而没有 PCB。":"。"),
   errNoCuData:"找到了 PCB 数据段，但里面没有走线/焊盘数据。这个文件可能是空的，或只含原理图。",
-  errBadFmt:"文件里没有可读的 PCB 数据段，可能不是 PCB 4.0 Binary 格式。",
+  errBadFmt:"文件里没有可读的 PCB 数据段，可能不是 PCB 4.0 Binary 格式。\n"
+    +"若它来自 Allegro / Xpedition / PADS 原生 .pcb / GenCAD：这些本程序不直接读。\n"
+    +"请在原软件里导出 ODB++（或 IPC-2581），再把导出的包拖进来。",
   errPaged:n=>"这个设计库里的 PCB 是跨页存储的，直接读会错位"+
     "（走线散落在 "+n+" 个层上，正常板子只有几个）。\n请先把它导出成 .pcb 再拖进来查看。",
   /* KiCad 板文件 */
@@ -690,15 +714,17 @@ zh:{
   gbNoProfile:"没有板框层（Profile / .gko），尺寸是按铜皮外包估的。",
   zipNeedUnzip:"这个压缩包解不开，请先解压，再把里面的文件一起拖进来。",
   zipEmpty:"这个压缩包里没找到板文件，也没找到 Gerber。",
-  odbNo:"这个包是 ODB++（板厂的制造数据），本程序还不读这种格式。\n"
-    +"可以让出图方另存一份 Gerber + 钻孔，或者直接给原始的板设计文件"
-    +"（.pcb / .kicad_pcb / .brd）。",
+  odbNo:"这个包是 ODB++（matrix/ 与 steps/ 的结构），但没能读出铜层。\n"
+    +"多半是包不完整：layers/ 里缺层文件，或者只导出了单层的摘要。\n"
+    +"让出图方重新完整导出一次；实在不行，让他给 Gerber + 钻孔。",
   fmtGerber:"（Gerber 制造文件）",
   gbSet:n=>"（"+n+" 个文件合成一块板）",
   fmtKicad:"（KiCad 板文件）",
   /* Eagle（.brd，XML）*/
   errNotEagle:"这个文件不是 Eagle 的板图（找不到 <board> 节点）。\n"
-    +"（Allegro 的 .brd 也叫这个名字，但那是二进制，本程序读不了。）",
+    +"若它来自 Cadence Allegro：两家都用 .brd，但 Allegro 那个是二进制私有格式，读不了。\n"
+    +"出路 —— 在 Allegro 里 File → Export → ODB++，把导出的文件夹打成 .zip 拖进来；\n"
+    +"连线、网络名、位号都在，查线比原始的 .brd 还顺手。",
   errEagleBig:"Eagle 文件太大，超出本程序的浏览上限。",
   eagleNoPkg:n=>"有 "+n+" 个元件的封装在文件里找不到（库没随板子一起存），"
     +"这些元件只画了位置，没有焊盘。",
@@ -725,6 +751,18 @@ zh:{
   errOdbEmpty:"这个 ODB++ 包里没读到铜层。\n"
     +"正常应该有 matrix/matrix 和 steps/<板名>/layers/<层>/features。",
   /* Altium（.PcbDoc，二进制复合文档与 ASCII 两种皮）*/
+  /* IPC-2581（ODB++ 的开放标准版，Allegro / Xpedition / PADS 都能导出）*/
+  fmtIpc:"（IPC-2581 制造数据）",
+  errNotIpc:"这不是 IPC-2581 文件（根元素不是 <IPC-2581>）。",
+  errIpcEmpty:"这份 IPC-2581 里没读到铜箔，也没读到焊盘。\n"
+    +"多半是只导出了装配或 BOM 变体，没带铜层的那一份。\n"
+    +"让对方改用默认的完整导出，或者直接给 ODB++ / Gerber。",
+  errIpcBig:"这个 IPC-2581 超过 40 MB，本程序不敢硬读（整份要建成树，会把内存吃光）。\n"
+    +"请只导出需要的层，或者让对方改给 ODB++ / Gerber。",
+  wIpcLayers:n=>"文件里声明了 "+n+" 个铜层，第 32 层以后的都画在第 31 层上。",
+  wIpcNoProfile:"文件里没有板框（Profile）—— 外形尺寸是按全部图元的外框估的，会偏大。",
+  wIpcNoPin:"封装里没读到引脚定义（库没随板子一起导出），元件只剩位号。",
+  wIpcNoNet:n=>"有 "+n+" 个元件引脚没能对上网络名，这些脚查线只能按铜皮几何推。",
   fmtAlt:"（Altium 板文件）",
   errAltEmpty:"这份 Altium 板文件里没读到焊盘，也没读到走线。\n"
     +"如果原件是 Protel 99SE 的 .ddb，请先在 Altium 里另存为 .PcbDoc 再打开。",
@@ -785,13 +823,18 @@ zh:{
   errIsRar:"这是 RAR 压缩包，本程序不解 RAR。先解压，再拖里面那批文件。",
   errIs7z:"这是 7z 压缩包，本程序不解 7z。先解压，再拖里面那批文件。",
   errIsPdf:"这是 PDF，不是板文件。图纸可以用看图软件打开；要查线得拖板文件本身。",
-  errIsImg:k=>"这是 "+k+" 图片，不是板文件。",
+  errIsImg:k=>"这是 "+k+" 图片，不是板文件 —— 截图里没有坐标和网络，查不了线。\n"
+    +"请拖原始的板文件，或板厂给的 Gerber / ODB++。",
   errIsCfb:"这是个复合文档容器（和 .ddb / Altium .PcbDoc 同一个壳），但里面既没有设计库、\n"
     +"也没有 Altium 的板数据。\n"
-    +"常见于 Excel / Word 改了扩展名，或者本程序还不认识的 EDA 格式。",
+    +"最常见的三种：Excel / Word 改了扩展名、Altium 的原理图 .SchDoc、加密过的板文件。\n"
+    +"若确认它本该是 .PcbDoc，请在 Altium 里取消加密后另存一份再试。",
   errIsText:h=>"这是个纯文本文件，但里面没有 KiCad、Eagle、立创、PADS 任何一家的特征。\n"
-    +"开头是这样的：\n"+h,
-  errIsBin:h=>"这是二进制文件，认不出是什么格式。\n文件头："+h,
+    +"开头是这样的：\n"+h+"\n"
+    +"若它是 Allegro 导出的报告、BOM、或者 Gerber 的说明文件，那些都不是板图本身。",
+  errIsBin:h=>"这是二进制文件，认不出是什么格式。\n文件头："+h+"\n"
+    +"最可能是这几家的原生格式：Cadence Allegro .brd、PADS 原生 .pcb、GenCAD。\n"
+    +"它们都能导出 ODB++（一个文件夹或 .zip），导出来直接拖进来就行。",
   openFail:"打不开这个文件：",
   deskGone:"和后台断了（程序已经关掉）。请关掉这个窗口，重新双击 PCB看板.exe。",
   embedFail:"内嵌数据读取失败：",
@@ -799,6 +842,11 @@ zh:{
   idxSkip:n=>"索引跳过 "+n+" 个坐标异常图元",
   wDropped:n=>n+" 条记录的坐标异常，已丢弃（多半是跨页存储造成）",
 
+  nk_gnd:"地", nk_pwr:"电源", nk_clk:"时钟", nk_rst:"复位",
+  nk_bus:"总线", nk_diff:"差分", nk_en:"使能",
+  trKindK:"网络构成",
+  trKindTip:"从网络名读出来的用途。只认名字里写明白的（VCC3V3 / GND / RST_N / TX+），"
+    +"PA0、NET042 这种没含义的名字不计入。",
   tagNet:"按网络号", tagNonCu:"丝印/机械层，不导电", tagCuNet:"按铜皮连通（该网络全部）",
   tagCu:"按铜皮连通", tagCuMulti:n=>"铜皮连通（碰到 "+n+" 个网络）",
   tagCuPour:(p,v)=>"整片覆铜（接地平面）· 接地焊盘 "+p+" 颗 · 过孔 "+v+" 个",
@@ -899,6 +947,17 @@ zh:{
         连解开成目录也能直接拖。它比 Gerber 多了<b>网络名和层名</b>，
         所以焊盘能对上"这颗料第几脚"</p>
 
+    <h3>打不开的时候</h3>
+    <p>程序会先认文件头，再说清它到底是什么、能怎么办。最常见的四种：</p>
+    <p style="color:var(--fg3)">
+      · <b>Cadence Allegro 的 .brd</b> —— 和 Eagle 同名，但那是二进制私有格式。
+        在 Allegro 里 <b>File → Export → ODB++</b>，把导出的文件夹压成 zip 拖进来；
+        连线、网络名、位号都还在<br>
+      · <b>PADS 原生 .pcb / Xpedition / GenCAD</b> —— 同理，导出 ODB++ 再打开。
+        PADS 的 <b>.asc</b>（File → Export → ASCII）本程序直接读<br>
+      · <b>Excel / Word 改了扩展名</b> —— 会直接说"复合文档，里面没有板"，
+        不让你误以为是板子坏了<br>
+      · <b>一整包 Gerber 只拖了一个</b> —— 单层看不出板形，要整包一起拖，或者压成 zip</p>
     <h3>读数：这块板的数据能不能信</h3>
     <p>打开一块板，左侧栏会多出一节<b>读数</b> —— 把"程序到底读到了什么"摆出来。
        维修最怕的不是读不出来，是<b>少读了一部分却照样画得像模像样</b>，
@@ -973,6 +1032,12 @@ zh:{
     <p>在板子上<b>点右键</b>，写一句话（"这里烧过""3.3V 正常"），那个位置就插一面小旗子，
        缩放够大时字直接看得见。标记按<b>板子</b>存档，换一块板不会串；
        在「标记」页签里可以逐条跳过去、改字或删掉。</p>
+
+    <h3>记下实测值</h3>
+    <p>量到的电压、对地阻值，写下来下次才有得比 —— 「档案」页签里点<b>＋ 记一条</b>，
+       填测的是哪条网络或哪个位号、读数多少。只写备注不填读数也行，
+       比如"Q3 实际是 SI2302"。档案按<b>板子</b>存在本机，不联网、不上传；
+       换台机器要用，就在那一页<b>导出 CSV</b>。</p>
 
     <h3>找一个元件 / 一个网络</h3>
     <p>顶栏右边的搜索框（或 <kbd>Ctrl</kbd>+<kbd>F</kbd>）：输 <code>U100</code> 找位号、
@@ -1100,8 +1165,14 @@ zh:{
       <li><b>缩略导航图</b>：左上角一张整板小图，黄框标出当前看的位置，点一下跳过去</li>
       <li><b>最近打开</b>：首页列出上次开过的文件，点一下直接再打开</li>
     </ul>
+    <h3>许可</h3>
+    <p>本项目以 <b>GPL-3.0-or-later</b> 发布：可以自由使用、修改、分发，
+       <b>包括商用</b>。分发时请保留版权声明，改过的版本也要按同一许可开源。
+       全文见仓库根目录的 LICENSE。</p>
+    <p class="dim">「CopperLens / PCB 看板」这个名字不在授权范围内 ——
+       想 Fork 出去单独发，请换个名字。</p>
     <h3>版本</h3>
-    <p>v1.23　·　Windows 10 / 11，32 位 64 位都支持　·　单文件便携版</p>
+    <p>v1.24　·　Windows 10 / 11，32 位 64 位都支持　·　单文件便携版</p>
     <div class="sig">© 永远的兰兰　·　Lanlan Eternal</div>`
 },
 en:{
@@ -1162,7 +1233,7 @@ en:{
   navCenter:"Back to board centre", navUp:"Pan up", navDown:"Pan down",
   navLeft:"Pan left", navRight:"Pan right",
   btnLists:"Lists", btnListsTip:"Shortcuts C / N: jump by designator or net name",
-  drwParts:"Parts", drwNets:"Nets", drwPins:"Pins", drwMarks:"Marks",
+  drwParts:"Parts", drwNets:"Nets", drwPins:"Pins", drwMarks:"Marks", drwRec:"Log",
   drwHoles:"Holes", drwHoleKind:"hole sizes", drwTp:"Probes",
   drwTpSmall:"tiny", drwQPhTp:"Filter by net name",
   tpVia:d=>"via Φ"+d, tpPad:"pad",
@@ -1193,6 +1264,12 @@ en:{
   drwMkHint:"No marks yet. Right-click on the board to add one.",
   csvDone:n=>"Exported: "+n,
   mkTitle:"Mark this spot", mkPh:"e.g. burnt here / 3.3V OK",
+  recAdd:"+ New entry", recAddHint:"measured voltage, resistance, or a part ID",
+  recTitle:"Log a reading", recPhT:"Where: net / designator",
+  recPhV:"Reading, e.g. 3.31", recPhN:"Note (optional)",
+  recNone:"No entries for this board yet. Readings and part IDs you log here stay on this machine.",
+  recNoHit:"No such net or designator on this board",
+  recColT:"Target", recColV:"Reading", recColU:"Unit", recColN:"Note",
   mkSave:"Save", mkCancel:"Cancel", mkDel:"Delete",
 
   layTop:"Top Layer", layBottom:"Bottom Layer", layVia:"Via (through-hole)",
@@ -1204,7 +1281,9 @@ en:{
     (ddb?", or the design library contains only schematics / libraries.":"."),
   errNoCuData:"PCB sections found, but there is no track or pad data. "+
     "The file may be empty or schematic-only.",
-  errBadFmt:"No readable PCB section found — this may not be a PCB 4.0 Binary file.",
+  errBadFmt:"No readable PCB section found - this may not be a PCB 4.0 Binary file.\n"
+    +"If it came from Allegro / Xpedition / a native PADS .pcb / GenCAD, those are not\n"
+    +"read directly. Export ODB++ (or IPC-2581) from that tool and drop the package in.",
   errPaged:n=>"The PCB inside this design library is stored across pages, so reading it "+
     "directly misaligns the data (tracks scattered over "+n+" layers; a normal board "+
     "uses only a few).\nExport it to a .pcb file first, then drag that in.",
@@ -1229,14 +1308,18 @@ en:{
   gbNoProfile:"No profile layer (Profile / .gko); board size is estimated from the copper.",
   zipNeedUnzip:"This archive could not be opened — unzip it and drag the files in together.",
   zipEmpty:"No board file and no Gerber data inside this archive.",
-  odbNo:"This archive is ODB++ (fabrication data from a PCB house); this viewer does "
-    +"not read that format yet.\nAsk for Gerber + drill files, or send the original "
-    +"board file (.pcb / .kicad_pcb / .brd).",
+  odbNo:"This package is ODB++ (the matrix/ + steps/ layout), but no copper layers "
+    +"could be read.\nUsually the package is incomplete: layer files missing under "
+    +"layers/, or only a single-step summary was exported.\nAsk for a full re-export; "
+    +"failing that, Gerber + drill files will do.",
   fmtGerber:"  (Gerber fabrication data)",
   gbSet:n=>"  ("+n+" files merged into one board)",
   fmtKicad:"  (KiCad board)",
   errNotEagle:"This is not an EAGLE board (no <board> element).\n"
-    +"(Allegro files use the same .brd extension but are binary — not supported.)",
+    +"If it came from Cadence Allegro: both tools use .brd, but Allegro's is a binary\n"
+    +"proprietary format this viewer cannot read.\n"
+    +"Way out - in Allegro use File > Export > ODB++, zip the exported folder and drop\n"
+    +"that in. Tracks, net names and designators all survive; it traces better than the .brd.",
   errEagleBig:"This EAGLE file is too large for the viewer.",
   eagleNoPkg:n=>n+" elements reference a package that is not stored in the file "
     +"(library not embedded) — only their position is drawn, without pads.",
@@ -1255,6 +1338,30 @@ en:{
   errPadsNet:"This is a PADS netlist - connections only, no copper or parts.\n"
     +"Export the ASCII board from PADS Layout (File > Export); it starts with "
     +"!PADS-LAYOUT-V...-MILS!.",
+  /* Altium —— v1.22 加了格式，英文条目从那时起一直漏着，v1.24 补上 */
+  fmtAlt:"  (Altium board)",
+  errAltEmpty:"No pads and no tracks could be read from this Altium board file.\n"
+    +"If the original is a Protel 99SE .ddb, save it as .PcbDoc in Altium first.",
+  errAltAsciiEmpty:"This Altium ASCII export holds no tracks and no pads -\n"
+    +"most likely only the board outline was exported. In Altium use "
+    +"File > Save Copy As > PCB ASCII,\nand check the export range covers the whole "
+    +"board, not just a few selected parts.",
+  /* IPC-2581（the open standard sibling of ODB++）*/
+  fmtIpc:"  (IPC-2581)",
+  errNotIpc:"This is not an IPC-2581 file (the root element is not <IPC-2581>).",
+  errIpcEmpty:"No copper and no pads could be read from this IPC-2581 file.\n"
+    +"It is most likely an assembly or BOM variant exported without the copper layers.\n"
+    +"Ask for the default full export, or for ODB++ / Gerber instead.",
+  errIpcBig:"This IPC-2581 file is over 40 MB and the viewer will not force it into memory "
+    +"(the whole tree has to be built).\nExport only the layers you need, or ask for "
+    +"ODB++ / Gerber.",
+  wIpcLayers:n=>"The file declares "+n+" copper layers; anything past the 32nd is drawn on layer 31.",
+  wIpcNoProfile:"No Profile in the file - the board size is estimated from every graphic "
+    +"element, so it reads large.",
+  wIpcNoPin:"No pin definitions inside the packages (the library was not exported) - "
+    +"only designators remain.",
+  wIpcNoNet:n=>n+" component pins could not be matched to a net; those pins can only be "
+    +"inferred from copper geometry.",
   fmtOdb:"  (ODB++)",
   errOdbEmpty:"No copper layers could be read from this ODB++ package.\n"
     +"It should contain matrix/matrix and steps/<board>/layers/<layer>/features.",
@@ -1315,13 +1422,18 @@ en:{
   errIs7z:"This is a 7z archive — 7z is not supported. Unzip it first, then drag the files in.",
   errIsPdf:"This is a PDF, not a board file. Use a document viewer for drawings; "
     +"tracing needs the board file itself.",
-  errIsImg:k=>"This is a "+k+" image, not a board file.",
+  errIsImg:k=>"This is a "+k+" image, not a board file - a screenshot carries no net\n"
+    +"names or coordinates, so it cannot be traced. Drop the original board file instead.",
   errIsCfb:"This is a compound-document container (the same wrapper as .ddb and Altium .PcbDoc),\n"
     +"but it holds neither a design database nor Altium board data.\n"
-    +"Usually an Excel/Word file renamed, or an EDA format this program does not know yet.",
+    +"Three usual suspects: an Excel/Word file renamed, an Altium .SchDoc schematic, or an\n"
+    +"encrypted board file. If it should be a .PcbDoc, clear the encryption and re-save it.",
   errIsText:h=>"This is a plain-text file, but it carries none of the KiCad, EAGLE, LCEDA or "
-    +"PADS markers.\nIt starts like this:\n"+h,
-  errIsBin:h=>"Binary file of unknown format.\nHeader: "+h,
+    +"PADS markers.\nIt starts like this:\n"+h+"\n"
+    +"If it is an Allegro report, a BOM, or a Gerber readme, none of those is the board itself.",
+  errIsBin:h=>"Binary file of unknown format.\nHeader: "+h+"\n"
+    +"Most likely a native format from Cadence Allegro (.brd), PADS (.pcb) or GenCAD.\n"
+    +"All of them can export ODB++ (a folder or a .zip) - export it and drop that in.",
   openFail:"Cannot open this file: ",
   deskGone:"Lost the back end — the program has closed. Close this window and start "+
            "PCB看板.exe again.",
@@ -1331,6 +1443,11 @@ en:{
   wDropped:n=>n+" records had out-of-range coordinates and were dropped "+
     "(usually caused by paged storage)",
 
+  nk_gnd:"GND", nk_pwr:"Power", nk_clk:"Clock", nk_rst:"Reset",
+  nk_bus:"Bus", nk_diff:"Diff pair", nk_en:"Enable",
+  trKindK:"Net mix",
+  trKindTip:"Purposes read straight from the net names. Only names that say so are "
+    +"counted (VCC3V3 / GND / RST_N / TX+); PA0 or NET042 are left out.",
   tagNet:"by net", tagNonCu:"silkscreen / mechanical — not conductive",
   tagCuNet:"copper connected (whole net)", tagCu:"copper connected",
   tagCuMulti:n=>"copper connected (touches "+n+" nets)",
@@ -1426,6 +1543,19 @@ en:{
       · <b>.epro2 / .epro</b> — EasyEDA (LCEDA) <b>pro</b> project file; drop it as-is and the
         .epru design log inside is unpacked for you</p>
 
+    <h3>When it will not open</h3>
+    <p>The viewer sniffs the file header first, then tells you what the file actually is and
+       what to do about it. The four usual cases:</p>
+    <p style="color:var(--fg3)">
+      · <b>Cadence Allegro .brd</b> — the same extension as EAGLE, but a binary proprietary
+        format. In Allegro use <b>File &gt; Export &gt; ODB++</b>, zip the exported folder and drop
+        that in; tracks, net names and designators all survive<br>
+      · <b>Native PADS .pcb / Xpedition / GenCAD</b> — export ODB++ from that tool and open the
+        package. PADS <b>.asc</b> (File &gt; Export &gt; ASCII) is read directly<br>
+      · <b>An Excel/Word file renamed</b> — it will say "compound document, no board inside"
+        rather than leaving you thinking the board itself is corrupt<br>
+      · <b>Only one file out of a Gerber set</b> — a single layer has no outline; drag the whole
+        set in, or zip it</p>
     <h3>Readout: how far to trust what you see</h3>
     <p>Open a board and the left panel gains a <b>Readout</b> section — what the parser
        actually managed to read. The dangerous case is not a file that fails outright,
@@ -1516,6 +1646,13 @@ en:{
     <p><b>Right-click</b> on the board and type a note ("burnt here", "3.3V OK"). A small flag is
        pinned to that spot and the text shows once you zoom in. Marks are stored per board, so they
        never leak into another one; manage them in the <b>Marks</b> tab.</p>
+
+    <h3>Logging readings</h3>
+    <p>Whatever you measured — a rail voltage, a resistance to ground — is worth writing down,
+       because next time the comparison is the clue. In the <b>Log</b> tab hit <b>+ New entry</b>,
+       give the net or designator and the reading. A note on its own is fine too
+       ("Q3 is actually a SI2302"). Entries are stored per board, on this machine only —
+       nothing is uploaded; <b>Export CSV</b> is there if you want to carry them elsewhere.</p>
 
     <h3>Find a part or a net</h3>
     <p>Search box on the right of the toolbar (or <kbd>Ctrl</kbd>+<kbd>F</kbd>):
@@ -1657,8 +1794,14 @@ en:{
       <li><b>Minimap</b>: whole-board thumbnail top-left with a yellow viewport box — click to jump</li>
       <li><b>Recent files</b>: the home page lists what you opened last; one click reopens it</li>
     </ul>
+    <h3>Licence</h3>
+    <p>Released under <b>GPL-3.0-or-later</b>: free to use, modify and redistribute,
+       <b>commercial use included</b>. Keep the copyright notice when you pass it on,
+       and release your changes under the same licence. Full text is in LICENSE.</p>
+    <p class="dim">The name "CopperLens / PCB 看板" is not part of the grant — please pick
+       a different name if you fork it and publish separately.</p>
     <h3>Version</h3>
-    <p>v1.23　·　Windows 10 / 11, 32-bit and 64-bit　·　portable single file</p>
+    <p>v1.24　·　Windows 10 / 11, 32-bit and 64-bit　·　portable single file</p>
     <div class="sig">© Lanlan Eternal　·　永远的兰兰</div>`
 }
 };
@@ -1731,7 +1874,8 @@ function refreshFileLine(){
                        : (B.fmt==="bv" ? T("fmtBv")
                        : (B.fmt==="pads" ? T("fmtPads")
                        : (B.fmt==="odb" ? T("fmtOdb")
-                       : (B.fmt==="alt" ? T("fmtAlt") : ""))))));
+                       : (B.fmt==="alt" ? T("fmtAlt")
+                       : (B.fmt==="ipc" ? T("fmtIpc") : "")))))));
   document.getElementById("stStats").textContent = T("stats", {
     t:B.tracks.length, p:B.pads.length, v:B.vias.length,
     f:B.fills.length, po:B.polys.length, n:B.nets.length,
@@ -1837,6 +1981,12 @@ function renderTrust(){
     h+= s.noDes===0 ? row(T("trDesK"), esc(T("trAll")), "", T("trDesOkTip"))
                     : row(T("trDesK"), esc(T("trDesBad", s.noDes)), "a", T("trDesTip"));
   }
+
+  /* ---- 网络构成 ----
+     "这块板有几路电源、几个地、几对差分" —— 网络名里就写着，扫一遍就有。
+     维修报价、判断这块板复杂不复杂，这一行比总网络数有用。 */
+  const kinds=netKindSummary();
+  if(kinds) h+=row(T("trKindK"), esc(kinds), "wrap", T("trKindTip"));
 
   /* ---- 板框（只在缺的时候说，有就别占一行） ---- */
   if(!s.hasFrame && (s.pads || (B.tracks||[]).length))
@@ -4804,6 +4954,529 @@ function parseLcedaLog(txt){
 
    覆铜只按外轮廓画（Eagle 的真实铺铜是它算出来的，要避让 + isolate），
    本程序一律画成极淡底纹 + 轮廓 —— 跟立创专业版的覆铜一个处理方式。 */
+/* ==================== IPC-2581（.cvg / .xml） ====================
+   ODB++ 的开放标准版：同一份制造数据，用 XML 写，不加密、能读。
+   Allegro / Xpedition / PADS 都能导出它 —— 这是"不逆向 .brd 也能接住
+   那批用户"的那条路，也是本程序唯一一个真正按公开标准写的格式。
+
+   层级骨架（revision C，Allegro 导出的实际样子）：
+
+     <IPC-2581 revision="C">
+       <Content>
+         <DictionaryLineDesc units="INCH">        线宽表
+         <DictionaryStandard units="INCH">        焊盘图元表（Circle / RectCenter / Oval / Contour）
+         <DictionaryColor>                        层色，本程序不用，跳过
+       <Ecad>
+         <CadHeader units="INCH"/>
+         <CadData>
+           <Layer name="TOP" layerFunction="CONDUCTOR" side="TOP"/>    只声明，不放图形
+           <Step name="...">
+             <Profile><Polygon><PolyBegin/><PolyStepSegment/>…       板框
+             <Package name="BGA"><Pin number="A1"><Location/>        封装的引脚（相对封装原点）
+             <Component refDes="U1" packageRef="BGA" layerRef="TOP">  位号 + 旋转 + 位置
+           </Step>
+           <LayerFeature layerRef="TOP">                            真正的图形在这儿
+             <Set net="GND"><Features><Location/><Polyline>…
+             <Set net="X" padUsage="VIA"><Pad><Location/><StandardPrimitiveRef/></Pad></Set>
+           </LayerFeature>
+
+   四个必须按实际文件来、不能凭印象的地方（错一个就整块板错位）：
+
+     · 单位   CadHeader/@units（INCH / MM / MICRON）。内部一律 mil。
+              线宽表和焊盘表**各自也带 units**，理论上可能与 CadHeader 不同，
+              实测两家导出都一致，这里仍按各自的来。
+     · 层号   CONDUCTOR + side=TOP/BOTTOM → 1 / 32；内层按 <Stackup> 的叠层顺序
+              排（没有 Stackup 就按 Layer 声明顺序），从 2 往上。
+     · 引脚   Package 里的 Pin 是**相对封装原点**的，要按 Component 的
+              <Xform rotation mirror> 旋转、镜像，再平移到板上坐标。
+              这一步错了，所有焊盘都会整体飘走 —— 探针里专门盯着
+              "焊盘是否落在板框里"这件事。
+     · 网络   Set/@net 就是网络名，不必再绕 <LogicalNet>（那是另一种导出风格）。
+
+   数据模型照旧：tracks / pads / vias / texts / polys，收尾一律 finish(b)。
+*/
+const IPC_MM = 39.37007874015748;          /* 1 mm = 39.37 mil */
+
+/* 认文件：只看开头。IPC-2581 的根元素名带连字符，也见过写成 IPC2581 的。 */
+function looksIpc2581(buf){
+  const u8=new Uint8Array(buf), n=Math.min(u8.length, 4096);
+  let s="";
+  for(let i=0;i<n;i++) s+=String.fromCharCode(u8[i]);
+  return /<IPC-?2581[\s>\/]/i.test(s);
+}
+
+function parseIpc2581(buf){
+  const txt=new TextDecoder("utf-8").decode(new Uint8Array(buf));
+  /* 这个解析器会把整份 XML 建成树，40 MB 的输入大约要 1 GB 内存。
+     超过就直说，别让浏览器卡死在那儿 —— 用户以为程序挂了比报错更糟。 */
+  if(txt.length>40e6) throw new Error(T("errIpcBig"));
+
+  const doc=exParse(txt);
+  const root=doc.kids.find(k=>/^IPC-?2581$/i.test(k.tag));
+  if(!root) throw new Error(T("errNotIpc"));
+
+  const b={
+    layers:{}, copper:[], nets:[], tracks:[], pads:[], vias:[], arcs:[],
+    fills:[], texts:[], comps:[], polys:[], sections:[], warn:[],
+    fmt:"ipc", fromDdb:false, boardCount:1, layerNames:{}
+  };
+
+  /* ---- 深度优先把整棵树摊平：后面按标签名取东西，比一层层 find 清楚 ---- */
+  const all=[];
+  (function walk(n){
+    for(const k of n.kids){ all.push(k); walk(k); }
+  })(root);
+  const byTag=t=>all.filter(n=>n.tag===t);
+  /* 只在子树里找第一个某标签的元素（PadstackDef 那种嵌套结构用得上） */
+  const desc=(n,tag)=>{
+    for(const k of n.kids){
+      if(k.tag===tag) return k;
+      const r=desc(k,tag);
+      if(r) return r;
+    }
+    return null;
+  };
+
+  /* ---- 单位 ----
+     CadHeader 是整份文件的单位；线宽表 / 焊盘表各自也有 units。
+     缺省按 MM —— 标准里 MM 是默认值。 */
+  const toMil=un=>{
+    const u=String(un||"").toUpperCase();
+    if(/^(INCH|MIL|THOU|MILS)$/.test(u)) return 1000;
+    if(/^(MICRON|MICRONS|UM|µM)$/.test(u)) return 0.0393700787401575;
+    if(/^(CM)$/.test(u)) return 393.700787401575;
+    return IPC_MM;                                    /* MM / MILLIMETER / 空 */
+  };
+  const cadHead=all.find(n=>n.tag==="CadHeader");
+  const dLine=all.find(n=>n.tag==="DictionaryLineDesc");
+  const dStd=all.find(n=>n.tag==="DictionaryStandard");
+  const UF=toMil((cadHead && cadHead.att.units) || (dStd && dStd.att.units));
+  const UFA=toMil(dLine && dLine.att.units ? dLine.att.units : (cadHead && cadHead.att.units));
+  const U=un=>{ const v=+un; return isFinite(v)? v*UF : 0; };        /* 坐标 */
+  const UW=un=>{ const v=+un; return isFinite(v)? v*UFA : 0; };      /* 线宽 */
+
+  /* ---- 线宽表 ---- */
+  const lineW=new Map();
+  for(const d of byTag("DictionaryLineDesc"))
+    for(const e of d.kids){
+      if(e.tag!=="EntryLineDesc" || !e.att.id) continue;
+      const ld=e.kids.find(k=>k.tag==="LineDesc");
+      if(ld) lineW.set(e.att.id, UW(ld.att.lineWidth));
+    }
+  const widthOf=id=>{
+    const w=lineW.get(id);
+    return (w>0)? w : 0;
+  };
+
+  /* ---- 焊盘图元表 ----
+     Circle / Oval / RectCenter / Octagon 的尺寸都是**全宽全高**，不是半径。
+     Contour（多边形焊盘）这里不建尺寸，交给 <Polygon> 那条路画轮廓。 */
+  const prims=new Map();
+  const primOf=node=>{
+    const out={w:0,h:0,shape:1,hole:0};
+    const c=node.kids.find(k=>k.tag==="Circle");
+    const o=node.kids.find(k=>k.tag==="Oval");
+    const r=node.kids.find(k=>k.tag==="RectCenter");
+    const g=node.kids.find(k=>k.tag==="Octagon");
+    const dr=desc(node,"Drill") || node.kids.find(k=>k.tag==="Hole");
+    if(c){ out.w=out.h=U(c.att.diameter); out.shape=1; }
+    else if(o){ out.w=U(o.att.width); out.h=U(o.att.height); out.shape=1; }
+    else if(r){ out.w=U(r.att.width); out.h=U(r.att.height); out.shape=2; }
+    else if(g){ out.w=out.h=U(g.att.diameter); out.shape=3; }
+    if(dr) out.hole=U(dr.att.diameter);
+    return out;
+  };
+  for(const d of byTag("DictionaryStandard"))
+    for(const e of d.kids){
+      if(e.tag!=="EntryStandard" || !e.att.id) continue;
+      prims.set(e.att.id, primOf(e));
+    }
+  /* PadstackDef：真实导出里焊盘常常只写一个 padstackDefRef，
+     尺寸要去 <PadstackDef><Padstack><Pad><StandardPrimitiveRef> 里取。 */
+  const pstacks=new Map();
+  for(const d of byTag("PadstackDef")){
+    if(!d.att.name) continue;
+    const pd=desc(d,"Pad");
+    if(!pd) continue;
+    const spr=pd.kids.find(k=>k.tag==="StandardPrimitiveRef");
+    let pr=null;
+    if(spr) pr=prims.get(spr.att.id);
+    if(!pr) pr=primOf(pd);
+    pstacks.set(d.att.name, pr);
+  }
+  const primById=(sprId, psRef)=>{
+    if(psRef && pstacks.has(psRef)) return pstacks.get(psRef);
+    if(sprId && prims.has(sprId)) return prims.get(sprId);
+    return null;
+  };
+
+  /* ---- 层 ----
+     内层的先后顺序决定"第几层"，所以有 Stackup 就照 Stackup 排。
+     没有 Stackup 的（Allegro 常见）只能按 Layer 的声明顺序 —— 那也是从顶到底。 */
+  const layNodes=byTag("Layer").filter(n=>n.att.name);
+  const stackOrder=[];
+  for(const su of byTag("Stackup"))
+    for(const n of su.kids)
+      if(n.tag==="StackupLayer" && n.att.layerOrGroupRef) stackOrder.push(n.att.layerOrGroupRef);
+  const rank=new Map(stackOrder.map((nm,i)=>[nm,i]));
+
+  const LAYERS={};                       /* 层名 → 内部层号 */
+  /* 标准里铜层的 layerFunction 只有 CONDUCTOR，但 SIGNAL / PLANE 这两个写法
+     在别的导出里确实见过。宁可多认：把铜层当机械层丢掉，整层走线就没了。 */
+  const isCu=n=>{
+    const f=String(n.att.layerFunction||"").toUpperCase();
+    return f==="CONDUCTOR" || f==="SIGNAL" || f==="PLANE";
+  };
+  const conduct=layNodes.filter(isCu);
+  conduct.sort((x,y)=>{
+    const rx=rank.has(x.att.name)?rank.get(x.att.name):1e9;
+    const ry=rank.has(y.att.name)?rank.get(y.att.name):1e9;
+    return rx-ry;
+  });
+  let inner=2;
+  for(const n of conduct){
+    const nm=n.att.name, side=String(n.att.side||"").toUpperCase();
+    let id;
+    if(side==="TOP") id=1;
+    else if(side==="BOTTOM") id=32;
+    else { id=inner<32? inner++ : 31; }
+    LAYERS[nm]=id;
+    b.layerNames[id]=nm;
+  }
+  for(const n of layNodes){
+    if(isCu(n)) continue;
+    const nm=n.att.name, fn=n.att.layerFunction||"";
+    const side=String(n.att.side||"").toUpperCase();
+    let id=0;
+    if(fn==="SILKSCREEN") id=side==="BOTTOM"?34:33;
+    else if(fn==="SOLDERMASK") id=side==="BOTTOM"?38:37;
+    else if(fn==="SOLDERPASTE") id=side==="BOTTOM"?36:35;
+    else if(fn==="ASSEMBLY") id=side==="BOTTOM"?61:60;
+    /* DRILL / DOCUMENT / ROUT / OTHER 不画 —— 钻孔由 Hole 元素单独画 */
+    if(id) LAYERS[nm]=id;
+  }
+  if(conduct.length>32) b.warn.push(T("wIpcLayers", conduct.length));
+
+  /* ---- 网络 ---- */
+  const netIds=new Map();
+  const netNum=nm=>{
+    const s=String(nm===undefined||nm===null? "":nm).trim();
+    if(!s) return 0;
+    let id=netIds.get(s);
+    if(!id){ id=b.nets.length+1; netIds.set(s,id); b.nets[id-1]=s; }
+    return id;
+  };
+
+  /* LogicalNet / PinRef：标准里最正规的网络表达 —— 直接写明"U1 的 1 脚属于 VIN"。
+     有它就优先用，比按几何去猜准得多；没有的（Allegro 常把网络只写在铜皮的
+     Set/@net 上）再退回去做几何匹配。 */
+  const pinNet=new Map();
+  for(const ln of byTag("LogicalNet")){
+    const id=netNum(ln.att.name);
+    if(!id) continue;
+    for(const pr of ln.kids){
+      if(pr.tag!=="PinRef") continue;
+      const key=String(pr.att.componentRef||"")+"\u0000"+String(pr.att.pin||"");
+      pinNet.set(key,id);
+    }
+  }
+
+  /* ---- 图元 ---- */
+  const addTrack=(x1,y1,x2,y2,w,layer,net,comp)=>{
+    if(!(layer>0)) return;
+    if(!isFinite(x1)||!isFinite(y1)||!isFinite(x2)||!isFinite(y2)) return;
+    if(x1===x2 && y1===y2) return;                 /* 零长段，画不出也没用 */
+    b.tracks.push({kind:"track",layer:layer,net:net||0,
+                   comp:(comp===undefined?-1:comp),
+                   x1:x1,y1:y1,x2:x2,y2:y2,w:w>0? w : 6});
+  };
+
+  const ipcPt=(n,ox,oy)=>{
+    const x=U(n.att.x)+ox, y=U(n.att.y)+oy;
+    return [x,y];
+  };
+  /* 折线 → 点序列。PolyStepCurve 是圆弧，按 12 段折线补进去 ——
+     查线只关心连通，12 段的弧在屏幕上看不出和真弧的差别。 */
+  const polyPts=(pg,ox,oy)=>{
+    const out=[];
+    for(const k of pg.kids){
+      if(k.tag==="PolyBegin" || k.tag==="PolyStepSegment"){
+        out.push(ipcPt(k,ox,oy));
+      }else if(k.tag==="PolyStepCurve"){
+        const cur=ipcPt(k,ox,oy);
+        const cx=(+k.att.centerX||0)*UF+ox, cy=(+k.att.centerY||0)*UF+oy;
+        const prev=out[out.length-1];
+        if(prev){
+          const r=Math.hypot(prev[0]-cx, prev[1]-cy);
+          const a1=Math.atan2(prev[1]-cy, prev[0]-cx);
+          const a2=Math.atan2(cur[1]-cy, cur[0]-cx);
+          let d=a2-a1;
+          while(d> Math.PI) d-=2*Math.PI;
+          while(d<-Math.PI) d+=2*Math.PI;
+          const N=12;
+          for(let i=1;i<N;i++){
+            const a=a1+d*i/N;
+            out.push([cx+r*Math.cos(a), cy+r*Math.sin(a)]);
+          }
+        }
+        out.push(cur);
+      }
+    }
+    return out;
+  };
+
+  function readPolyline(pl,layer,net,ox,oy){
+    let w=0;
+    const ldr=pl.kids.find(k=>k.tag==="LineDescRef");
+    if(ldr) w=widthOf(ldr.att.id);
+    if(!(w>0)) w=6;                                 /* 没给宽度就当 6 mil */
+    const pts=polyPts(pl,ox,oy);
+    for(let i=1;i<pts.length;i++)
+      addTrack(pts[i-1][0],pts[i-1][1],pts[i][0],pts[i][1],w,layer,net,-1);
+  }
+
+  /* 有的导出把一段走线直接写成 <Line startX… endX… lineWidth…>，没有 Polyline 那层
+     包装。标准里没有这个元素，但见到就得认 —— 一段铜就是一段铜。 */
+  function readLine(k,layer,net,ox,oy){
+    const w=UW(k.att.lineWidth) || 6;
+    addTrack(U(k.att.startX)+ox, U(k.att.startY)+oy,
+             U(k.att.endX)+ox,   U(k.att.endY)+oy, w, layer, net, -1);
+  }
+
+  /* 覆铜 / 铜皮多边形：整片存进 polys，渲染时按填充画，查线也认它 */
+  function readPolygon(pg,layer,net,ox,oy){
+    const pts=polyPts(pg,ox,oy);
+    if(pts.length<3) return;
+    b.polys.push({kind:"polygon",layer:layer,net:net||0,
+                  pid:b.polys.length+1,pts:pts,closed:true});
+  }
+
+  /* 钻孔：板上没铜环的安装孔、定位孔 */
+  function readHole(h,layer,net,ox,oy){
+    const loc=h.kids.find(k=>k.tag==="Location");
+    if(!loc && h.att.x===undefined) return;
+    const d=U(h.att.diameter);
+    if(!(d>0)) return;
+    const x=(loc? U(loc.att.x) : U(h.att.x))+ox,
+          y=(loc? U(loc.att.y) : U(h.att.y))+oy;
+    b.pads.push({kind:"pad",layer:74,net:net||0,comp:-1,
+                 x:x,y:y,xs:d,ys:d,xm:d,ym:d,xb:d,yb:d,stack:false,
+                 hole:d,shape:1,name:"",rot:0,plated:false});
+  }
+
+  /* 单个焊盘（Set 里直接出现的 Pad） */
+  function readPad(pd,layer,net,ox,oy,isVia){
+    const loc=pd.kids.find(k=>k.tag==="Location");
+    /* 位置多数写在 <Location> 子元素里，也见过直接写成 x / y 属性的 */
+    if(!loc && pd.att.x===undefined) return;
+    const spr=pd.kids.find(k=>k.tag==="StandardPrimitiveRef");
+    const pr=primById(spr && spr.att.id, pd.att.padstackDefRef);
+    const x=(loc? U(loc.att.x) : U(pd.att.x))+ox,
+          y=(loc? U(loc.att.y) : U(pd.att.y))+oy;
+    if(isVia){
+      const dia=pr && pr.w>0? pr.w : 24;
+      b.vias.push({kind:"via",layer:74,net:net||0,x:x,y:y,
+                   dia:dia,hole:pr && pr.hole>0? pr.hole : dia*0.5,
+                   start:1,end:32});
+      return;
+    }
+    const w=pr && pr.w>0? pr.w : 20;
+    const h=pr && pr.h>0? pr.h : w;
+    b.pads.push({kind:"pad",layer:layer>0? layer : 1,net:net||0,comp:-1,
+                 x:x,y:y,xs:w,ys:h,xm:w,ym:h,xb:w,yb:h,stack:false,
+                 hole:pr? pr.hole : 0,shape:(pr? pr.shape : 1),name:"",rot:0,
+                 plated:!(pd.att.plate==="false")});
+  }
+
+  /* 一个 Set：Location 是这一组图元的公共偏移，里面还可能有 Features 再套一层 */
+  const seenSet=new Set();
+  function readSet(setNode,defLayer){
+    if(seenSet.has(setNode)) return;                 /* Layer 与 LayerFeature 同时出现时去重 */
+    seenSet.add(setNode);
+    if(!defLayer) return;
+    const net=netNum(setNode.att.net);
+    const usage=String(setNode.att.padUsage||"").toUpperCase();
+    const isVia=/VIA/.test(usage);
+
+    let ox=0, oy=0;
+    const selfLoc=setNode.kids.find(k=>k.tag==="Location");
+    if(selfLoc){ ox=U(selfLoc.att.x); oy=U(selfLoc.att.y); }
+
+    const walkKids=kids=>{
+      let fx=ox, fy=oy;
+      const fl=kids.find(k=>k.tag==="Location");
+      if(fl){ fx+=U(fl.att.x); fy+=U(fl.att.y); }
+      for(const k of kids){
+        if(k.tag==="Polyline") readPolyline(k,defLayer,net,fx,fy);
+        else if(k.tag==="Line") readLine(k,defLayer,net,fx,fy);
+        else if(k.tag==="Polygon") readPolygon(k,defLayer,net,fx,fy);
+        else if(k.tag==="Pad") readPad(k,defLayer,net,fx,fy,isVia);
+        else if(k.tag==="Hole") readHole(k,defLayer,net,fx,fy);
+        else if(k.tag==="Set") readSet(k,defLayer);
+        else if(k.tag==="Features") walkKids(k.kids);
+        else if(k.tag==="Circle" || k.tag==="RectCenter" || k.tag==="Oval"){
+          /* 有的导出把图元直接写进 Set，不包 Pad 那层 */
+          const pr=primOf({kids:[k]});
+          if(pr.w>0 || pr.h>0){
+            const w=pr.w>0? pr.w : 20, h=pr.h>0? pr.h : w;
+            b.pads.push({kind:"pad",layer:defLayer,net:net,comp:-1,
+                         x:fx,y:fy,xs:w,ys:h,xm:w,ym:h,xb:w,yb:h,stack:false,
+                         hole:pr.hole,shape:pr.shape,name:"",rot:0,plated:true});
+          }
+        }
+      }
+    };
+    walkKids(setNode.kids);
+  }
+
+  /* ---- 走一遍：图形既可能在 <LayerFeature> 里，也可能直接塞在 <Layer> 里 ---- */
+  for(const lf of byTag("LayerFeature")){
+    const ly=LAYERS[lf.att.layerRef]||0;
+    if(!ly) continue;
+    for(const k of lf.kids)
+      if(k.tag==="Set") readSet(k,ly);
+  }
+  for(const n of layNodes){
+    const ly=LAYERS[n.att.name]||0;
+    if(!ly) continue;
+    for(const k of n.kids)
+      if(k.tag==="Set") readSet(k,ly);
+  }
+
+  /* ---- 板框：<Step><Profile><Polygon> ----
+     只有它才是"板子本身多大"。没有 Profile 就退回去按所有图元的外框估，
+     那种情况下"外形尺寸"会偏大一点点，读数面板照实说。 */
+  let hasProfile=false;
+  for(const st of byTag("Step")){
+    const prof=st.kids.find(k=>k.tag==="Profile");
+    if(!prof) continue;
+    let found=false;
+    for(const k of prof.kids){
+      if(k.tag!=="Polygon" && k.tag!=="Contour") continue;
+      const pts=polyPts(k,0,0);
+      if(pts.length<3) continue;
+      for(let i=1;i<pts.length;i++)
+        addTrack(pts[i-1][0],pts[i-1][1],pts[i][0],pts[i][1],4,56,0,-1);
+      /* 首尾若没闭合（标准里通常闭合，但不保证），补一段 */
+      const a=pts[0], z=pts[pts.length-1];
+      if(a[0]!==z[0] || a[1]!==z[1]) addTrack(z[0],z[1],a[0],a[1],4,56,0,-1);
+      found=true;
+    }
+    if(found){ hasProfile=true; break; }
+  }
+  if(!hasProfile) b.warn.push(T("wIpcNoProfile"));
+
+  /* ---- 元件 + 引脚 ----
+     Package 里的 Pin 坐标是相对封装原点的：先镜像、再旋转、最后平移。
+     顺序不能换 —— 镜像之后再旋转和先旋转再镜像，结果差一个镜像角。 */
+  const pkgs=new Map();
+  for(const p of byTag("Package")) if(p.att.name) pkgs.set(p.att.name,p);
+
+  const xfPt=(x,y,rot,mir,cx,cy)=>{
+    if(mir) x=-x;
+    if(rot){
+      const r=rot*Math.PI/180, c=Math.cos(r), s=Math.sin(r);
+      const nx=x*c-y*s, ny=x*s+y*c;
+      x=nx; y=ny;
+    }
+    return [cx+x, cy+y];
+  };
+
+  let cid=0, pinCount=0;
+  for(const c of byTag("Component")){
+    const des=String(c.att.refDes||"").trim();
+    if(!des) continue;
+    const xf=c.kids.find(k=>k.tag==="Xform");
+    const lc=c.kids.find(k=>k.tag==="Location");
+    const cx=lc? U(lc.att.x) : 0, cy=lc? U(lc.att.y) : 0;
+    const rot=xf? (+xf.att.rotation||0) : 0;
+    const mir=xf? (xf.att.mirror==="true" || xf.att.mirror==="1") : false;
+    const lyId=LAYERS[c.att.layerRef];
+    const top=(lyId!==32);
+    const padLayer=top? 1 : 32;
+    const myId=cid++;
+
+    /* 位号与型号走 texts —— finish() 就是从这里建 compInfo 的，
+       焊盘再按 comp 认领位号，查线时才写得出 "U1-A3"。 */
+    b.texts.push({kind:"text",layer:top?33:34,comp:myId,
+                  x:cx,y:cy,h:40,rot:rot,text:des,isDes:true,isCom:false});
+    const part=String(c.att.part||"").trim();
+    if(part && part!==des)
+      b.texts.push({kind:"text",layer:top?60:61,comp:myId,
+                    x:cx,y:cy-46,h:34,rot:rot,text:part,isDes:false,isCom:true});
+
+    const pk=pkgs.get(c.att.packageRef);
+    if(!pk) continue;
+    for(const pin of pk.kids){
+      if(pin.tag!=="Pin") continue;
+      /* 引脚位置多数写在 <Location> 子元素里，也见过直接写成 x / y 属性 */
+      const pl=pin.kids.find(k=>k.tag==="Location");
+      if(!pl && pin.att.x===undefined) continue;
+      const spr=pin.kids.find(k=>k.tag==="StandardPrimitiveRef");
+      const pr=primById(spr && spr.att.id, pin.att.padstackDefRef);
+      const [px,py]=xfPt(pl? U(pl.att.x) : U(pin.att.x),
+                         pl? U(pl.att.y) : U(pin.att.y), rot, mir, cx, cy);
+      const w=pr && (pr.w>0 || pr.h>0)? pr.w||pr.h : 20;
+      const h=pr && (pr.h>0 || pr.w>0)? pr.h||pr.w : 20;
+      const pn=pinNet.get(des+"\u0000"+String(pin.att.number||"")) || 0;
+      b.pads.push({kind:"pad",layer:padLayer,net:pn,comp:myId,
+                   x:px,y:py,xs:w,ys:h,xm:w,ym:h,xb:w,yb:h,stack:false,
+                   hole:pr? pr.hole : 0,shape:(pr? pr.shape : 1),
+                   name:String(pin.att.number||""),rot:rot,plated:true});
+      pinCount++;
+    }
+  }
+  if(!pinCount) b.warn.push(T("wIpcNoPin"));
+
+  /* ---- 网络名回填 ----
+     Component 的 Pin 本身不带网络。真实导出里网络在 Set/@net（铜皮那侧），
+     所以按"焊盘位置与带网络的焊盘/走线重合"来认领：容差取焊盘尺寸的一半，
+     宁可认不上也不能认错 —— 认错一条网，查线就会指到别的元件去。 */
+  const GRID=40;
+  const gkey=(x,y)=>Math.floor(x/GRID)+"_"+Math.floor(y/GRID);
+  const netAt=new Map();
+  for(const p of b.pads){
+    if(!(p.net>0)) continue;
+    const k=gkey(p.x,p.y);
+    let a=netAt.get(k); if(!a) netAt.set(k,a=[]);
+    a.push(p);
+  }
+  for(const t of b.tracks){
+    if(!(t.net>0)) continue;
+    const mx=(t.x1+t.x2)/2, my=(t.y1+t.y2)/2;
+    const k=gkey(mx,my);
+    let a=netAt.get(k); if(!a) netAt.set(k,a=[]);
+    a.push({x:mx,y:my,net:t.net,r:Math.max(t.w,20)/2});
+  }
+  let filled=0, missed=0;
+  for(const p of b.pads){
+    if(p.net>0) continue;
+    if(p.hole>0 && p.comp<0) continue;                 /* 纯安装孔没有网络，正常 */
+    /* 按 3×3 个格子找 —— 焊盘刚好落在格线另一侧时也能找得到 */
+    const gx=Math.floor(p.x/GRID), gy=Math.floor(p.y/GRID);
+    const lim=Math.max(p.xs||0,p.ys||0)/2+2;
+    let best=0, bd=lim;
+    for(let dx=-1;dx<=1;dx++)
+      for(let dy=-1;dy<=1;dy++){
+        const arr=netAt.get((gx+dx)+"_"+(gy+dy));
+        if(!arr) continue;
+        for(const q of arr){
+          const d=Math.hypot(q.x-p.x, q.y-p.y);
+          const rr=q.r? Math.max(lim,q.r) : lim;
+          if(d<=rr && d<bd){ bd=d; best=q.net; }
+        }
+      }
+    if(best){ p.net=best; filled++; }
+    else if(p.comp>=0) missed++;
+  }
+  if(missed) b.warn.push(T("wIpcNoNet", missed));
+
+  if(!b.tracks.length && !b.pads.length) throw new Error(T("errIpcEmpty"));
+
+  finish(b);
+  return b;
+}
+
 const EAGLE_MM=39.37007874015748;          /* 1 mm = 39.37 mil */
 
 function looksEagle(buf){
@@ -8325,6 +8998,9 @@ function parseAny(buf,name){
      里面装的是原理图 / 封装库 / 板子好几个文档，不是一块板。 */
   if(looksAltium(buf) || looksAltiumAscii(buf))
     return parseAltium(buf);
+  /* IPC-2581 是 ODB++ 的开放标准版（XML）。Allegro / Xpedition / PADS 都导得出，
+     所以这一条分支等于把那几家的用户接住了，不必去逆向它们的私有二进制。 */
+  if(looksIpc2581(buf)) return parseIpc2581(buf);
   if(looksKicad(buf)){
     const txt=new TextDecoder("utf-8").decode(new Uint8Array(buf));
     return parseKicad(txt);
@@ -9366,6 +10042,95 @@ function pickAt(sx,sy){
 /* 老的 pick(sx,sy) 名字保留，调试 hash 里还在用 */
 function pick(sx,sy){ pickAt(sx,sy); }
 
+/* ============ 网络名归类：从名字读出这条铜是干什么的 ============
+   维修的人点中一条线，第一个问题是"这是什么线"。答案常常就写在网络名里：
+   VCC3V3 是电源、GND 是地、RST_N 是复位、TX+ / TX- 是一对差分。
+   这些字符串全在文件里 —— 不用联网、不用元件库、不用猜。
+
+   原则：**只认名字里写明白的**。PA0、NET0042、N001 这种，老老实实不说。
+   归错一类，等于把人往错的方向引，比不说更糟。
+
+   归一化会把 - _ . 空格 去掉再整名匹配（VCC_3V3 / VCC-3V3 / VCC3V3 是同一个东西），
+   差分对必须看原始名 —— TX+ 去掉加号就认不出来了。
+*/
+const NET_KINDS=["gnd","pwr","clk","rst","bus","diff","en"];
+const NET_KIND_RE={
+  /* 地：GND / AGND / DGND / PGND / VSS / 0V / EARTH */
+  gnd:/^(?:(?:A|D|P|S|CHASSIS|SIGNAL|ANA|DIG)?GND\d*|VSS[A-Z0-9]*|VEE|0V|EARTH|GROUND)$/,
+  /* 电源：VCC… / VDD… / VBAT / VIN / 3V3 / 1V8 / +5V / VREF */
+  pwr:/^(?:V(?:CC|DD)[A-Z0-9]*|(?:A|D|P|IO|V)?VDD[A-Z0-9]*|VBAT[A-Z0-9]*|VBUS|VIN|VOUT|VSYS|VPH|VBUCK|VLDO|VREF[A-Z0-9]*|VAA|VPP|VMID|VCORE|VDDCORE|PWR[A-Z0-9]*|BAT|[+\-]?\d+V\d*|[+\-]?\d+(?:\.\d+)?V)$/,
+  /* 时钟：CLK / CLK24M / SCLK / XTAL1 / OSC */
+  clk:/^[A-Z]*(?:CLK|CLOCK|XTAL|OSC|MCLK|BCLK|LRCK|PCLK|HCLK|RCC|TCK)[A-Z0-9]*$/,
+  /* 复位：RST / NRST / RESET / POR / MR */
+  rst:/^(?:N?RST|X?RESET|RESETN?|SRST|POR|MR)[A-Z0-9]*$/,
+  /* 总线 / 通信：SDA / SCL / MOSI / TXD / CANH */
+  bus:/^(?:SDA|SCL|MOSI|MISO|SCK|SPI|I2C|TXD?|RXD?|UART|CAN|USB|ETH|SWD|JTAG|TMS|TDI|TDO)[A-Z0-9]*$/,
+  /* 使能 / 片选 / 中断 / 状态 */
+  en:/^(?:EN|ENB|ENA|ENABLE|STBY|CE|CS|SS|INT|IRQ|ALERT|FAULT|PGOOD|PG|PD|SLEEP|WAKE|MODE)[A-Z0-9]*$/,
+};
+
+function netKindOf(name,pool){
+  const raw=String(name||"").trim().toUpperCase();
+  if(!raw) return "";
+  /* 写法本身就说明是差分的一半 —— 这类不会二义，先认 */
+  if(/[+\-]$/.test(raw) || /_(?:DP|DM|POS|NEG)$/.test(raw) ||
+     /^(?:CAN[HL]|CAN_[HL]|D\+|D-|USB_?D[PM])$/.test(raw)) return "diff";
+  const s=raw.replace(/[\s\-_.\/\\]/g,"");
+  if(!s) return "";
+  /* 板里同时存在 XXX_P 和 XXX_N —— 这是一对差分，比任何单名规则都硬。
+     放在功能规则之前，免得 TX_N 被总线规则先抢走、而 TX_P 认成差分（两边不对称）。 */
+  const mp=raw.match(/_([PN])$/);
+  if(mp && pool && pool.indexOf && pool.indexOf(raw.slice(0,-1)+(mp[1]==="P"?"N":"P"))>=0) return "diff";
+  /* 无名网络（NET123 / N45）本来就没含义，别硬套一个类别上去 */
+  if(/^NET\d+$/.test(s) || /^N\d+$/.test(s)) return "";
+  if(NET_KIND_RE.gnd.test(s)) return "gnd";
+  if(NET_KIND_RE.pwr.test(s)) return "pwr";
+  if(NET_KIND_RE.clk.test(s)) return "clk";
+  if(NET_KIND_RE.rst.test(s)) return "rst";
+  if(NET_KIND_RE.bus.test(s)) return "bus";
+  if(NET_KIND_RE.en.test(s)) return "en";
+  /* 剩下的才看 _P / _N 这个尾巴。
+     _P 几乎只用于正半，敢认；_N 却常被拿去标低有效（RESET_N / CS_N / INT_N），
+     没有配对的 _P 撑着就不认 —— 否则宁可不说。 */
+  if(mp && mp[1]==="P") return "diff";
+  return "";
+}
+
+/* 整块板的网络名（大写），给 netKindOf 查配对用。换板才重算。 */
+let _nkPool=null,_nkPoolSrc=null;
+function netKindPool(){
+  if(!B||!B.nets) return null;
+  if(_nkPoolSrc!==B.nets){
+    _nkPoolSrc=B.nets;
+    _nkPool=[];
+    for(const x of B.nets) _nkPool.push(String(x||"").trim().toUpperCase());
+  }
+  return _nkPool;
+}
+
+/* 状态栏用：网络名后面挂一枚小标签。认不出就什么都不挂。 */
+function netKindChip(name){
+  const k=netKindOf(name,netKindPool());
+  return k ? '<span class="chip kind">'+esc(T("nk_"+k))+'</span>' : "";
+}
+
+/* 读数面板用：整块板的网络构成，一行说完。没有一条认得出来就不占这行。 */
+function netKindSummary(){
+  if(!B || !B.nets || !B.nets.length) return "";
+  const pool=netKindPool();
+  const cnt={};
+  let any=0;
+  for(const nm of B.nets){
+    const k=netKindOf(nm,pool);
+    if(!k) continue;
+    cnt[k]=(cnt[k]||0)+1; any++;
+  }
+  if(!any) return "";
+  const out=[];
+  for(const k of NET_KINDS) if(cnt[k]) out.push(T("nk_"+k)+" "+cnt[k]);
+  return out.join(" · ");
+}
+
 function netNameOf(key){
   if(!key) return "";
   if(typeof key==="string" && key[0]==="n"){
@@ -9464,6 +10229,7 @@ function updateStatus(h){
     feet='<span class="chip blue" title="'+T("feetTitle")+'">'+show+more+'</span>';
   }
   sn.innerHTML = '<span class="chip'+(pickMode==="cu-multi"?' warn':'')+'">'+netNameOf(hi)+'</span>'
+    + netKindChip(netNameOf(hi))
     + feet
     + padName
     + (tag? '<span class="chip">'+tag+tail+'</span>' : '');
@@ -10439,7 +11205,8 @@ function loadBuffer(buf,name,gerSet){
     renderBoardInfo();                 /* 左侧「板子」：尺寸 / 层数 / 料数 / 最细线 / 最小孔 */
     buildMini();                       /* 左上角缩略导航图 */
     loadMarks();                       /* 每块板有自己的标记 */
-    if(DRW==="pins" || DRW==="marks") renderDrawer();
+    loadRecs();                        /* 实测档案也是按板存的 */
+    if(DRW==="pins" || DRW==="marks" || DRW==="rec") renderDrawer();
     requestAnimationFrame(()=>{
       fit();
       // 定位到指定坐标：#zoom=x,y,倍数（看细节时直接改地址栏就行）
@@ -11011,6 +11778,7 @@ function activate(i){
     lastName=(bd&&bd.n)||d.name;
     restoreUi();
     loadMarks();
+    loadRecs();
   }else{
     const bd=BOARDS[curBoard]||BOARDS[0];
     if(bd && (bd.ptxt || bd.ptxz)){
@@ -11371,7 +12139,7 @@ function renderDrawer(){
   const ph = T(DRW === "holes" ? "drwQPhHole" : (DRW === "tp" ? "drwQPhTp" : "drwQPh"));
   if(drwSearch.placeholder !== ph) drwSearch.placeholder = ph;
 
-  if(!B && DRW !== "marks"){
+  if(!B && DRW !== "marks" && DRW !== "rec"){
     drwTitleEl.textContent = "";
     if(drwCntEl) drwCntEl.textContent = "";
     drwBody.innerHTML = '<div class="drw-empty">'+esc(T("drwNoBoard"))+'</div>';
@@ -11436,6 +12204,18 @@ function renderDrawer(){
       const vias = all.filter(r=>r.type === "via").length;
       html += '<div class="drw-note">'+esc(T("drwTpNote", all.length, small, vias))+'</div>';
     }
+  }else if(DRW === "rec"){
+    const rows = q ? RECS.filter(r=>hit(r.t)||hit(r.v)||hit(r.u)||hit(r.note)) : RECS;
+    cnt = rows.length;
+    /* 「＋ 记一条」永远排第一行：没档案时它就是唯一的入口，别让人找 */
+    html = '<div class="drw-row add" data-k="add"><b>'+esc(T("recAdd"))+'</b>'+
+             '<i>'+esc(T("recAddHint"))+'</i></div>'+
+      (rows.length ? rows.map(r=>{
+        const i = RECS.indexOf(r);
+        return '<div class="drw-row mk" data-k="r" data-i="'+i+'">'+
+          '<b>'+esc(r.t||"…")+'</b><i>'+esc(recLine(r))+'</i>'+
+          '<button class="drw-del" data-delr="'+i+'" title="'+esc(T("mkDel"))+'">×</button></div>';
+      }).join("") : '<div class="drw-empty">'+esc(T("recNone"))+'</div>');
   }else{
     cnt = MARKLIST.length;
     html = MARKLIST.map((m,i)=>
@@ -11446,7 +12226,7 @@ function renderDrawer(){
   }
 
   drwTitleEl.textContent = (DRW === "pins") ? drwLitName() : "";
-  drwBody.innerHTML = (DRW !== "marks" && !html)
+  drwBody.innerHTML = (DRW !== "marks" && DRW !== "rec" && !html)
     ? '<div class="drw-empty">'+esc(T("drwEmpty"))+'</div>'
     : html;
   if(drwCntEl) drwCntEl.textContent = cnt ? cnt+T("drwUnit") : "";
@@ -11455,7 +12235,7 @@ function renderDrawer(){
 /* ---------- 打开 / 切换 ---------- */
 function drwOpen(tab){
   tab = tab || "parts";
-  if(!B && tab !== "marks"){ toast(T("noBoard")); return; }
+  if(!B && tab !== "marks" && tab !== "rec"){ toast(T("noBoard")); return; }
   DRW = (DRW === tab) ? "" : tab;                 // 再点同一个按钮＝收起
   const b = document.getElementById("lists");
   if(b) b.classList.toggle("on", !!DRW);
@@ -11479,6 +12259,9 @@ function drwGoPoint(x, y, zoomIn){
 }
 
 drwBody.addEventListener("click", e=>{
+  const delr = e.target.closest("[data-delr]");
+  if(delr){ delRec(+delr.dataset.delr); return; }
+  if(e.target.closest('[data-k="add"]')){ recAddFromDrawer(); return; }
   const del = e.target.closest("[data-del]");
   if(del){ delMark(+del.dataset.del); return; }
   const row = e.target.closest(".drw-row");
@@ -11499,6 +12282,9 @@ drwBody.addEventListener("click", e=>{
     const on = drwBody.querySelector(".drw-row.on");
     if(on) on.classList.remove("on");
     row.classList.add("on");
+  }else if(k === "r"){
+    const rec = RECS[+row.dataset.i];
+    if(rec) recLocate(rec.t);
   }else if(k === "m"){
     const m = MARKLIST[+row.dataset.i];
     if(m) drwGoPoint(m.x, m.y, true);
@@ -11558,6 +12344,9 @@ function drwText(){
                   ((o.hole||0) > 0 ? Math.round(o.hole) : ""),
                   Math.round(o.x)+","+Math.round(o.y)].join("\t"));
     }
+  }else if(DRW === "rec"){
+    lines.push([T("recColT"),T("recColV"),T("recColU"),T("recColN")].join("\t"));
+    for(const r of RECS) lines.push([r.t||"", r.v||"", r.u||"", r.note||""].join("\t"));
   }else{
     for(const m of MARKLIST) lines.push((m.t||"")+"\t"+Math.round(m.x)+","+Math.round(m.y));
   }
@@ -11587,7 +12376,7 @@ document.getElementById("drwCopy").onclick = async ()=>{
   toast(await copyText(s) ? T("drwCopied") : T("drwCopyFail"));
 };
 document.getElementById("drwCsv").onclick = ()=>{
-  if(!B && DRW !== "marks"){ toast(T("noBoard")); return; }
+  if(!B && DRW !== "marks" && DRW !== "rec"){ toast(T("noBoard")); return; }
   let head = [], rows = [];
   if(DRW === "parts"){
     head = ["Designator","Value / Part"];
@@ -11613,6 +12402,18 @@ document.getElementById("drwCsv").onclick = ()=>{
                  ((o.hole||0) > 0 ? Math.round(o.hole) : ""),
                  Math.round(o.x)+","+Math.round(o.y)]);
     }
+  }else if(DRW === "rec"){
+    head = ["Target","Value","Unit","Note","When"];
+    const p2 = n => (n<10?"0":"")+n;
+    for(const r of RECS){
+      let when = "";
+      if(r.ts){
+        const d0 = new Date(r.ts);
+        when = d0.getFullYear()+"-"+p2(d0.getMonth()+1)+"-"+p2(d0.getDate())+" "
+              +p2(d0.getHours())+":"+p2(d0.getMinutes());
+      }
+      rows.push([r.t||"", r.v||"", r.u||"", r.note||"", when]);
+    }
   }else{
     head = ["Note","X","Y"];
     for(const m of MARKLIST) rows.push([m.t, Math.round(m.x), Math.round(m.y)]);
@@ -11636,11 +12437,7 @@ document.getElementById("drwCsv").onclick = ()=>{
    维修时"这里烧过""测过电压正常"这类结论，写在自己板子上最省事。
    参照同类工具的做法：右键点板子加标注、随板子存档、换板不串。 */
 function mkKey(){
-  let bn = "";
-  const sel = document.getElementById("boards");
-  if(sel && sel.style.display !== "none" && sel.options[sel.selectedIndex])
-    bn = sel.options[sel.selectedIndex].text || "";
-  return "cl.marks|"+(lastName||"")+"|"+bn;
+  return "cl.marks|"+boardTag();
 }
 function loadMarks(){
   try{
@@ -11760,6 +12557,175 @@ function drawMarks(){
   }
 }
 
+/* ============================== 实测档案 ==============================
+   修好一块板，真正值钱的不是"换过哪个件"，是"哪些点测出来是多少"。
+   下次同型号/同一块板回来，先看档案：上次 3.3V 是 3.31，这次 2.9 —— 差值就是线索。
+
+   两块内容共用一个本子：
+     · 实测值 —— 点住一条网络，记下 3.31 V / 对地 1.2 kΩ；
+     · 认定   —— 只写备注，比如"Q3 实际是 SI2302，图纸标 AO3400"。
+
+   存在浏览器本机（localStorage），按板子分开，换板不串；
+   要带走就用抽屉里那个「导出 CSV」—— 拷到另一台机器上照着录。
+
+   注意：这里只存自己敲进去的数字，不联网、不上传、不猜。
+*/
+let RECS = [];
+
+/* 这块板的身份标签：文件名 + 多板文件里的板名。标记和档案共用一套，别分家。 */
+function boardTag(){
+  let bn = "";
+  const sel = document.getElementById("boards");
+  if(sel && sel.style.display !== "none" && sel.options[sel.selectedIndex])
+    bn = sel.options[sel.selectedIndex].text || "";
+  return (lastName||"")+"|"+bn;
+}
+function recKey(){ return "cl.recs|"+boardTag(); }
+
+function loadRecs(){
+  try{
+    const raw = localStorage.getItem(recKey());
+    RECS = raw ? JSON.parse(raw) : [];
+  }catch(err){ RECS = []; }
+  if(!Array.isArray(RECS)) RECS = [];
+  if(DRW === "rec") renderDrawer();
+}
+function saveRecs(){
+  try{ localStorage.setItem(recKey(), JSON.stringify(RECS)); }catch(err){}
+  if(DRW === "rec") renderDrawer();
+}
+function delRec(i){
+  if(!(i >= 0 && i < RECS.length)) return;
+  RECS.splice(i,1);
+  saveRecs();
+}
+
+/* 一行说清这条档案：有读数写读数，没读数就写备注 */
+function recLine(r){
+  const v = (r.k === "v" && r.v)
+    ? r.v + (r.u && r.u !== "—" ? " "+r.u : "")
+    : "";
+  const n = r.note || "";
+  if(v && n) return v + " · " + n;
+  return v || n || "";
+}
+
+/* 记一条的时候，"测哪儿"尽量替人填好：正看着的网络名或位号 */
+function recLitTarget(){
+  if(!B) return "";
+  if(pickMode === "comp" && LIT && LIT.size){
+    const any = LIT.values().next().value;
+    if(any && any.compDes) return any.compDes;
+  }
+  if(hi && String(hi).charAt(0) === "n") return netNameOf(hi);
+  return "";
+}
+
+/* 点一条档案 → 回到板上那个位置。认不出就当没这个目标，说一声。 */
+function recLocate(t){
+  const want = String(t||"").trim().toUpperCase();
+  if(!want) return;
+  if(!B){ toast(T("noBoard")); return; }
+  if(B.nets){
+    for(let i=0;i<B.nets.length;i++){
+      if(String(B.nets[i]||"").toUpperCase() === want){
+        if(lightNet(i+1)){
+          const bb = bboxOfSet(LIT);
+          if(bb) focusBox(bb, 1.35);
+          draw();
+        }else{
+          toast(T("recNoHit"));
+        }
+        return;
+      }
+    }
+  }
+  if(B.compInfo){
+    for(const kv of B.compInfo){
+      const ci = kv[1];
+      if(String(ci.des||"").toUpperCase() === want){
+        focusComp(ci);
+        lightComp(ci);
+        return;
+      }
+    }
+  }
+  toast(T("recNoHit"));
+}
+
+function recClose(){
+  const d = document.getElementById("recpop");
+  if(d) d.remove();
+}
+
+function recPopup(px, py, idx){
+  recClose();
+  const at = (idx === undefined || idx === null) ? null : RECS[idx];
+  const d = document.createElement("div");
+  d.className = "mkpop recpop";
+  d.id = "recpop";
+  d.innerHTML =
+    '<div class="mkpop-t">'+esc(T("recTitle"))+'</div>'+
+    '<input id="recT" maxlength="60" placeholder="'+esc(T("recPhT"))+'">'+
+    '<div class="rw"><input id="recV" maxlength="24" placeholder="'+esc(T("recPhV"))+'">'+
+      '<select id="recU"><option>V</option><option>Ω</option><option>A</option>'+
+      '<option>%</option><option>—</option></select></div>'+
+    '<input id="recN" maxlength="80" placeholder="'+esc(T("recPhN"))+'">'+
+    '<div class="mkpop-b">'+
+      '<button class="btn primary" id="recOk">'+esc(T("mkSave"))+'</button>'+
+      (at ? '<button class="btn" id="recDel2">'+esc(T("mkDel"))+'</button>' : '')+
+      '<button class="btn" id="recNo">'+esc(T("mkCancel"))+'</button>'+
+    '</div>';
+  const W = cv.clientWidth||800, H = cv.clientHeight||600;
+  d.style.left = Math.max(8, Math.min(px, W-286))+"px";
+  d.style.top  = Math.max(8, Math.min(py, H-190))+"px";
+  stage.appendChild(d);
+
+  const iT = d.querySelector("#recT"), iV = d.querySelector("#recV"),
+        iN = d.querySelector("#recN"), sU = d.querySelector("#recU");
+  iT.value = at ? (at.t||"") : recLitTarget();
+  if(at){ iV.value = at.v||""; iN.value = at.note||""; if(at.u) sU.value = at.u; }
+  if(!iT.value) iT.focus(); else iV.focus();
+
+  const commit = ()=>{
+    const t = iT.value.trim(), v = iV.value.trim(), n = iN.value.trim();
+    if(!t){ iT.focus(); return; }
+    if(!v && !n){ if(at){ delRec(idx); } recClose(); return; }   /* 清空＝删掉 */
+    const rec = { t:t, k: v ? "v" : "n", v:v, u: v ? sU.value : "",
+                  note:n, ts: Date.now() };
+    if(at) Object.assign(at, rec);
+    else RECS.push(rec);
+    saveRecs();
+    recClose();
+  };
+  d.querySelector("#recOk").onclick = commit;
+  d.querySelector("#recNo").onclick = recClose;
+  if(at) d.querySelector("#recDel2").onclick = ()=>{ delRec(idx); recClose(); };
+  const keys = [iT, iV, iN];
+  for(const el of keys){
+    el.addEventListener("keydown", e=>{
+      if(e.key === "Enter"){ commit(); e.preventDefault(); }
+      else if(e.key === "Escape"){ recClose(); e.preventDefault(); }
+      e.stopPropagation();
+    });
+  }
+  sU.addEventListener("keydown", e=>e.stopPropagation());
+}
+
+/* 抽屉里点「＋ 记一条」：把弹窗摆在抽屉旁边，别挡住板子 */
+function recAddFromDrawer(){
+  const r = document.getElementById("drawer");
+  const s0 = stage.getBoundingClientRect();
+  let px = cv.clientWidth/2-140, py = 70;
+  if(r){
+    const r0 = r.getBoundingClientRect();
+    px = r0.left - s0.left - 288;
+    if(px < 8) px = Math.max(8, r0.left - s0.left + 12);
+    py = r0.top - s0.top + 44;
+  }
+  recPopup(px, py, null);
+}
+
 /* 按钮与快捷键 */
 function drwShow(tab){
   DRW = tab;
@@ -11777,6 +12743,7 @@ window.addEventListener("keydown", e=>{
   if(k === "c" || k === "C"){ drwShow("parts"); return; }
   if(k === "n" || k === "N"){ drwShow("nets");  return; }
   if(k === "m" || k === "M"){ drwShow("marks"); return; }
+  if(k === "l" || k === "L"){ drwShow("rec");  return; }
 });
 
 </script>
