@@ -1,4 +1,4 @@
-# PCB 看板 / CopperLens v1.24.1
+# PCB 看板 / CopperLens v1.24.2
 
 **中文** ｜ [English](#english) ｜ [版本履历 Changelog](CHANGELOG.md)
 
@@ -74,8 +74,10 @@
 
 ## v1.24 重点
 
-> **v1.24.1 是补丁版**：不改功能，补的是授权元数据 —— 源文件版权头与 SPDX 标识、
-> 署名保留条款（§7(b)）、名称条款措辞。详见 [CHANGELOG](CHANGELOG.md)。
+> **v1.24.1 / v1.24.2 是补丁版**：不在功能上动刀。
+> v1.24.1 补授权元数据（源文件版权头与 SPDX、署名保留条款、名称条款措辞）；
+> v1.24.2 补免责 —— 网络归类的标签不是测量、「档案」里的数字是用户自己录的、
+> 而且会丢。详见 [CHANGELOG](CHANGELOG.md)。
 
 **三件软件以外的事，两件只有真在修板子时才会想起来要的事。**
 
@@ -810,6 +812,16 @@ GPL-2.0 §3(b) 的三年书面源码要约写在 `第三方组件与许可.txt` 
 判断故障。读数面板会告诉你哪里是猜的：照着一份少读了两成的图去下探头、去通电，
 后果请自行承担，动手前先用万用表核对。
 
+三件事要说清楚 —— 它们都是 v1.24 新加的，最容易被当成"结论"：
+
+- **网络归类是按名字猜的**：状态栏的「地 / 电源 / 时钟 / 复位 / 差分」来自网络名，
+  **不是测量**。名字随意的板子（`PA0`、`NET0042`）会明确不标，但标出来的也可能错。
+  是不是地，用万用表说话。
+- **「档案」里是你自己录的数字**：程序不校验、不修正、不判断对错。照抄别人记的
+  档案去下探头，后果自负。
+- **档案存在本机，会丢**：清浏览器数据、换电脑、重装系统都会没，程序无从恢复。
+  重要的随手导出 CSV 另存一份。
+
 ### 第三方组件
 
 随附的第三方组件仍是它们各自的许可证 —— mdbtools 的 GPL-2.0-or-later / LGPL-2.1、
@@ -900,9 +912,11 @@ in, the **mini-map in the top-left** shows your viewport as a yellow box — cli
 
 ## What's new in v1.24
 
-> **v1.24.1 is a patch release**: no functional change — source-file copyright headers and
-> SPDX identifiers, the attribution-preservation term (§7(b)), and tighter wording on the
-> name clause. See [CHANGELOG](CHANGELOG.md).
+> **v1.24.1 / v1.24.2 are patch releases**: no functional change.
+> v1.24.1 adds licence metadata (source-file copyright headers and SPDX identifiers, the
+> attribution-preservation term, tighter wording on the name clause). v1.24.2 expands the
+> disclaimer — the net-classification tag is not a measurement, Log entries are numbers you
+> typed in, and they can be lost. See [CHANGELOG](CHANGELOG.md).
 
 **Three things outside the code, and two things you only miss while actually repairing a board.**
 
@@ -1597,6 +1611,18 @@ Provided as is, without warranty of any kind. **It only reads** — it does not 
 files, does not go online, and does not diagnose faults for you. The readout panel tells
 you which parts were inferred: if you probe or power a board based on an incomplete
 readout, that is on you. Check with a meter first.
+
+Three things worth stating plainly — all new in v1.24, and all easy to mistake for answers:
+
+- **Net classification is a guess from the name.** The ground / power / clock / reset / diff
+  tag comes from the net name, **not from a measurement**. Boards with arbitrary names
+  (`PA0`, `NET0042`) are deliberately left untagged, but a tag that does appear can still be
+  wrong. Let a meter decide whether something is ground.
+- **The Log holds numbers you typed in.** Nothing is validated, corrected or judged. Probing
+  a board on the strength of someone else's log is your own risk.
+- **Log entries live on this machine and can be lost.** Clearing browser data, changing
+  machines or reinstalling the OS erases them beyond recovery. Export a CSV of anything
+  that matters.
 
 ### Bundled components
 
